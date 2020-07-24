@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "206555785179",
+    "firebase_url": "https://mood-manager-c9f38.firebaseio.com",
+    "project_id": "mood-manager-c9f38",
+    "storage_bucket": "mood-manager-c9f38.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:206555785179:android:eeb52e64660f8f6b5069fe",
+        "android_client_info": {
+          "package_name": "com.mindframe.mood_manager"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "206555785179-gcrn9vq2b34cp85i8fmp4klpuedia92d.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mindframe.mood_manager",
+            "certificate_hash": "5f8ebe6e01c44a2522f41b85995d7edc1cfd97b0"
+          }
+        },
+        {
+          "client_id": "206555785179-5j872qeqcppqrmo4hjmlrin6crck4ri3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCQfO8I05HRG5h16yptJPpy9D2QrTeuhyY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "206555785179-5j872qeqcppqrmo4hjmlrin6crck4ri3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
