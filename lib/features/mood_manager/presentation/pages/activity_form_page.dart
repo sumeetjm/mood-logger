@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mood_manager/features/mood_manager/data/models/m_activity_model.dart';
 import 'package:mood_manager/features/mood_manager/data/models/t_mood_model.dart';
+import 'package:mood_manager/features/mood_manager/data/streams/stream_service.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/m_activity.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/m_activity_type.dart';
 import 'package:mood_manager/features/mood_manager/presentation/bloc/activity_list_index.dart';
 import 'package:mood_manager/features/mood_manager/presentation/bloc/t_mood_index.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/empty_widget.dart';
@@ -11,10 +14,11 @@ import 'package:mood_manager/features/mood_manager/presentation/widgets/activity
 import 'package:mood_manager/features/mood_manager/presentation/widgets/loading_widget.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/widgets.dart';
 import 'package:mood_manager/injection_container.dart';
+import 'package:provider/provider.dart';
 
 class ActivityFormPage extends StatefulWidget {
-  Map<String, List<MActivityModel>> activityListGroupedByType;
-  Map<String, List<MActivityModel>> selectedActivityMap = Map();
+  Map<String, List<MActivity>> activityListGroupedByType;
+  Map<String, List<MActivity>> selectedActivityMap = Map();
   bool isActivitySelected = false;
   TMoodModel tMood;
   Map<String, dynamic> arguments;
@@ -64,7 +68,19 @@ class _ActivityFormPageState extends State<ActivityFormPage> {
           ]),
       body: Column(
         children: <Widget>[
-          buildActivityList(context),
+          StreamProvider<List<MActivityType>>.value(
+            initialData: [],
+            value: sl<StreamService>().activityTypeList,
+            child: ActivityChoiceChips(
+                key: widget.activityListKey,
+                //groupedActivityList: widget.activityListGroupedByType,
+                selectOptions: setActivityList,
+                updateNote: (text) {
+                  widget.note = text;
+                },
+                save: saveMood),
+          ),
+          //buildActivityList(context),
         ],
       ),
     );
@@ -81,7 +97,7 @@ class _ActivityFormPageState extends State<ActivityFormPage> {
               widget.activityListGroupedByType = state.mActivityListGroupByType;
               return ActivityChoiceChips(
                 key: widget.activityListKey,
-                groupedActivityList: widget.activityListGroupedByType,
+                //groupedActivityList: widget.activityListGroupedByType,
                 selectOptions: setActivityList,
                 updateNote: (text) {
                   widget.note = text;
@@ -102,7 +118,7 @@ class _ActivityFormPageState extends State<ActivityFormPage> {
     widget.activityListKey.currentState.scrollToBottom();
   }
 
-  setActivityList(MapEntry<String, List<MActivityModel>> mapEntry) {
+  setActivityList(MapEntry<String, List<MActivity>> mapEntry) {
     setState(() {
       widget.selectedActivityMap[mapEntry.key] = mapEntry.value;
       widget.isActivitySelected = widget.selectedActivityMap != null &&
@@ -114,6 +130,7 @@ class _ActivityFormPageState extends State<ActivityFormPage> {
   }
 
   saveMood() {
+    debugger();
     _transActionBloc.add(SaveTMoodEvent(TMoodModel.fromMood(
         widget.arguments['formData'],
         widget.selectedActivityMap.values.expand((item) => item).toList(),
@@ -123,7 +140,7 @@ class _ActivityFormPageState extends State<ActivityFormPage> {
   @override
   void initState() {
     super.initState();
-    _activityListBloc.add(GetActivityMetaEvent());
+    //_activityListBloc.add(GetActivityMetaEvent());
     subscription = _transActionBloc.listen((state) {
       if (state is TMoodSaved) {
         //;

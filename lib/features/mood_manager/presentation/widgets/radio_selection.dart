@@ -1,14 +1,16 @@
 import 'package:mood_manager/features/mood_manager/data/models/m_mood_model.dart';
 import 'package:custom_radio/custom_radio.dart';
 import 'package:flutter/material.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/m_mood.dart';
 import 'dart:math';
+
+import 'package:provider/provider.dart';
 
 class RadioSelection extends StatefulWidget {
   RadioSelection(
       {Key key,
       this.initialValue,
       this.onChange,
-      this.moodList,
       this.parentCircleRadius,
       this.parentCircleColor})
       : super(key: key);
@@ -17,7 +19,6 @@ class RadioSelection extends StatefulWidget {
   final double parentCircleRadius;
   final Color parentCircleColor;
   final ValueChanged<MMoodModel> onChange;
-  final List<MMoodModel> moodList;
 
   @override
   State<RadioSelection> createState() => _RadioSelectionState();
@@ -59,6 +60,7 @@ class _RadioSelectionState extends State<RadioSelection>
   Animation<double> _animation;
 
   List<Widget> getChildren() {
+    final moodList = Provider.of<List<MMood>>(context) ?? [];
     Widget bigCircle = Container(
       width: widget.parentCircleRadius * 2,
       height: widget.parentCircleRadius * 2,
@@ -69,12 +71,12 @@ class _RadioSelectionState extends State<RadioSelection>
     );
     return [
       bigCircle,
-      ...widget.moodList
+      ...moodList
           .asMap()
           .keys
           .map((key) => Positioned(
                 child: CustomRadio<MMoodModel, double>(
-                    value: widget.moodList.asMap()[key],
+                    value: moodList.asMap()[key],
                     groupValue: widget.initialValue,
                     duration: Duration(milliseconds: 500),
                     animsBuilder: (AnimationController controller) => [
@@ -83,11 +85,9 @@ class _RadioSelectionState extends State<RadioSelection>
                         ],
                     builder: simpleBuilder),
                 top: widget.parentCircleRadius *
-                    (3 / 4 +
-                        cos(key * 2 * pi / widget.moodList.length) * 2 / 3),
+                    (3 / 4 + cos(key * 2 * pi / moodList.length) * 2 / 3),
                 left: widget.parentCircleRadius *
-                    (3 / 4 +
-                        sin(key * 2 * pi / widget.moodList.length) * 2 / 3),
+                    (3 / 4 + sin(key * 2 * pi / moodList.length) * 2 / 3),
               ))
           .toList()
     ];

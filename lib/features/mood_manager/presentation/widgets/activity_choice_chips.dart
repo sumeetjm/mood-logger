@@ -1,30 +1,22 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:chips_choice/chips_choice.dart';
 import 'package:mood_manager/features/mood_manager/data/models/m_activity_model.dart';
-import 'package:mood_manager/features/mood_manager/data/models/m_activity_type_model.dart';
+import 'package:mood_manager/features/mood_manager/data/streams/stream_service.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/m_activity.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/m_activity_type.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/empty_widget.dart';
+import 'package:mood_manager/injection_container.dart';
+import 'package:provider/provider.dart';
 
 class ActivityChoiceChips extends StatefulWidget {
-  final Map<String, List<MActivityModel>> groupedActivityList;
   final ValueChanged<MapEntry<String, List<MActivityModel>>> selectOptions;
   final Function save;
   final ValueChanged<String> updateNote;
-  Map<String, MActivityTypeModel> activityTypeByCode;
 
-  ActivityChoiceChips(
-      {Key key,
-      this.groupedActivityList,
-      this.selectOptions,
-      this.updateNote,
-      this.save})
-      : super(key: key) {
-    this.activityTypeByCode = Map.fromEntries(groupedActivityList.values
-        .expand((element) => element)
-        .toList()
-        .map((e) => e.mActivityType)
-        .toSet()
-        .map((e) => MapEntry(e.code, e as MActivityTypeModel)));
-  }
+  ActivityChoiceChips({Key key, this.selectOptions, this.updateNote, this.save})
+      : super(key: key);
 
   @override
   ActivityChoiceChipsState createState() => ActivityChoiceChipsState();
@@ -36,7 +28,10 @@ class ActivityChoiceChipsState extends State<ActivityChoiceChips> {
 
   Widget buildCircleButton() {
     return RawMaterialButton(
-      onPressed: widget.save,
+      onPressed: () {
+        debugger();
+        widget.save();
+      },
       elevation: 2.0,
       fillColor: Colors.green,
       child: Icon(
@@ -59,6 +54,8 @@ class ActivityChoiceChipsState extends State<ActivityChoiceChips> {
 
   @override
   Widget build(BuildContext context) {
+    debugger(when: false);
+    final activityTypeList = Provider.of<List<MActivityType>>(context) ?? [];
     return Expanded(
         child: ListView(
       physics: AlwaysScrollableScrollPhysics(),
@@ -66,52 +63,22 @@ class ActivityChoiceChipsState extends State<ActivityChoiceChips> {
       shrinkWrap: true,
       padding: EdgeInsets.all(5),
       children: [
-        ...widget.groupedActivityList.keys
+        ...activityTypeList
             .map((type) => Content(
-                  title: widget.activityTypeByCode[type].name,
-                  child: FormField<List<MActivityModel>>(
+                  title: type.name,
+                  child: FormField<List<MActivity>>(
                     autovalidate: true,
                     initialValue: tags,
                     builder: (state) {
-                      return Column(
-                        children: <Widget>[
-                          Container(
-                            alignment: Alignment.centerLeft,
-                            child: ChipsChoice<MActivityModel>.multiple(
-                              value: state.value,
-                              options: ChipsChoiceOption.listFrom<
-                                  MActivityModel, MActivityModel>(
-                                source: widget.groupedActivityList[type],
-                                value: (i, v) => v,
-                                label: (i, v) => v.name,
-                              ),
-                              onChanged: (value) => {
-                                state.didChange(value),
-                                widget.selectOptions(MapEntry(type, value))
-                              },
-                              itemConfig: ChipsChoiceItemConfig(
-                                selectedColor: Colors.green,
-                                selectedBrightness: Brightness.dark,
-                                unselectedColor: Colors.black,
-                                unselectedBorderOpacity: .3,
-                              ),
-                              isWrapped: true,
-                            ),
-                          ),
-                          Container(
-                              padding: EdgeInsets.fromLTRB(15, 0, 15, 15),
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                state.errorText ??
-                                    state.value.length.toString() +
-                                        '/5 selected',
-                                style: TextStyle(
-                                    color: state.hasError
-                                        ? Colors.redAccent
-                                        : Colors.green),
-                              ))
-                        ],
-                      );
+                      return StreamProvider<List<MActivity>>.value(
+                          initialData: [],
+                          value: sl<StreamService>()
+                              .activityList(mActivityTypeRefKey: type.id),
+                          child: ChoiceChipsByType(
+                            mActivityTypeCode: type.code,
+                            selectOptions: widget.selectOptions,
+                            state: state,
+                          ));
                     },
                   ),
                 ))
@@ -137,6 +104,46 @@ class ActivityChoiceChipsState extends State<ActivityChoiceChips> {
         buildCircleButton()
       ],
     ));
+  }
+}
+
+class ChoiceChipsByType extends StatelessWidget {
+  const ChoiceChipsByType({
+    Key key,
+    @required this.state,
+    @required this.mActivityTypeCode,
+    @required this.selectOptions,
+  }) : super(key: key);
+
+  final FormFieldState state;
+  final String mActivityTypeCode;
+  final Function selectOptions;
+
+  @override
+  Widget build(BuildContext context) {
+    final activityList = Provider.of<List<MActivity>>(context) ?? [];
+    return Container(
+      alignment: Alignment.centerLeft,
+      child: ChipsChoice<MActivity>.multiple(
+        value: state.value,
+        options: ChipsChoiceOption.listFrom<MActivity, MActivity>(
+          source: activityList,
+          value: (i, v) => v,
+          label: (i, v) => v.name,
+        ),
+        onChanged: (value) => {
+          state.didChange(value),
+          selectOptions(MapEntry(mActivityTypeCode, value))
+        },
+        itemConfig: ChipsChoiceItemConfig(
+          selectedColor: Colors.green,
+          selectedBrightness: Brightness.dark,
+          unselectedColor: Colors.black,
+          unselectedBorderOpacity: .3,
+        ),
+        isWrapped: true,
+      ),
+    );
   }
 }
 

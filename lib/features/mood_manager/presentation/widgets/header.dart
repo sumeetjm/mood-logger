@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-class Header extends StatelessWidget {
-  const Header({
+class DateHeader extends StatelessWidget {
+  const DateHeader({
     Key key,
-    @required this.color,
     @required this.text,
   }) : super(key: key);
 
-  final Color color;
   final String text;
 
   @override
   Widget build(BuildContext context) {
+    final headerColor = Provider.of<Color>(context);
     return Container(
         height: 30,
         decoration: new BoxDecoration(
-            color: color,
+            color: headerColor,
             borderRadius: new BorderRadius.only(
               topLeft: const Radius.circular(15.0),
               topRight: const Radius.circular(15.0),

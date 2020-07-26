@@ -9,5 +9,5 @@ class BaseT extends Equatable {
   BaseT({@required this.auditDate, @required this.isActive});
 
   @override
-  List<Object> get props => [];
+  List<Object> get props => [auditDate, isActive];
 }

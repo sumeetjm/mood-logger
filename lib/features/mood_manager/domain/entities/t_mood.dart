@@ -5,32 +5,31 @@ import 'package:mood_manager/features/mood_manager/domain/entities/t_activity.da
 import 'package:mood_manager/features/mood_manager/domain/entities/m_mood.dart';
 
 class TMood extends BaseT {
-  final int transMoodId;
-  final String moodCode;
-  final String moodName;
-  final String note;
+  final String transMoodId;
+  String note;
   final DateTime logDateTime;
-  final List<TActivity> tActivityList;
-  final MMood mMood;
+  List<TActivity> tActivityList;
+  MMood mMood;
 
   TMood(
       {this.transMoodId,
       DateTime auditDate,
       bool isActive,
-      @required this.moodCode,
-      @required this.moodName,
       this.note,
       @required this.logDateTime,
       this.tActivityList,
       this.mMood})
       : super(auditDate: auditDate, isActive: isActive);
 
+  set setTActivityList(List<TActivity> tActivityList) {
+    this.tActivityList = tActivityList;
+  }
+
+  set setNote(String note) {
+    this.note = note;
+  }
+
   @override
-  List<Object> get props => [
-        transMoodId,
-        moodCode,
-        moodName,
-        note,
-        logDateTime,
-      ];
+  List<Object> get props =>
+      [transMoodId, note, logDateTime, tActivityList, mMood, ...super.props];
 }

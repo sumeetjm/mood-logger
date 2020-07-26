@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 class ColorUtil {
   static Color mix(List<Color> colors) {
+    if (colors.isEmpty) {
+      return Colors.white;
+    }
     return Color.fromRGBO(
         colors
                 .map((color) => color.red)

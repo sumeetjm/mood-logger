@@ -1,21 +1,19 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mood_manager/features/mood_manager/data/models/m_activity_model.dart';
+import 'package:mood_manager/features/mood_manager/data/models/t_mood_model.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/t_activity.dart';
-import 'package:flutter/material.dart';
-import 'package:meta/meta.dart';
 
 class TActivityModel extends TActivity {
   TActivityModel(
-      {int transActivityId,
-      @required String activityName,
-      @required String activityCode,
+      {String transActivityId,
       MActivityModel mActivityModel,
-      bool isActive = true})
+      bool isActive = true,
+      TMoodModel tMoodModel})
       : super(
             transActivityId: transActivityId,
-            activityName: activityName,
-            activityCode: activityCode,
             mActivity: mActivityModel,
-            isActive: isActive);
+            isActive: isActive,
+            tMood: tMoodModel);
 
   factory TActivityModel.fromJson(Map<String, dynamic> json) {
     if (json == null) {
@@ -23,8 +21,6 @@ class TActivityModel extends TActivity {
     }
     return TActivityModel(
         transActivityId: json['transActivityId'],
-        activityName: json['activityName'],
-        activityCode: json['activityCode'],
         mActivityModel: MActivityModel.fromJson(json['mactivity']),
         isActive: json['isActive']);
   }
@@ -33,13 +29,36 @@ class TActivityModel extends TActivity {
     return jsonArray.map((json) => TActivityModel.fromJson(json)).toList();
   }
 
+  factory TActivityModel.fromId(String transActivityId) {
+    return TActivityModel(transActivityId: transActivityId);
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'transActivityId': transActivityId,
-      'activityName': activityName,
-      'activityCode': activityCode,
       'mactivity': (mActivity as MActivityModel).toJson(),
       'isActive': isActive
     };
+  }
+
+  Map<String, dynamic> toFirestore(Firestore firestore) {
+    return {
+      'mActivity': firestore.document("/mActivity/${mActivity.id}"),
+      'isActive': isActive,
+      'tMood': firestore.document("/tMood/${tMood.transMoodId}")
+    };
+  }
+
+  factory TActivityModel.fromFirestore(DocumentSnapshot doc) {
+    if (doc == null) {
+      return null;
+    }
+    return TActivityModel(
+        transActivityId: doc['transActivityId'],
+        isActive: doc['isActive'],
+        mActivityModel: MActivityModel.fromId(
+            (doc['mActivity'] as DocumentReference).documentID),
+        tMoodModel:
+            TMoodModel.fromId((doc['tMood'] as DocumentReference).documentID));
   }
 }

@@ -2,7 +2,7 @@ import 'package:mood_manager/features/mood_manager/domain/entities/base_m.dart';
 
 class MActivityType extends BaseM {
   MActivityType(
-      {int activityTypeId,
+      {String activityTypeId,
       String activityTypeName,
       String activityTypeCode,
       bool isActive})
@@ -11,7 +11,4 @@ class MActivityType extends BaseM {
             name: activityTypeName,
             code: activityTypeCode,
             isActive: isActive);
-
-  @override
-  List<Object> get props => [id, name, code, isActive];
 }

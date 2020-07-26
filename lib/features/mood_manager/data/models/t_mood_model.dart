@@ -1,27 +1,23 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:mood_manager/core/constants.dart/app_constants.dart';
 
-import 'package:mood_manager/features/mood_manager/data/models/m_activity_model.dart';
 import 'package:mood_manager/features/mood_manager/data/models/t_activity_model.dart';
 import 'package:mood_manager/features/mood_manager/data/models/m_mood_model.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/m_activity.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/t_activity.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/t_mood.dart';
-import 'package:flutter/material.dart';
-import 'package:meta/meta.dart';
 
 class TMoodModel extends TMood {
   TMoodModel(
-      {int transMoodId,
-      @required String moodName,
-      @required String moodCode,
+      {String transMoodId,
       String note,
-      @required DateTime logDateTime,
-      List<TActivityModel> tActivityModelList,
+      DateTime logDateTime,
+      List<TActivity> tActivityModelList,
       MMoodModel mMoodModel,
       bool isActive = true})
       : super(
             transMoodId: transMoodId,
-            moodName: moodName,
-            moodCode: moodCode,
             note: note,
             logDateTime: logDateTime,
             tActivityList: tActivityModelList,
@@ -29,19 +25,18 @@ class TMoodModel extends TMood {
             isActive: isActive);
 
   factory TMoodModel.fromMood(
-      TMoodModel tMood, List<MActivityModel> mActivityList, String note) {
+      TMoodModel tMood, List<MActivity> mActivityList, String note) {
     return TMoodModel(
         logDateTime: tMood.logDateTime,
-        moodCode: tMood.moodCode,
-        moodName: tMood.moodName,
         tActivityModelList: mActivityList
-            .map((mActivity) => TActivityModel(
-                activityCode: mActivity.code,
-                activityName: mActivity.name,
-                mActivityModel: mActivity))
+            .map((mActivity) => TActivityModel(mActivityModel: mActivity))
             .toList(),
         note: note,
         mMoodModel: tMood.mMood);
+  }
+
+  factory TMoodModel.fromId(String transMoodId) {
+    return TMoodModel(transMoodId: transMoodId);
   }
 
   factory TMoodModel.fromJson(Map<String, dynamic> json) {
@@ -50,8 +45,6 @@ class TMoodModel extends TMood {
     }
     return TMoodModel(
         transMoodId: json['transMoodId'],
-        moodName: json['moodName'],
-        moodCode: json['moodCode'],
         note: json['note'] == null ? '' : json['note'],
         tActivityModelList:
             TActivityModel.fromJsonArray(json['tactivityList'] as List),
@@ -60,12 +53,26 @@ class TMoodModel extends TMood {
         mMoodModel: MMoodModel.fromJson(json['mmood']));
   }
 
+  factory TMoodModel.fromFirestore(DocumentSnapshot doc) {
+    if (doc == null) {
+      return null;
+    }
+    return TMoodModel(
+        transMoodId: doc.documentID,
+        note: doc['note'] ?? '',
+        logDateTime: DateTime.fromMillisecondsSinceEpoch(
+            (doc['logDateTime'] as Timestamp).millisecondsSinceEpoch),
+        isActive: doc['isActive'],
+        mMoodModel:
+            MMoodModel.fromId((doc['mMood'] as DocumentReference).documentID));
+  }
+
   static List<TMoodModel> fromJsonArray(List<dynamic> jsonArray) {
     return jsonArray.map((json) => TMoodModel.fromJson(json)).toList();
   }
 
-  static Map<DateTime, List<TMoodModel>> subListMapByDate(
-    List<TMoodModel> tMoodList,
+  static Map<DateTime, List<TMood>> subListMapByDate(
+    List<TMood> tMoodList,
   ) {
     return Map.fromEntries(tMoodList
         .map((tMood) => DateFormat(AppConstants.HEADER_DATE_FORMAT)
@@ -73,7 +80,7 @@ class TMoodModel extends TMood {
         .toList()
         .toSet()
         .toList()
-        .map((dateStr) => MapEntry<DateTime, List<TMoodModel>>(
+        .map((dateStr) => MapEntry<DateTime, List<TMood>>(
             DateFormat(AppConstants.HEADER_DATE_FORMAT).parse(dateStr),
             tMoodList
                 .where((element) =>
@@ -89,12 +96,19 @@ class TMoodModel extends TMood {
         .toList();
     return {
       'transMoodId': transMoodId,
-      'moodName': moodName,
-      'moodCode': moodCode,
       'note': note,
       'logDateTime': DateFormat("yyyy-MM-dd@HH:mm:ss").format(logDateTime),
       'tactivityList': tActivityListMap,
       'mmood': (mMood as MMoodModel).toJson(),
+      'isActive': isActive
+    };
+  }
+
+  Map<String, dynamic> toFirestore(Firestore firestore) {
+    return {
+      'note': note,
+      'logDateTime': logDateTime,
+      'mMood': firestore.document("/mMood/${mMood.id}"),
       'isActive': isActive
     };
   }

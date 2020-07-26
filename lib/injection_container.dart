@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:mood_manager/features/auth/data/datasources/auth_data_source.dart';
@@ -14,6 +15,7 @@ import 'package:mood_manager/features/auth/presentation/bloc/login_bloc.dart';
 import 'package:mood_manager/features/auth/presentation/bloc/signup_bloc.dart';
 import 'package:mood_manager/features/mood_manager/data/datasources/m_activity_remote_data_source.dart';
 import 'package:mood_manager/features/mood_manager/data/repositories/m_activity_repository_impl.dart';
+import 'package:mood_manager/features/mood_manager/data/streams/stream_service.dart';
 import 'package:mood_manager/features/mood_manager/domain/repositories/m_activity_repository.dart';
 import 'package:mood_manager/features/mood_manager/domain/usecases/get_m_activity_list.dart';
 import 'package:mood_manager/features/mood_manager/domain/usecases/save_t_mood.dart';
@@ -84,14 +86,21 @@ Future<void> init() async {
   sl.registerLazySingleton<MMoodRemoteDataSource>(
     () => MMoodRemoteDataSourceImpl(client: sl()),
   );
+  /* sl.registerLazySingleton<TActivityRemoteDataSource>(
+    () => TActivityFirestoreDataSource(firestore: sl()),
+  );*/
   sl.registerLazySingleton<TMoodRemoteDataSource>(
-    () => TMoodRemoteDataSourceImpl(client: sl()),
+    () => TMoodFirestoreDataSource(firestore: sl()),
   );
   sl.registerLazySingleton<MActivityRemoteDataSource>(
     () => MActivityRemoteDataSourceImpl(client: sl()),
   );
   sl.registerLazySingleton<AuthDataSource>(
     () => AuthDataSourceImpl(firebaseAuth: sl(), googleSignin: sl()),
+  );
+
+  sl.registerLazySingleton<StreamService>(
+    () => StreamService(firestore: sl()),
   );
 
   //! Core
@@ -102,5 +111,6 @@ Future<void> init() async {
   sl.registerLazySingleton(() => http.Client());
   sl.registerLazySingleton(() => DataConnectionChecker());
   sl.registerLazySingleton(() => FirebaseAuth.instance);
+  sl.registerLazySingleton(() => Firestore.instance);
   sl.registerLazySingleton(() => GoogleSignIn());
 }

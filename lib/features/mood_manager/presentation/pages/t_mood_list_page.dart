@@ -1,20 +1,19 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mood_manager/core/util/resource_util.dart';
 import 'package:mood_manager/features/auth/presentation/bloc/authentication_bloc.dart';
 import 'package:mood_manager/features/mood_manager/data/models/t_mood_model.dart';
+import 'package:mood_manager/features/mood_manager/data/streams/stream_service.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/t_mood.dart';
 import 'package:mood_manager/features/mood_manager/presentation/bloc/t_mood_index.dart';
-import 'package:mood_manager/features/mood_manager/presentation/widgets/loading_bar.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/t_mood_event_calendar.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/t_mood_slidable.dart';
 import 'package:mood_manager/injection_container.dart';
+import 'package:provider/provider.dart';
 
 class TMoodListPage extends StatefulWidget {
-  Map<DateTime, List<TMoodModel>> tMoodListListGroupByDate = Map();
   Map<String, dynamic> arguments = Map();
-  bool isLoading = true;
+  List<TMood> tMoodList;
 
   TMoodListPage(this.arguments);
 
@@ -24,9 +23,8 @@ class TMoodListPage extends StatefulWidget {
 
 class _TMoodListPageState extends State<TMoodListPage> {
   TMoodBloc _tMoodBloc;
-  StreamSubscription<TMoodState> _tMoodListener;
   List<Widget> views = [];
-  int currentIndex;
+  int currentIndex = 0;
 
   _TMoodListPageState() {
     _tMoodBloc = sl<TMoodBloc>();
@@ -40,12 +38,9 @@ class _TMoodListPageState extends State<TMoodListPage> {
           IconButton(
             icon: Icon(Icons.exit_to_app),
             onPressed: () =>
-                {BlocProvider.of<AuthenticationBloc>(context).add(LoggedOut())},
+                BlocProvider.of<AuthenticationBloc>(context).add(LoggedOut()),
           )
         ],
-        bottom: PreferredSize(
-            child: LoadingBar(widget.isLoading),
-            preferredSize: Size.fromHeight(4.0)),
       ),
       body: buildTMoodList(context),
       floatingActionButton: FloatingActionButton(
@@ -78,29 +73,37 @@ class _TMoodListPageState extends State<TMoodListPage> {
   List<Widget> getViews() {
     return [
       TMoodSlidable(
-        tMoodListGroupByDate: widget.tMoodListListGroupByDate,
+        refreshCallback: () {},
+        /* tMoodListGroupByDate:
+                    TMoodModel.subListMapByDate(snapshot.data ?? []),*/
         deleteCallback: delete,
         editCallback: edit,
-        refreshCallback: refresh,
       ),
       TMoodEventCalendar(
-          tMoodListGroupByDate: widget.tMoodListListGroupByDate,
+          /* tMoodListGroupByDate:
+                  TMoodModel.subListMapByDate(snapshot.data ?? []),*/
           deleteCallback: delete,
-          editCallback: edit),
+          editCallback: edit)
     ];
   }
 
   buildTMoodList(BuildContext context) {
-    return getViews()[currentIndex];
+    return StreamBuilder<List<TMood>>(
+        stream: sl<StreamService>().tMoodList,
+        builder: (context, snapshot) {
+          return StreamProvider<List<MapEntry<DateTime, List<TMood>>>>.value(
+            initialData: [],
+            value: Stream.value(TMoodModel.subListMapByDate(snapshot.data ?? [])
+                .entries
+                .toList()),
+            child: getViews()[currentIndex],
+          );
+        });
   }
 
   void delete(DateTime date, TMoodModel tMoodModel) {
-    setState(() {
-      widget.tMoodListListGroupByDate[date].remove(tMoodModel);
-    });
+    setState(() {});
     _tMoodBloc.add(SaveTMoodEvent(TMoodModel(
-        moodName: tMoodModel.moodName,
-        moodCode: tMoodModel.moodCode,
         logDateTime: tMoodModel.logDateTime,
         isActive: false,
         mMoodModel: tMoodModel.mMood,
@@ -114,35 +117,16 @@ class _TMoodListPageState extends State<TMoodListPage> {
         .pushNamed("/edit", arguments: {'formData': tMoodModel});
   }
 
-  Future<void> refresh() async {
-    setState(() {
-      widget.isLoading = true;
-    });
-    _tMoodBloc.add(GetTMoodListEvent());
-  }
-
   @override
   void initState() {
     super.initState();
     setState(() {
-      views = getViews();
       onTabTapped(0);
-      widget.isLoading = true;
     });
-    _tMoodBloc.add(GetTMoodListEvent());
-    _tMoodListener = _tMoodBloc.listen((state) {
-      if (state is TMoodListLoaded) {
-        setState(() {
-          widget.tMoodListListGroupByDate =
-              TMoodModel.subListMapByDate(state.tMoodList);
-          widget.isLoading = false;
-        });
-      } else if (state is TMoodSaved) {
-        _tMoodBloc.add(GetTMoodListEvent());
-        setState(() {
-          widget.isLoading = true;
-        });
-      }
+    sl<StreamService>().tMoodList.listen((event) {
+      setState(() {
+        widget.tMoodList = event;
+      });
     });
   }
 
@@ -150,6 +134,5 @@ class _TMoodListPageState extends State<TMoodListPage> {
   void dispose() {
     super.dispose();
     ResourceUtil.closeBloc(_tMoodBloc);
-    ResourceUtil.closeSubscription(_tMoodListener);
   }
 }

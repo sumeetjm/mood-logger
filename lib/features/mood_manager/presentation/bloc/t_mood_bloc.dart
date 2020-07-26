@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:bloc/bloc.dart';
 import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
@@ -27,6 +29,7 @@ class TMoodBloc extends Bloc<TMoodEvent, TMoodState> {
   Stream<TMoodState> mapEventToState(
     TMoodEvent event,
   ) async* {
+    debugger();
     if (event is SaveTMoodEvent) {
       final failureOrMood = await saveTMood(Params<TMood>(event.tMood));
       yield* _eitherSavedOrErrorState(failureOrMood);

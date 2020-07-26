@@ -17,7 +17,7 @@ class TMoodRepositoryImpl implements TMoodRepository {
     @required this.networkInfo,
   });
 
-  @override
+  /*@override
   Future<Either<Failure, List<TMood>>> getTMoodList() async {
     if (await networkInfo.isConnected) {
       try {
@@ -29,7 +29,7 @@ class TMoodRepositoryImpl implements TMoodRepository {
     } else {
       return Left(ServerFailure());
     }
-  }
+  }*/
 
   @override
   Future<Either<Failure, TMood>> saveTMood(TMood tMood) async {

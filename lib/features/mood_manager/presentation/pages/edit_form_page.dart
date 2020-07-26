@@ -148,7 +148,7 @@ class _EditFormPageState extends State<EditFormPage> {
                   } else if (state is MoodCircleLoaded) {
                     widget.mMoodList = state.moodList;
                     return RadioSelection(
-                      moodList: widget.mMoodList,
+                      //moodList: widget.mMoodList,
                       initialValue: widget.selectedMood,
                       onChange: this.onChange,
                       parentCircleColor: Colors.blueGrey[50],
@@ -242,20 +242,14 @@ class _EditFormPageState extends State<EditFormPage> {
     finalSaveActivityList
         .addAll(selectedMActivityList.map((activity) => TActivityModel(
               transActivityId: existingActivityMap[activity],
-              activityCode: activity.code,
-              activityName: activity.name,
               mActivityModel: activity,
             )));
     finalSaveActivityList.addAll(deselectedActivityList.map((activity) =>
         TActivityModel(
             transActivityId: existingActivityMap[activity],
-            activityCode: activity.code,
-            activityName: activity.name,
             mActivityModel: activity,
             isActive: false)));
     final saveData = TMoodModel(
-        moodName: widget.selectedMood.name,
-        moodCode: widget.selectedMood.code,
         logDateTime:
             DateTimeField.combine(widget.selectedDate, widget.selectedTime),
         transMoodId: widget.originalTMoodModel.transMoodId,

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:meta/meta.dart';
 
 class BaseM extends Equatable {
-  final int id;
+  final String id;
   final String name;
   final String code;
   final bool isActive;

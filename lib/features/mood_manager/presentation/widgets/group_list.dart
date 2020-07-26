@@ -102,7 +102,7 @@ class _GroupListState extends State<GroupList>
                     shape: BoxShape.circle,
                     color: map[index].mMood.color,
                   ),
-                  child: Text(map[index].moodName)),
+                  child: Text(map[index].mMood.name)),
             ),
             Positioned(
                 right: 5,
@@ -120,7 +120,7 @@ class _GroupListState extends State<GroupList>
                     child: Text(
                       map[index]
                           .tActivityList
-                          .map((item) => item.activityName)
+                          .map((item) => item.mActivity.name)
                           .join(" | "),
                       style: TextStyle(
                           fontSize: 15,

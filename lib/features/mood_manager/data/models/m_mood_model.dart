@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mood_manager/core/util/hex_color.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/m_mood.dart';
 import 'package:flutter/material.dart';
@@ -5,10 +6,10 @@ import 'package:meta/meta.dart';
 
 class MMoodModel extends MMood {
   MMoodModel(
-      {@required int moodId,
-      @required String moodName,
-      @required String moodCode,
-      @required Color color,
+      {String moodId,
+      String moodName,
+      String moodCode,
+      Color color,
       bool isActive = true})
       : super(
             moodId: moodId,
@@ -29,6 +30,22 @@ class MMoodModel extends MMood {
         color: HexColor.fromHex(json['hexColor']));
   }
 
+  factory MMoodModel.fromFirestore(DocumentSnapshot doc) {
+    if (doc == null) {
+      return null;
+    }
+    return MMoodModel(
+        moodId: doc.documentID,
+        moodName: doc['name'],
+        moodCode: doc['code'],
+        isActive: doc['isActive'],
+        color: HexColor.fromHex(doc['hexColor']));
+  }
+
+  factory MMoodModel.fromId(String moodId) {
+    return MMoodModel(moodId: moodId);
+  }
+
   static List<MMoodModel> fromJsonArray(List<dynamic> jsonArray) {
     return jsonArray.map((json) => MMoodModel.fromJson(json)).toList();
   }
@@ -41,5 +58,14 @@ class MMoodModel extends MMood {
       'color': color.toHex(),
       'isActive': isActive,
     };
+  }
+
+  factory MMoodModel.initial() {
+    return MMoodModel(
+        color: Colors.white,
+        isActive: true,
+        moodCode: '',
+        moodId: '',
+        moodName: '');
   }
 }

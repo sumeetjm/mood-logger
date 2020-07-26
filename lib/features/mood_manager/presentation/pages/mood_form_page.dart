@@ -1,5 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mood_manager/core/util/resource_util.dart';
 import 'package:mood_manager/features/mood_manager/data/models/t_mood_model.dart';
+import 'package:mood_manager/features/mood_manager/data/streams/stream_service.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/m_mood.dart';
 import 'package:mood_manager/features/mood_manager/presentation/bloc/mood_circle_index.dart';
 import 'package:datetime_picker_formfield/datetime_picker_formfield.dart';
 import 'package:mood_manager/features/mood_manager/data/models/m_mood_model.dart';
@@ -10,6 +13,7 @@ import 'package:mood_manager/features/mood_manager/presentation/widgets/radio_se
 import 'package:mood_manager/features/mood_manager/presentation/widgets/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:provider/provider.dart';
 
 import '../../../../injection_container.dart';
 
@@ -59,7 +63,16 @@ class _MoodFormPageState extends State<MoodFormPage> {
               fontSize: 30,
             ),
           ),
-          buildMoodCircle(context),
+          StreamProvider<List<MMood>>.value(
+            initialData: [],
+            value: sl<StreamService>().moods,
+            child: RadioSelection(
+              initialValue: widget.selectedMood,
+              onChange: this.updateState,
+              parentCircleColor: Colors.blueGrey[50],
+              parentCircleRadius: 150,
+            ),
+          ),
           SizedBox(
             height: 20,
           ),
@@ -111,7 +124,7 @@ class _MoodFormPageState extends State<MoodFormPage> {
                   } else if (state is MoodCircleLoaded) {
                     widget.moodList = state.moodList;
                     return RadioSelection(
-                      moodList: widget.moodList,
+                      // moodList: widget.moodList,
                       initialValue: widget.selectedMood,
                       onChange: this.updateState,
                       parentCircleColor: Colors.blueGrey[50],
@@ -141,8 +154,6 @@ class _MoodFormPageState extends State<MoodFormPage> {
   saveMood() {
     Navigator.pushNamed(context, "/add/activity", arguments: {
       'formData': TMoodModel(
-          moodName: widget.selectedMood.name,
-          moodCode: widget.selectedMood.code,
           note: null,
           logDateTime: DateTimeField.combine(widget.date, widget.time),
           mMoodModel: widget.selectedMood)
@@ -152,7 +163,7 @@ class _MoodFormPageState extends State<MoodFormPage> {
   @override
   void initState() {
     super.initState();
-    _moodCircleBloc.add(GetMoodMetaEvent());
+    //_moodCircleBloc.add(GetMoodMetaEvent());
   }
 
   @override

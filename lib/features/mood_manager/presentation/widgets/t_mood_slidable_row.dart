@@ -1,26 +1,35 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
-import 'package:mood_manager/features/mood_manager/data/models/t_mood_model.dart';
+import 'package:mood_manager/features/mood_manager/data/models/m_mood_model.dart';
+import 'package:mood_manager/features/mood_manager/data/streams/stream_service.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/m_activity.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/m_mood.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/t_activity.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/t_mood.dart';
+import 'package:mood_manager/injection_container.dart';
+import 'package:provider/provider.dart';
 import 'package:tinycolor/tinycolor.dart';
 import 'package:intl/intl.dart';
 
 class TMoodSlidableRow extends StatelessWidget {
-  final TMoodModel tMoodModel;
+  // final TMoodModel tMood;
   final SlidableController slidableController;
   final Axis direction;
   final Function deleteCallback;
   final Function editCallback;
 
   TMoodSlidableRow(
-      {@required this.tMoodModel,
+      {/*@required this.tMood,*/
       @required this.slidableController,
       @required this.direction,
       @required this.editCallback,
       @required this.deleteCallback});
   @override
   Widget build(BuildContext context) {
+    final TMood tMood = Provider.of<TMood>(context);
     return Slidable.builder(
-      key: ValueKey(tMoodModel.transMoodId),
+      key: ValueKey(tMood?.transMoodId),
       controller: slidableController,
       direction: direction,
       dismissal: SlidableDismissal(
@@ -53,7 +62,11 @@ class TMoodSlidableRow extends StatelessWidget {
       ),
       actionPane: SlidableBehindActionPane(),
       actionExtentRatio: 0.25,
-      child: VerticalListItem(tMoodModel),
+      child: Column(
+        children: <Widget>[
+          if (tMood != null) VerticalListItem(tMood),
+        ],
+      ),
       actionDelegate: SlideActionBuilderDelegate(
           actionCount: 2,
           builder: (context, index, animation, renderingMode) {
@@ -134,7 +147,7 @@ class TMoodSlidableRow extends StatelessWidget {
 
 class VerticalListItem extends StatelessWidget {
   VerticalListItem(this.item);
-  final TMoodModel item;
+  final TMood item;
 
   @override
   Widget build(BuildContext context) {
@@ -143,40 +156,62 @@ class VerticalListItem extends StatelessWidget {
           Slidable.of(context)?.renderingMode == SlidableRenderingMode.none
               ? Slidable.of(context)?.open()
               : Slidable.of(context)?.close(),
-      child: Container(
-        height: 90,
-        //color: Colors.white,
-        decoration: BoxDecoration(
-            border: Border(bottom: BorderSide(color: Colors.grey[400]))),
-        child: ListTile(
-          isThreeLine: true,
-          leading: CircleAvatar(
-            backgroundColor: item.mMood.color,
-            foregroundColor: Colors.white,
-            radius: 30,
-          ),
-          title: Text(
-            item.moodName.toUpperCase(),
-            style:
-                TextStyle(color: TinyColor(item.mMood.color).darken(20).color),
-          ),
-          subtitle: Wrap(
-            children: <Widget>[
-              Text(
-                item.tActivityList.map((e) => e.activityName).join(" | "),
+      child: FutureBuilder<MMood>(
+        initialData: MMoodModel.initial(),
+        future: sl<Firestore>()
+            .collection('mMood')
+            .document(item.mMood.id)
+            .snapshots()
+            .map((e) => MMoodModel.fromFirestore(e))
+            .first,
+        builder: (context, snapshot) {
+          return Container(
+            height: 90,
+            //color: Colors.white,
+            decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: Colors.grey[400]))),
+            child: ListTile(
+              isThreeLine: true,
+              leading: CircleAvatar(
+                backgroundColor: snapshot.data.color,
+                foregroundColor: Colors.white,
+                radius: 30,
               ),
-              Text(
-                item.note != null ? item.note : '',
-              )
-            ],
-          ),
-          trailing:
-              Text(DateFormat(DateFormat.HOUR_MINUTE).format(item.logDateTime),
+              title: Text(
+                snapshot.data.name.toUpperCase(),
+                style: TextStyle(
+                    color: TinyColor(snapshot.data.color).darken(20).color),
+              ),
+              subtitle: Wrap(
+                children: <Widget>[
+                  StreamBuilder<List<TActivity>>(
+                    initialData: [],
+                    stream: sl<StreamService>().tActivityList(item),
+                    builder: (context, snapshot) =>
+                        StreamBuilder<List<MActivity>>(
+                            initialData: [],
+                            stream: sl<StreamService>()
+                                .mActivityList(snapshot.data),
+                            builder: (context, snapshot) {
+                              return Text(
+                                snapshot.data.map((e) => e.name).join(" | "),
+                              );
+                            }),
+                  ),
+                  Text(
+                    item.note ?? '',
+                  )
+                ],
+              ),
+              trailing: Text(
+                  DateFormat(DateFormat.HOUR_MINUTE).format(item.logDateTime),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Colors.grey[800],
                   )),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
