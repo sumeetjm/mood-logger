@@ -5,6 +5,10 @@ import 'package:mood_manager/features/mood_manager/data/models/m_activity_model.
 import 'package:mood_manager/features/mood_manager/data/models/t_activity_model.dart';
 import 'package:mood_manager/features/mood_manager/data/models/m_activity_type_model.dart';
 import 'package:mood_manager/features/mood_manager/data/models/t_mood_model.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/m_activity.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/m_activity_type.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/m_mood.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/t_activity.dart';
 import 'package:mood_manager/features/mood_manager/presentation/bloc/activity_list_index.dart';
 import 'package:mood_manager/features/mood_manager/presentation/bloc/t_mood_index.dart';
 import 'package:mood_manager/features/mood_manager/presentation/bloc/mood_circle_index.dart';
@@ -22,31 +26,30 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../injection_container.dart';
 
 class EditFormPage extends StatefulWidget {
-  TMoodModel originalTMoodModel;
-  List<MMoodModel> mMoodList;
-  Map<String, List<MActivityModel>> mActivityListGroupByType = Map();
-  Map<String, MActivityTypeModel> mActivityTypeMapByCode = Map();
-  List<MActivityModel> originalTActivityList;
+  TMoodModel originalTMood;
+  List<MMood> mMoodList;
+  Map<String, List<MActivity>> mActivityListGroupByType = Map();
+  Map<String, MActivityType> mActivityTypeMapByCode = Map();
+  List<MActivity> originalTActivityList;
 
   //New form data
   DateTime selectedDate;
   TimeOfDay selectedTime;
-  MMoodModel selectedMood;
-  Map<String, List<MActivityModel>> selectedMActivityListGroupByType = Map();
+  MMood selectedMood;
+  Map<String, List<MActivity>> selectedMActivityListGroupByType = Map();
   String note;
 
   Map<dynamic, dynamic> arguments;
 
   EditFormPage(this.arguments) {
     if (arguments != null) {
-      originalTMoodModel = arguments['formData'];
-      selectedDate = originalTMoodModel.logDateTime;
+      originalTMood = arguments['formData'];
+      selectedDate = originalTMood.logDateTime;
       selectedTime = TimeOfDay.fromDateTime(selectedDate);
-      selectedMood = originalTMoodModel.mMood;
-      note = originalTMoodModel.note;
-      originalTActivityList = originalTMoodModel.tActivityList
-          .map((tActivity) => tActivity.mActivity as MActivityModel)
-          .toList();
+      selectedMood = originalTMood.mMood;
+      note = originalTMood.note;
+      originalTActivityList =
+          [].map((tActivity) => tActivity.mActivity as MActivityModel).toList();
     }
   }
   @override
@@ -173,7 +176,7 @@ class _EditFormPageState extends State<EditFormPage> {
     return widget.mActivityTypeMapByCode.keys
         .map((typeCode) => Content(
               title: widget.mActivityTypeMapByCode[typeCode].name,
-              child: FormField<List<MActivityModel>>(
+              child: FormField<List<MActivity>>(
                 autovalidate: true,
                 initialValue: widget.selectedMActivityListGroupByType[typeCode],
                 builder: (state) {
@@ -181,10 +184,10 @@ class _EditFormPageState extends State<EditFormPage> {
                     children: <Widget>[
                       Container(
                         alignment: Alignment.centerLeft,
-                        child: ChipsChoice<MActivityModel>.multiple(
+                        child: ChipsChoice<MActivity>.multiple(
                           value: state.value,
                           options: ChipsChoiceOption.listFrom<MActivityModel,
-                              MActivityModel>(
+                              MActivity>(
                             source: widget.mActivityListGroupByType[typeCode],
                             value: (i, v) => v,
                             label: (i, v) => v.name,
@@ -234,11 +237,10 @@ class _EditFormPageState extends State<EditFormPage> {
     final deselectedActivityList = widget.originalTActivityList
         .where((mActivity) => !selectedMActivityList.contains(mActivity))
         .toList();
-    final existingActivityMap = Map.fromEntries(widget
-        .originalTMoodModel.tActivityList
-        .map((e) => MapEntry(e.mActivity, e.transActivityId)));
+    final existingActivityMap = Map.fromEntries(
+        [].map((e) => MapEntry(e.mActivity, e.transActivityId)));
 
-    final finalSaveActivityList = List<TActivityModel>();
+    final finalSaveActivityList = List<TActivity>();
     finalSaveActivityList
         .addAll(selectedMActivityList.map((activity) => TActivityModel(
               transActivityId: existingActivityMap[activity],
@@ -252,14 +254,13 @@ class _EditFormPageState extends State<EditFormPage> {
     final saveData = TMoodModel(
         logDateTime:
             DateTimeField.combine(widget.selectedDate, widget.selectedTime),
-        transMoodId: widget.originalTMoodModel.transMoodId,
-        mMoodModel: widget.selectedMood,
-        note: widget.note,
-        tActivityModelList: finalSaveActivityList);
-    _transActionBloc.add(SaveTMoodEvent(saveData));
+        transMoodId: widget.originalTMood.id,
+        mMood: widget.selectedMood,
+        note: widget.note);
+    _transActionBloc.add(SaveTMoodEvent(saveData, finalSaveActivityList));
   }
 
-  setActivityList(MapEntry<String, List<MActivityModel>> mapEntry) {
+  setActivityList(MapEntry<String, List<MActivity>> mapEntry) {
     setState(() {
       widget.selectedMActivityListGroupByType[mapEntry.key] = mapEntry.value;
     });
@@ -271,13 +272,13 @@ class _EditFormPageState extends State<EditFormPage> {
     _moodCircleBloc.add(GetMoodMetaEvent());
     _activityListBloc.add(GetActivityMetaEvent());
     activityListBlocListener = _activityListBloc.listen((state) {
-      if (state is ActivityListLoaded) {
+      /*if (state is ActivityListLoaded) {
         setState(() {
-          widget.mActivityListGroupByType = state.mActivityListGroupByType;
+          widget.mActivityListGroupByType = state.mActivityList;
           widget.mActivityTypeMapByCode = Map.fromEntries(widget
               .mActivityListGroupByType.values
               .expand((mActivityList) => mActivityList)
-              .map((mActivity) => mActivity.mActivityType)
+              //.map((mActivity) => mActivity.mActivityType)
               .toSet()
               .map((mActivity) =>
                   MapEntry(mActivity.code, mActivity as MActivityTypeModel)));
@@ -291,7 +292,7 @@ class _EditFormPageState extends State<EditFormPage> {
                     .toList()));
           });
         });
-      }
+      }*/
     });
     transActionBlocListener = _transActionBloc.listen((state) {
       if (state is TMoodSaved) {
@@ -301,7 +302,7 @@ class _EditFormPageState extends State<EditFormPage> {
       }
     });
     textEditingController.value = TextEditingValue(
-      text: widget.originalTMoodModel.note,
+      text: widget.originalTMood.note,
       selection: TextSelection.fromPosition(
         TextPosition(offset: widget.note.length),
       ),

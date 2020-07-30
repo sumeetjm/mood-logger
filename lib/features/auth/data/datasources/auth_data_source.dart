@@ -48,7 +48,7 @@ class AuthDataSourceImpl extends AuthDataSource {
     try {
       await _firebaseAuth.signInWithEmailAndPassword(
           email: email, password: password);
-      debugger();
+      //debugger();
       return await _firebaseAuth.currentUser();
     } catch (_) {
       throw ServerException();

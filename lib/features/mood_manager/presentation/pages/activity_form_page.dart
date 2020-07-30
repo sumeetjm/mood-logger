@@ -3,6 +3,7 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mood_manager/features/mood_manager/data/models/t_activity_model.dart';
 import 'package:mood_manager/features/mood_manager/data/models/t_mood_model.dart';
 import 'package:mood_manager/features/mood_manager/data/streams/stream_service.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/m_activity.dart';
@@ -68,9 +69,9 @@ class _ActivityFormPageState extends State<ActivityFormPage> {
           ]),
       body: Column(
         children: <Widget>[
-          StreamProvider<List<MActivityType>>.value(
+          FutureProvider<List<MActivityType>>.value(
             initialData: [],
-            value: sl<StreamService>().activityTypeList,
+            value: sl<StreamService>().activityTypeList.first,
             child: ActivityChoiceChips(
                 key: widget.activityListKey,
                 //groupedActivityList: widget.activityListGroupedByType,
@@ -86,7 +87,7 @@ class _ActivityFormPageState extends State<ActivityFormPage> {
     );
   }
 
-  BlocProvider<ActivityListBloc> buildActivityList(BuildContext context) {
+  /*BlocProvider<ActivityListBloc> buildActivityList(BuildContext context) {
     return BlocProvider<ActivityListBloc>(
         create: (_) => _activityListBloc,
         child: BlocBuilder<ActivityListBloc, ActivityListState>(
@@ -112,7 +113,7 @@ class _ActivityFormPageState extends State<ActivityFormPage> {
             return EmptyWidget();
           },
         ));
-  }
+  }*/
 
   scrollToBottom() {
     widget.activityListKey.currentState.scrollToBottom();
@@ -120,6 +121,7 @@ class _ActivityFormPageState extends State<ActivityFormPage> {
 
   setActivityList(MapEntry<String, List<MActivity>> mapEntry) {
     setState(() {
+      //debugger(when: false);
       widget.selectedActivityMap[mapEntry.key] = mapEntry.value;
       widget.isActivitySelected = widget.selectedActivityMap != null &&
           widget.selectedActivityMap.values
@@ -130,11 +132,13 @@ class _ActivityFormPageState extends State<ActivityFormPage> {
   }
 
   saveMood() {
-    debugger();
-    _transActionBloc.add(SaveTMoodEvent(TMoodModel.fromMood(
-        widget.arguments['formData'],
-        widget.selectedActivityMap.values.expand((item) => item).toList(),
-        widget.note)));
+    //debugger(when: false);
+    _transActionBloc.add(SaveTMoodEvent(
+        TMoodModel.fromMood(widget.arguments['formData'], widget.note),
+        widget.selectedActivityMap.values
+            .expand((item) => item)
+            .map((mActivity) => TActivityModel(mActivityModel: mActivity))
+            .toList()));
   }
 
   @override

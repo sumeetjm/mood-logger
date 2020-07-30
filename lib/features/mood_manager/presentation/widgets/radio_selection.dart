@@ -18,7 +18,7 @@ class RadioSelection extends StatefulWidget {
   MMoodModel initialValue;
   final double parentCircleRadius;
   final Color parentCircleColor;
-  final ValueChanged<MMoodModel> onChange;
+  final ValueChanged<MMood> onChange;
 
   @override
   State<RadioSelection> createState() => _RadioSelectionState();

@@ -35,7 +35,7 @@ class MActivityTypeModel extends MActivityType {
     if (doc == null) {
       return null;
     }
-    debugger(when: false);
+    //debugger(when: false);
     return MActivityTypeModel(
         activityTypeId: doc.documentID,
         activityTypeName: doc['name'],
@@ -50,5 +50,13 @@ class MActivityTypeModel extends MActivityType {
       'code': code,
       'isActive': isActive,
     };
+  }
+
+  factory MActivityTypeModel.initial() {
+    return MActivityTypeModel(
+        activityTypeId: '',
+        activityTypeName: '',
+        activityTypeCode: '',
+        isActive: true);
   }
 }

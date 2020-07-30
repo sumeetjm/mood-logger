@@ -1,35 +1,34 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:mood_manager/features/mood_manager/data/datasources/m_activity_remote_data_source.dart';
+import 'package:mood_manager/features/mood_manager/data/datasources/t_activity_remote_data_source.dart';
 import 'package:mood_manager/features/mood_manager/data/models/m_mood_model.dart';
-import 'package:mood_manager/features/mood_manager/data/streams/stream_service.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/m_activity.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/m_mood.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/t_activity.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/t_mood.dart';
 import 'package:mood_manager/injection_container.dart';
-import 'package:provider/provider.dart';
 import 'package:tinycolor/tinycolor.dart';
 import 'package:intl/intl.dart';
+import 'package:mood_manager/features/mood_manager/data/datasources/m_mood_remote_data_source.dart';
 
 class TMoodSlidableRow extends StatelessWidget {
-  // final TMoodModel tMood;
+  final TMood tMood;
   final SlidableController slidableController;
   final Axis direction;
   final Function deleteCallback;
   final Function editCallback;
 
   TMoodSlidableRow(
-      {/*@required this.tMood,*/
+      {@required this.tMood,
       @required this.slidableController,
       @required this.direction,
       @required this.editCallback,
       @required this.deleteCallback});
   @override
   Widget build(BuildContext context) {
-    final TMood tMood = Provider.of<TMood>(context);
     return Slidable.builder(
-      key: ValueKey(tMood?.transMoodId),
+      key: ValueKey(tMood.id),
       controller: slidableController,
       direction: direction,
       dismissal: SlidableDismissal(
@@ -62,11 +61,7 @@ class TMoodSlidableRow extends StatelessWidget {
       ),
       actionPane: SlidableBehindActionPane(),
       actionExtentRatio: 0.25,
-      child: Column(
-        children: <Widget>[
-          if (tMood != null) VerticalListItem(tMood),
-        ],
-      ),
+      child: VerticalListItem(tMood: tMood),
       actionDelegate: SlideActionBuilderDelegate(
           actionCount: 2,
           builder: (context, index, animation, renderingMode) {
@@ -100,7 +95,6 @@ class TMoodSlidableRow extends StatelessWidget {
                       );
                     },
                   );
-
                   if (dismiss) {
                     state.dismiss();
                   }
@@ -145,9 +139,31 @@ class TMoodSlidableRow extends StatelessWidget {
   }
 }
 
-class VerticalListItem extends StatelessWidget {
-  VerticalListItem(this.item);
-  final TMood item;
+class VerticalListItem extends StatefulWidget {
+  VerticalListItem({this.tMood});
+
+  final TMood tMood;
+
+  @override
+  State<StatefulWidget> createState() => VerticalListItemState();
+}
+
+class VerticalListItemState extends State<VerticalListItem> {
+  Future<MMood> mMoodFuture;
+  Future<List<TActivity>> tActivityListFuture;
+  Future<List<MActivity>> mActivityListFuture;
+  MMoodRemoteDataSource mMoodRemoteDataSource;
+  VerticalListItemState() {
+    mMoodRemoteDataSource = sl<MMoodRemoteDataSource>();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    mMoodFuture = sl<MMoodRemoteDataSource>().getMMood(widget.tMood.mMood.id);
+    tActivityListFuture =
+        sl<TActivityRemoteDataSource>().getTActvityListByMood(widget.tMood);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -158,16 +174,10 @@ class VerticalListItem extends StatelessWidget {
               : Slidable.of(context)?.close(),
       child: FutureBuilder<MMood>(
         initialData: MMoodModel.initial(),
-        future: sl<Firestore>()
-            .collection('mMood')
-            .document(item.mMood.id)
-            .snapshots()
-            .map((e) => MMoodModel.fromFirestore(e))
-            .first,
+        future: mMoodFuture,
         builder: (context, snapshot) {
           return Container(
             height: 90,
-            //color: Colors.white,
             decoration: BoxDecoration(
                 border: Border(bottom: BorderSide(color: Colors.grey[400]))),
             child: ListTile(
@@ -184,14 +194,16 @@ class VerticalListItem extends StatelessWidget {
               ),
               subtitle: Wrap(
                 children: <Widget>[
-                  StreamBuilder<List<TActivity>>(
+                  FutureBuilder<List<TActivity>>(
                     initialData: [],
-                    stream: sl<StreamService>().tActivityList(item),
+                    future: tActivityListFuture,
                     builder: (context, snapshot) =>
-                        StreamBuilder<List<MActivity>>(
+                        FutureBuilder<List<MActivity>>(
                             initialData: [],
-                            stream: sl<StreamService>()
-                                .mActivityList(snapshot.data),
+                            future: sl<MActivityRemoteDataSource>()
+                                .getMActivityByIds(snapshot.data
+                                    .map((e) => e.mActivity.id)
+                                    .toList()),
                             builder: (context, snapshot) {
                               return Text(
                                 snapshot.data.map((e) => e.name).join(" | "),
@@ -199,12 +211,13 @@ class VerticalListItem extends StatelessWidget {
                             }),
                   ),
                   Text(
-                    item.note ?? '',
+                    widget.tMood.note ?? '',
                   )
                 ],
               ),
               trailing: Text(
-                  DateFormat(DateFormat.HOUR_MINUTE).format(item.logDateTime),
+                  DateFormat(DateFormat.HOUR_MINUTE)
+                      .format(widget.tMood.logDateTime),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: Colors.grey[800],

@@ -12,6 +12,6 @@ class GetTMoodList implements UseCase<List<TMood>, NoParams> {
 
   @override
   Future<Either<Failure, List<TMood>>> call(NoParams params) async {
-    // return await repository.getTMoodList();
+    return await repository.getTMoodList();
   }
 }

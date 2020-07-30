@@ -29,9 +29,10 @@ class TMoodBloc extends Bloc<TMoodEvent, TMoodState> {
   Stream<TMoodState> mapEventToState(
     TMoodEvent event,
   ) async* {
-    debugger();
+    //debugger(when: true);
     if (event is SaveTMoodEvent) {
-      final failureOrMood = await saveTMood(Params<TMood>(event.tMood));
+      final failureOrMood =
+          await saveTMood(Params(MapEntry(event.tMood, event.tActivityList)));
       yield* _eitherSavedOrErrorState(failureOrMood);
     } else if (event is GetTMoodListEvent) {
       yield TMoodListLoading();

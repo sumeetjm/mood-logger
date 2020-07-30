@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:mood_manager/core/constants.dart/app_constants.dart';
@@ -5,6 +7,7 @@ import 'package:mood_manager/core/constants.dart/app_constants.dart';
 import 'package:mood_manager/features/mood_manager/data/models/t_activity_model.dart';
 import 'package:mood_manager/features/mood_manager/data/models/m_mood_model.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/m_activity.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/m_mood.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/t_activity.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/t_mood.dart';
 
@@ -13,26 +16,26 @@ class TMoodModel extends TMood {
       {String transMoodId,
       String note,
       DateTime logDateTime,
-      List<TActivity> tActivityModelList,
-      MMoodModel mMoodModel,
+      // List<TActivity> tActivityModelList,
+      MMood mMood,
       bool isActive = true})
       : super(
-            transMoodId: transMoodId,
+            id: transMoodId,
             note: note,
             logDateTime: logDateTime,
-            tActivityList: tActivityModelList,
-            mMood: mMoodModel,
+            //      tActivityList: tActivityModelList,
+            mMood: mMood,
             isActive: isActive);
 
   factory TMoodModel.fromMood(
-      TMoodModel tMood, List<MActivity> mActivityList, String note) {
+      TMood tMood /*, List<MActivity> mActivityList*/, String note) {
     return TMoodModel(
         logDateTime: tMood.logDateTime,
-        tActivityModelList: mActivityList
+        /* tActivityModelList: mActivityList
             .map((mActivity) => TActivityModel(mActivityModel: mActivity))
-            .toList(),
+            .toList(),*/
         note: note,
-        mMoodModel: tMood.mMood);
+        mMood: tMood.mMood);
   }
 
   factory TMoodModel.fromId(String transMoodId) {
@@ -46,11 +49,11 @@ class TMoodModel extends TMood {
     return TMoodModel(
         transMoodId: json['transMoodId'],
         note: json['note'] == null ? '' : json['note'],
-        tActivityModelList:
-            TActivityModel.fromJsonArray(json['tactivityList'] as List),
+        /*tActivityModelList:
+            TActivityModel.fromJsonArray(json['tactivityList'] as List),*/
         logDateTime:
             DateFormat("yyyy-MM-dd@HH:mm:ss").parse(json['logDateTime']),
-        mMoodModel: MMoodModel.fromJson(json['mmood']));
+        mMood: MMoodModel.fromJson(json['mmood']));
   }
 
   factory TMoodModel.fromFirestore(DocumentSnapshot doc) {
@@ -63,17 +66,18 @@ class TMoodModel extends TMood {
         logDateTime: DateTime.fromMillisecondsSinceEpoch(
             (doc['logDateTime'] as Timestamp).millisecondsSinceEpoch),
         isActive: doc['isActive'],
-        mMoodModel:
+        mMood:
             MMoodModel.fromId((doc['mMood'] as DocumentReference).documentID));
   }
 
-  static List<TMoodModel> fromJsonArray(List<dynamic> jsonArray) {
+  static List<TMood> fromJsonArray(List<dynamic> jsonArray) {
     return jsonArray.map((json) => TMoodModel.fromJson(json)).toList();
   }
 
   static Map<DateTime, List<TMood>> subListMapByDate(
     List<TMood> tMoodList,
   ) {
+    //debugger();
     return Map.fromEntries(tMoodList
         .map((tMood) => DateFormat(AppConstants.HEADER_DATE_FORMAT)
             .format(tMood.logDateTime))
@@ -91,14 +95,14 @@ class TMoodModel extends TMood {
   }
 
   Map<String, dynamic> toJson() {
-    List<Map<String, dynamic>> tActivityListMap = tActivityList
+    /*  List<Map<String, dynamic>> tActivityListMap = tActivityList
         .map((activity) => (activity as TActivityModel).toJson())
-        .toList();
+        .toList();*/
     return {
-      'transMoodId': transMoodId,
+      'transMoodId': id,
       'note': note,
       'logDateTime': DateFormat("yyyy-MM-dd@HH:mm:ss").format(logDateTime),
-      'tactivityList': tActivityListMap,
+      // 'tactivityList': tActivityListMap,
       'mmood': (mMood as MMoodModel).toJson(),
       'isActive': isActive
     };
@@ -111,5 +115,14 @@ class TMoodModel extends TMood {
       'mMood': firestore.document("/mMood/${mMood.id}"),
       'isActive': isActive
     };
+  }
+
+  factory TMoodModel.initial() {
+    return TMoodModel(
+        transMoodId: '',
+        isActive: true,
+        logDateTime: DateTime.now(),
+        mMood: MMoodModel.initial(),
+        note: '');
   }
 }

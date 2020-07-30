@@ -4,6 +4,7 @@ import 'package:bloc/bloc.dart';
 import 'package:mood_manager/core/error/failures.dart';
 import 'package:mood_manager/core/usecases/usecase.dart';
 import 'package:mood_manager/features/mood_manager/data/models/m_activity_model.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/m_activity.dart';
 import 'package:mood_manager/features/mood_manager/domain/usecases/get_m_activity_list.dart';
 import 'package:dartz/dartz.dart';
 import 'package:meta/meta.dart';
@@ -33,12 +34,11 @@ class ActivityListBloc extends Bloc<ActivityListEvent, ActivityListState> {
   }
 
   Stream<ActivityListState> _eitherLoadedOrErrorState(
-    Either<Failure, Map<String, List<MActivityModel>>> failureOrActivityList,
+    Either<Failure, List<MActivity>> failureOrActivityList,
   ) async* {
     yield failureOrActivityList.fold(
       (failure) => ActivityListError(message: _mapFailureToMessage(failure)),
-      (activityList) =>
-          ActivityListLoaded(mActivityListGroupByType: activityList),
+      (activityList) => ActivityListLoaded(mActivityList: activityList),
     );
   }
 

@@ -4,6 +4,5 @@ import 'package:mood_manager/features/mood_manager/domain/entities/m_activity.da
 import '../../../../core/error/failures.dart';
 
 abstract class MActivityRepository {
-  Future<Either<Failure, Map<String, List<MActivity>>>>
-      getMActivityListGroupdByType();
+  Future<Either<Failure, List<MActivity>>> getMActivityList();
 }

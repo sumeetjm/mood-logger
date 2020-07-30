@@ -49,8 +49,10 @@ class StreamService {
   }
 
   Stream<List<TMood>> get tMoodList {
-    final collection =
-        firestore.collection("tMood").where("isActive", isEqualTo: true);
+    final collection = firestore
+        .collection("tMood")
+        .where("isActive", isEqualTo: true)
+        .orderBy('logDateTime', descending: true);
     return collection.snapshots().map((list) =>
         list.documents.map((e) => TMoodModel.fromFirestore(e)).toList());
   }
@@ -84,8 +86,7 @@ class StreamService {
     final collection = firestore
         .collection("tActivity")
         .where("isActive", isEqualTo: true)
-        .where("tMood",
-            isEqualTo: firestore.document("/tMood/${tMood.transMoodId}"));
+        .where("tMood", isEqualTo: firestore.document("/tMood/${tMood.id}"));
     return collection.snapshots().map((list) =>
         list.documents.map((e) => TActivityModel.fromFirestore(e)).toList());
   }
@@ -111,7 +112,7 @@ class StreamService {
         .collection("mMood")
         .where("isActive", isEqualTo: true)
         .where(FieldPath.documentId,
-            whereIn: tMoodList.map((e) => e.mMood.id).toList());
+            arrayContainsAny: tMoodList.map((e) => e.mMood.id).toList());
     return collection.snapshots().map((list) => list.documents
         .map((e) => HexColor.fromHex(e['hexColor']))
         .reduce((value, element) => ColorUtil.mix([value, element])));

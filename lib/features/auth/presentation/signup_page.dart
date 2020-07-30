@@ -32,8 +32,8 @@ class _SignupPageState extends State<SignupPage> {
   TextEditingController _passwordController;
   @override
   Widget build(BuildContext context) {
-    return BlocListener(
-      bloc: _signupBloc,
+    return BlocListener<SignupBloc, SignupState>(
+      cubit: _signupBloc,
       listener: (BuildContext context, SignupState state) {
         if (state is SignupSuccess) {
           BlocProvider.of<AuthenticationBloc>(context).add(LoggedIn());
@@ -47,8 +47,8 @@ class _SignupPageState extends State<SignupPage> {
               end: Alignment.bottomLeft,
               colors: [Colors.blueGrey, Colors.lightBlueAccent]),
         ),
-        child: BlocBuilder(
-          bloc: _signupBloc,
+        child: BlocBuilder<SignupBloc, SignupState>(
+          cubit: _signupBloc,
           builder: (BuildContext context, SignupState state) {
             return ListView(
               children: <Widget>[

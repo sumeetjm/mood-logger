@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mood_manager/core/util/hex_color.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/m_mood.dart';
@@ -31,6 +33,7 @@ class MMoodModel extends MMood {
   }
 
   factory MMoodModel.fromFirestore(DocumentSnapshot doc) {
+    // debugger();
     if (doc == null) {
       return null;
     }
@@ -46,7 +49,7 @@ class MMoodModel extends MMood {
     return MMoodModel(moodId: moodId);
   }
 
-  static List<MMoodModel> fromJsonArray(List<dynamic> jsonArray) {
+  static List<MMood> fromJsonArray(List<dynamic> jsonArray) {
     return jsonArray.map((json) => MMoodModel.fromJson(json)).toList();
   }
 

@@ -29,7 +29,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
   Stream<LoginState> mapEventToState(
     LoginEvent event,
   ) async* {
-    debugger();
+    //debugger(when: false);
     if (event is LoginWithGoogleRequest) {
       yield* _mapLoginWithGoogleRequestToState();
     } else if (event is LoginRequest) {

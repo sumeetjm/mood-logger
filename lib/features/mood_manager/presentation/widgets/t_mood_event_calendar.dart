@@ -117,7 +117,7 @@ class _TMoodEventCalendarState extends State<TMoodEventCalendar>
 
   // Simple TableCalendar configuration (using Styles)
   Widget _buildTableCalendar(Map<DateTime, List<TMood>> tMoodListMapByDate) {
-    debugger();
+    //debugger();
     return TableCalendar(
       endDay: DateTime.now(),
       calendarController: _calendarController,
@@ -146,7 +146,7 @@ class _TMoodEventCalendarState extends State<TMoodEventCalendar>
   // More advanced TableCalendar configuration (using Builders & Styles)
   Widget _buildTableCalendarWithBuilders(
       Map<DateTime, List<TMood>> tMoodListMapByDate) {
-    //debugger();
+    ////debugger();
     return Container(
       decoration: BoxDecoration(border: Border(bottom: BorderSide(width: 0))),
       child: TableCalendar(
@@ -208,7 +208,7 @@ class _TMoodEventCalendarState extends State<TMoodEventCalendar>
           },
           markersBuilder: (context, date, events, holidays) {
             final children = <Widget>[];
-            //debugger();
+            ////debugger();
             if (events.isNotEmpty) {
               children.add(
                 Positioned(
@@ -242,7 +242,7 @@ class _TMoodEventCalendarState extends State<TMoodEventCalendar>
     );
   }
 
-  Widget _buildEventsMarker(DateTime date, List<TMoodModel> events) {
+  Widget _buildEventsMarker(DateTime date, List<TMood> events) {
     return StreamBuilder<List<MMood>>(
         stream: sl<StreamService>().mMoodList(events),
         initialData: [],
@@ -280,23 +280,21 @@ class _TMoodEventCalendarState extends State<TMoodEventCalendar>
     return Column(
       children: (tMoodListMapByDate[widget.getDateOnly(widget.selectedDate)] ??
               [])
-          .map((item) => StreamProvider.value(
-                value: Stream.value(item),
-                child: TMoodSlidableRow(
-                  slidableController: slidableController,
-                  direction: Axis.horizontal,
-                  deleteCallback: () {
-                    widget.deleteCallback(
-                        widget.getDateOnly(widget.selectedDate), item);
-                    tMoodListMapByDate[widget.getDateOnly(widget.selectedDate)]
-                        .remove(item);
-                    tMoodListMapByDate[widget.getDateOnly(widget.selectedDate)]
-                        .remove(item);
-                  },
-                  editCallback: () {
-                    widget.editCallback(item);
-                  },
-                ),
+          .map((item) => TMoodSlidableRow(
+                tMood: item,
+                slidableController: slidableController,
+                direction: Axis.horizontal,
+                deleteCallback: () {
+                  widget.deleteCallback(
+                      widget.getDateOnly(widget.selectedDate), item);
+                  tMoodListMapByDate[widget.getDateOnly(widget.selectedDate)]
+                      .remove(item);
+                  tMoodListMapByDate[widget.getDateOnly(widget.selectedDate)]
+                      .remove(item);
+                },
+                editCallback: () {
+                  widget.editCallback(item);
+                },
               ))
           .toList(),
     );

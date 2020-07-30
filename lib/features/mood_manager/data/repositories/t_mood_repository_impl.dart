@@ -1,4 +1,7 @@
+import 'dart:developer';
+
 import 'package:mood_manager/features/mood_manager/data/datasources/t_mood_remote_data_source.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/t_activity.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/t_mood.dart';
 import 'package:mood_manager/features/mood_manager/domain/repositories/t_mood_repository.dart';
 import 'package:dartz/dartz.dart';
@@ -17,7 +20,7 @@ class TMoodRepositoryImpl implements TMoodRepository {
     @required this.networkInfo,
   });
 
-  /*@override
+  @override
   Future<Either<Failure, List<TMood>>> getTMoodList() async {
     if (await networkInfo.isConnected) {
       try {
@@ -29,14 +32,23 @@ class TMoodRepositoryImpl implements TMoodRepository {
     } else {
       return Left(ServerFailure());
     }
-  }*/
+  }
 
   @override
-  Future<Either<Failure, TMood>> saveTMood(TMood tMood) async {
+  Future<Either<Failure, TMood>> saveTMood(
+      TMood tMood, List<TActivity> tActivityList) async {
     if (await networkInfo.isConnected) {
+      //debugger(when: false);
       try {
-        final tMoodSaved = await remoteDataSource.saveTMood(tMood);
-        return Right(tMoodSaved);
+        if (tMood.id != null) {
+          final tMoodSaved = await remoteDataSource.updateTMood(
+              tMood: tMood, tActivityList: tActivityList);
+          return Right(tMoodSaved);
+        } else {
+          final tMoodSaved = await remoteDataSource.saveTMood(
+              tMood: tMood, tActivityList: tActivityList);
+          return Right(tMoodSaved);
+        }
       } on ServerException {
         return Left(ServerFailure());
       }

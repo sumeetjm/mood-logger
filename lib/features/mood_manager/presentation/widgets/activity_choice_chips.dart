@@ -11,7 +11,7 @@ import 'package:mood_manager/injection_container.dart';
 import 'package:provider/provider.dart';
 
 class ActivityChoiceChips extends StatefulWidget {
-  final ValueChanged<MapEntry<String, List<MActivityModel>>> selectOptions;
+  final ValueChanged<MapEntry<String, List<MActivity>>> selectOptions;
   final Function save;
   final ValueChanged<String> updateNote;
 
@@ -23,13 +23,13 @@ class ActivityChoiceChips extends StatefulWidget {
 }
 
 class ActivityChoiceChipsState extends State<ActivityChoiceChips> {
-  List<MActivityModel> tags = [];
+  List<MActivity> tags = [];
   ScrollController _scrollController = ScrollController();
 
   Widget buildCircleButton() {
     return RawMaterialButton(
       onPressed: () {
-        debugger();
+        //debugger(when: false);
         widget.save();
       },
       elevation: 2.0,
@@ -54,7 +54,7 @@ class ActivityChoiceChipsState extends State<ActivityChoiceChips> {
 
   @override
   Widget build(BuildContext context) {
-    debugger(when: false);
+    //debugger(when: false);
     final activityTypeList = Provider.of<List<MActivityType>>(context) ?? [];
     return Expanded(
         child: ListView(
@@ -70,10 +70,11 @@ class ActivityChoiceChipsState extends State<ActivityChoiceChips> {
                     autovalidate: true,
                     initialValue: tags,
                     builder: (state) {
-                      return StreamProvider<List<MActivity>>.value(
+                      return FutureProvider<List<MActivity>>.value(
                           initialData: [],
                           value: sl<StreamService>()
-                              .activityList(mActivityTypeRefKey: type.id),
+                              .activityList(mActivityTypeRefKey: type.id)
+                              .first,
                           child: ChoiceChipsByType(
                             mActivityTypeCode: type.code,
                             selectOptions: widget.selectOptions,
@@ -133,6 +134,7 @@ class ChoiceChipsByType extends StatelessWidget {
         ),
         onChanged: (value) => {
           state.didChange(value),
+          //debugger(when: false),
           selectOptions(MapEntry(mActivityTypeCode, value))
         },
         itemConfig: ChipsChoiceItemConfig(

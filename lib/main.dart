@@ -31,8 +31,8 @@ class MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => _authenticationBloc,
-      child: BlocBuilder(
-        bloc: _authenticationBloc,
+      child: BlocBuilder<AuthenticationBloc, AuthenticationState>(
+        cubit: _authenticationBloc,
         builder: (BuildContext context, AuthenticationState state) {
           if (state is Unauthenticated) {
             return AuthApp();

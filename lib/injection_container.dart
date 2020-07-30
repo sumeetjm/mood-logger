@@ -14,6 +14,7 @@ import 'package:mood_manager/features/auth/presentation/bloc/authentication_bloc
 import 'package:mood_manager/features/auth/presentation/bloc/login_bloc.dart';
 import 'package:mood_manager/features/auth/presentation/bloc/signup_bloc.dart';
 import 'package:mood_manager/features/mood_manager/data/datasources/m_activity_remote_data_source.dart';
+import 'package:mood_manager/features/mood_manager/data/datasources/t_activity_remote_data_source.dart';
 import 'package:mood_manager/features/mood_manager/data/repositories/m_activity_repository_impl.dart';
 import 'package:mood_manager/features/mood_manager/data/streams/stream_service.dart';
 import 'package:mood_manager/features/mood_manager/domain/repositories/m_activity_repository.dart';
@@ -84,16 +85,16 @@ Future<void> init() async {
 
   // Data sources
   sl.registerLazySingleton<MMoodRemoteDataSource>(
-    () => MMoodRemoteDataSourceImpl(client: sl()),
+    () => MMoodFirestoreDataSource(firestore: sl()),
   );
-  /* sl.registerLazySingleton<TActivityRemoteDataSource>(
+  sl.registerLazySingleton<TActivityRemoteDataSource>(
     () => TActivityFirestoreDataSource(firestore: sl()),
-  );*/
+  );
   sl.registerLazySingleton<TMoodRemoteDataSource>(
     () => TMoodFirestoreDataSource(firestore: sl()),
   );
   sl.registerLazySingleton<MActivityRemoteDataSource>(
-    () => MActivityRemoteDataSourceImpl(client: sl()),
+    () => MActivityFirestoreDataSource(firestore: sl()),
   );
   sl.registerLazySingleton<AuthDataSource>(
     () => AuthDataSourceImpl(firebaseAuth: sl(), googleSignin: sl()),

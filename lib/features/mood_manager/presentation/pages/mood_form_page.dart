@@ -20,7 +20,7 @@ import '../../../../injection_container.dart';
 class MoodFormPage extends StatefulWidget {
   DateTime date = DateTime.now();
   TimeOfDay time = TimeOfDay.now();
-  List<MMoodModel> moodList;
+  List<MMood> moodList;
   MMoodModel selectedMood;
   Map<String, dynamic> arguments;
   MoodFormPage(this.arguments);
@@ -63,9 +63,9 @@ class _MoodFormPageState extends State<MoodFormPage> {
               fontSize: 30,
             ),
           ),
-          StreamProvider<List<MMood>>.value(
+          FutureProvider<List<MMood>>.value(
             initialData: [],
-            value: sl<StreamService>().moods,
+            value: sl<StreamService>().moods.first,
             child: RadioSelection(
               initialValue: widget.selectedMood,
               onChange: this.updateState,
@@ -156,7 +156,7 @@ class _MoodFormPageState extends State<MoodFormPage> {
       'formData': TMoodModel(
           note: null,
           logDateTime: DateTimeField.combine(widget.date, widget.time),
-          mMoodModel: widget.selectedMood)
+          mMood: widget.selectedMood)
     });
   }
 

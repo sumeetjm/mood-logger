@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:mood_manager/features/mood_manager/data/models/t_mood_model.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/t_mood.dart';
 
 abstract class TMoodState extends Equatable {
   const TMoodState();
@@ -29,7 +30,7 @@ class TMoodSaveError extends TMoodState {
 }
 
 class TMoodListLoaded extends TMoodState {
-  final List<TMoodModel> tMoodList;
+  final List<TMood> tMoodList;
 
   TMoodListLoaded({this.tMoodList});
 

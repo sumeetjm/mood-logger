@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:meta/meta.dart';
-import 'package:mood_manager/features/mood_manager/data/models/m_activity_model.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/m_activity.dart';
 
 @immutable
 abstract class ActivityListState extends Equatable {
@@ -13,12 +13,12 @@ class ActivityListEmpty extends ActivityListState {}
 class ActivityListLoading extends ActivityListState {}
 
 class ActivityListLoaded extends ActivityListState {
-  final Map<String, List<MActivityModel>> mActivityListGroupByType;
+  final List<MActivity> mActivityList;
 
-  ActivityListLoaded({@required this.mActivityListGroupByType});
+  ActivityListLoaded({@required this.mActivityList});
 
   @override
-  List<Object> get props => [mActivityListGroupByType];
+  List<Object> get props => [mActivityList];
 }
 
 class ActivityListError extends ActivityListState {

@@ -1,19 +1,20 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mood_manager/core/util/resource_util.dart';
 import 'package:mood_manager/features/auth/presentation/bloc/authentication_bloc.dart';
 import 'package:mood_manager/features/mood_manager/data/models/t_mood_model.dart';
-import 'package:mood_manager/features/mood_manager/data/streams/stream_service.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/t_mood.dart';
 import 'package:mood_manager/features/mood_manager/presentation/bloc/t_mood_index.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/t_mood_event_calendar.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/t_mood_slidable.dart';
 import 'package:mood_manager/injection_container.dart';
-import 'package:provider/provider.dart';
 
 class TMoodListPage extends StatefulWidget {
   Map<String, dynamic> arguments = Map();
-  List<TMood> tMoodList;
+  List<TMood> tMoodList = [];
+  TMood lastSaved;
 
   TMoodListPage(this.arguments);
 
@@ -26,9 +27,6 @@ class _TMoodListPageState extends State<TMoodListPage> {
   List<Widget> views = [];
   int currentIndex = 0;
 
-  _TMoodListPageState() {
-    _tMoodBloc = sl<TMoodBloc>();
-  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -70,46 +68,51 @@ class _TMoodListPageState extends State<TMoodListPage> {
     Navigator.of(context).pushNamed("/add/mood");
   }
 
-  List<Widget> getViews() {
+  List<Widget> getViews(Map<DateTime, List<TMood>> map) {
     return [
       TMoodSlidable(
+        tMoodListMapByDate: map,
         refreshCallback: () {},
-        /* tMoodListGroupByDate:
-                    TMoodModel.subListMapByDate(snapshot.data ?? []),*/
         deleteCallback: delete,
         editCallback: edit,
       ),
-      TMoodEventCalendar(
-          /* tMoodListGroupByDate:
-                  TMoodModel.subListMapByDate(snapshot.data ?? []),*/
-          deleteCallback: delete,
-          editCallback: edit)
+      TMoodEventCalendar(deleteCallback: delete, editCallback: edit)
     ];
   }
 
   buildTMoodList(BuildContext context) {
-    return StreamBuilder<List<TMood>>(
-        stream: sl<StreamService>().tMoodList,
-        builder: (context, snapshot) {
-          return StreamProvider<List<MapEntry<DateTime, List<TMood>>>>.value(
-            initialData: [],
-            value: Stream.value(TMoodModel.subListMapByDate(snapshot.data ?? [])
-                .entries
-                .toList()),
-            child: getViews()[currentIndex],
-          );
-        });
+    //debugger();
+    return BlocListener<TMoodBloc, TMoodState>(
+        listener: (context, state) {
+          //debugger();
+          if (state is TMoodSaved) {
+            widget.lastSaved = state.tMood;
+            _tMoodBloc.add(GetTMoodListEvent());
+          } else if (state is TMoodListLoaded) {
+            // debugger();
+            setState(() {
+              widget.tMoodList = state.tMoodList;
+            });
+          }
+        },
+        cubit: _tMoodBloc,
+        child: BlocBuilder<TMoodBloc, TMoodState>(
+          cubit: _tMoodBloc,
+          builder: (context, state) => getViews(
+              TMoodModel.subListMapByDate(widget.tMoodList))[currentIndex],
+        ));
   }
 
-  void delete(DateTime date, TMoodModel tMoodModel) {
-    setState(() {});
-    _tMoodBloc.add(SaveTMoodEvent(TMoodModel(
-        logDateTime: tMoodModel.logDateTime,
-        isActive: false,
-        mMoodModel: tMoodModel.mMood,
-        note: tMoodModel.note,
-        tActivityModelList: tMoodModel.tActivityList,
-        transMoodId: tMoodModel.transMoodId)));
+  void delete(DateTime date, TMood tMood) {
+    //debugger(when: false);
+    _tMoodBloc.add(SaveTMoodEvent(
+        TMoodModel(
+            logDateTime: tMood.logDateTime,
+            isActive: false,
+            mMood: tMood.mMood,
+            note: tMood.note,
+            transMoodId: tMood.id),
+        []));
   }
 
   void edit(TMoodModel tMoodModel) {
@@ -120,14 +123,8 @@ class _TMoodListPageState extends State<TMoodListPage> {
   @override
   void initState() {
     super.initState();
-    setState(() {
-      onTabTapped(0);
-    });
-    sl<StreamService>().tMoodList.listen((event) {
-      setState(() {
-        widget.tMoodList = event;
-      });
-    });
+    _tMoodBloc = sl<TMoodBloc>();
+    _tMoodBloc.add(GetTMoodListEvent());
   }
 
   @override
