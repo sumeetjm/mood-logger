@@ -31,17 +31,16 @@ class TMoodBloc extends Bloc<TMoodEvent, TMoodState> {
   ) async* {
     //debugger(when: true);
     if (event is SaveTMoodEvent) {
-      final failureOrMood =
-          await saveTMood(Params(MapEntry(event.tMood, event.tActivityList)));
-      yield* _eitherSavedOrErrorState(failureOrMood);
+      final failureOrMood = await saveTMood(Params(event.tMood));
+      yield* _eitherSavedOrErrorState(failureOrMood, event);
     } else if (event is GetTMoodListEvent) {
       yield TMoodListLoading();
       final failureOrMoodList = await getTMoodList(NoParams());
-      yield* _eitherTransactionListLoadedOrErrorState(failureOrMoodList);
+      yield* _eitherTMoodListLoadedOrErrorState(failureOrMoodList);
     }
   }
 
-  Stream<TMoodState> _eitherTransactionListLoadedOrErrorState(
+  Stream<TMoodState> _eitherTMoodListLoadedOrErrorState(
     Either<Failure, List<TMood>> failureOrMoodList,
   ) async* {
     yield failureOrMoodList.fold(
@@ -51,11 +50,10 @@ class TMoodBloc extends Bloc<TMoodEvent, TMoodState> {
   }
 
   Stream<TMoodState> _eitherSavedOrErrorState(
-    Either<Failure, TMood> failureOrMood,
-  ) async* {
+      Either<Failure, TMood> failureOrMood, SaveTMoodEvent event) async* {
     yield failureOrMood.fold(
       (failure) => TMoodSaveError(message: _mapFailureToMessage(failure)),
-      (mood) => TMoodSaved(tMood: mood),
+      (mood) => TMoodSaved(tMood: mood, action: event.action),
     );
   }
 

@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/t_activity.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/t_mood.dart';
 
 abstract class TMoodEvent extends Equatable {
@@ -9,12 +8,12 @@ abstract class TMoodEvent extends Equatable {
 
 class SaveTMoodEvent extends TMoodEvent {
   final TMood tMood;
-  final List<TActivity> tActivityList;
+  final String action;
 
-  SaveTMoodEvent(this.tMood, this.tActivityList);
+  SaveTMoodEvent(this.tMood, this.action);
 
   @override
-  List<Object> get props => [tMood, tActivityList, ...super.props];
+  List<Object> get props => [tMood, action, ...super.props];
 }
 
 class GetTMoodListEvent extends TMoodEvent {

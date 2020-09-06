@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_signin_button/button_list.dart';
 import 'package:flutter_signin_button/button_view.dart';
-import 'package:mood_manager/features/auth/domain/entitles/user_credenial.dart';
+import 'package:mood_manager/features/auth/domain/entitles/user.dart';
 import 'package:mood_manager/features/auth/presentation/bloc/authentication_bloc.dart';
 import 'package:mood_manager/features/auth/presentation/bloc/login_bloc.dart';
 import 'package:mood_manager/features/auth/presentation/widgets/auth_page_link_button.dart';
@@ -25,8 +25,8 @@ class _LoginPageState extends State<LoginPage> {
   void initState() {
     super.initState();
     _loginBloc = sl<LoginBloc>();
-    _emailController = TextEditingController(text: "");
-    _passwordController = TextEditingController(text: "");
+    _emailController = TextEditingController(text: '');
+    _passwordController = TextEditingController(text: '');
   }
 
   TextEditingController _emailController;
@@ -134,13 +134,13 @@ class _LoginPageState extends State<LoginPage> {
 
   void _onFormSubmitted() {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      print("Email and password cannot be empty");
+      print('Email and password cannot be empty');
       return;
     }
     _loginBloc.add(
       LoginRequest(
-        userCredential: UserCredential(
-          email: _emailController.text.trim(),
+        user: User(
+          userId: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         ),
       ),

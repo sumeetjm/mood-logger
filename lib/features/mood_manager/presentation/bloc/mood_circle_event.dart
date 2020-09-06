@@ -7,4 +7,4 @@ abstract class MoodCircleEvent extends Equatable {
   List<Object> get props => [];
 }
 
-class GetMoodMetaEvent extends MoodCircleEvent {}
+class GetMMoodListEvent extends MoodCircleEvent {}

@@ -1,7 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:mood_manager/features/auth/data/datasources/auth_data_source.dart';
+import 'package:mood_manager/features/auth/data/datasources/firestore/auth_firestore_data_source.dart';
+import 'package:mood_manager/features/auth/data/datasources/parse/auth_parse_data_source.dart';
 import 'package:mood_manager/features/auth/data/reposotories/auth_repository_impl.dart';
 import 'package:mood_manager/features/auth/domain/repositories/auth_repository.dart';
 import 'package:mood_manager/features/auth/domain/usecases/get_current_user.dart';
@@ -14,9 +15,7 @@ import 'package:mood_manager/features/auth/presentation/bloc/authentication_bloc
 import 'package:mood_manager/features/auth/presentation/bloc/login_bloc.dart';
 import 'package:mood_manager/features/auth/presentation/bloc/signup_bloc.dart';
 import 'package:mood_manager/features/mood_manager/data/datasources/m_activity_remote_data_source.dart';
-import 'package:mood_manager/features/mood_manager/data/datasources/t_activity_remote_data_source.dart';
 import 'package:mood_manager/features/mood_manager/data/repositories/m_activity_repository_impl.dart';
-import 'package:mood_manager/features/mood_manager/data/streams/stream_service.dart';
 import 'package:mood_manager/features/mood_manager/domain/repositories/m_activity_repository.dart';
 import 'package:mood_manager/features/mood_manager/domain/usecases/get_m_activity_list.dart';
 import 'package:mood_manager/features/mood_manager/domain/usecases/save_t_mood.dart';
@@ -47,7 +46,7 @@ Future<void> init() async {
         getMoodMetaList: sl(),
       ));
   sl.registerFactory(() => ActivityListBloc(
-        getActivityMetaList: sl(),
+        getMActivityTypeList: sl(),
       ));
   sl.registerFactory(() => TMoodBloc(saveTMood: sl(), getTMoodList: sl()));
   sl.registerFactory(() => AuthenticationBloc(
@@ -60,7 +59,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetMMoodList(sl()));
   sl.registerLazySingleton(() => GetTMoodList(sl()));
   sl.registerLazySingleton(() => SaveTMood(sl()));
-  sl.registerLazySingleton(() => GetMActivityList(sl()));
+  sl.registerLazySingleton(() => GetMActivityTypeList(sl()));
 
   sl.registerLazySingleton(() => IsSignedIn(sl()));
   sl.registerLazySingleton(() => SignInWithCredentials(sl()));
@@ -85,23 +84,16 @@ Future<void> init() async {
 
   // Data sources
   sl.registerLazySingleton<MMoodRemoteDataSource>(
-    () => MMoodFirestoreDataSource(firestore: sl()),
-  );
-  sl.registerLazySingleton<TActivityRemoteDataSource>(
-    () => TActivityFirestoreDataSource(firestore: sl()),
+    () => MMoodParseDataSource(),
   );
   sl.registerLazySingleton<TMoodRemoteDataSource>(
-    () => TMoodFirestoreDataSource(firestore: sl()),
+    () => TMoodParseDataSource(),
   );
   sl.registerLazySingleton<MActivityRemoteDataSource>(
-    () => MActivityFirestoreDataSource(firestore: sl()),
+    () => MActivityParseDataSource(),
   );
   sl.registerLazySingleton<AuthDataSource>(
-    () => AuthDataSourceImpl(firebaseAuth: sl(), googleSignin: sl()),
-  );
-
-  sl.registerLazySingleton<StreamService>(
-    () => StreamService(firestore: sl()),
+    () => AuthParseDataSource(),
   );
 
   //! Core
@@ -112,6 +104,5 @@ Future<void> init() async {
   sl.registerLazySingleton(() => http.Client());
   sl.registerLazySingleton(() => DataConnectionChecker());
   sl.registerLazySingleton(() => FirebaseAuth.instance);
-  sl.registerLazySingleton(() => Firestore.instance);
   sl.registerLazySingleton(() => GoogleSignIn());
 }

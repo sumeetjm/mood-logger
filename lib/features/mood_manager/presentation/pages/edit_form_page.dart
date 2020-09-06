@@ -1,22 +1,23 @@
 import 'dart:async';
+import 'dart:developer';
 
 import 'package:chips_choice/chips_choice.dart';
-import 'package:mood_manager/features/mood_manager/data/models/m_activity_model.dart';
-import 'package:mood_manager/features/mood_manager/data/models/t_activity_model.dart';
-import 'package:mood_manager/features/mood_manager/data/models/m_activity_type_model.dart';
-import 'package:mood_manager/features/mood_manager/data/models/t_mood_model.dart';
+import 'package:mood_manager/core/constants/app_constants.dart';
+import 'package:mood_manager/features/mood_manager/data/models/parse/t_activity_parse.dart';
+import 'package:mood_manager/features/mood_manager/data/models/parse/t_mood_parse.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/m_activity.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/m_activity_type.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/m_mood.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/t_activity.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/t_mood.dart';
 import 'package:mood_manager/features/mood_manager/presentation/bloc/activity_list_index.dart';
 import 'package:mood_manager/features/mood_manager/presentation/bloc/t_mood_index.dart';
 import 'package:mood_manager/features/mood_manager/presentation/bloc/mood_circle_index.dart';
 import 'package:datetime_picker_formfield/datetime_picker_formfield.dart';
-import 'package:mood_manager/features/mood_manager/data/models/m_mood_model.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/activity_choice_chips.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/date_selector.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/empty_widget.dart';
+import 'package:mood_manager/features/mood_manager/presentation/widgets/scroll_select.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/time_picker.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/radio_selection.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/widgets.dart';
@@ -26,30 +27,34 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../injection_container.dart';
 
 class EditFormPage extends StatefulWidget {
-  TMoodModel originalTMood;
+  TMood originalTMood;
   List<MMood> mMoodList;
-  Map<String, List<MActivity>> mActivityListGroupByType = Map();
-  Map<String, MActivityType> mActivityTypeMapByCode = Map();
-  List<MActivity> originalTActivityList;
-
+  List<MMood> subMoodList;
+  List<MActivityType> mActivityTypeList = [];
+  List<MActivity> originalMActivityList;
+  List<MActivityType> selectedMActivityTypeList = [];
   //New form data
   DateTime selectedDate;
   TimeOfDay selectedTime;
   MMood selectedMood;
-  Map<String, List<MActivity>> selectedMActivityListGroupByType = Map();
+  MMood selectedSubMood;
+  int maxActivitySelected = 5;
+  Map<String, List<MActivity>> selectedMActivityListMapByType = Map();
   String note;
 
   Map<dynamic, dynamic> arguments;
 
-  EditFormPage(this.arguments) {
+  EditFormPage({this.arguments}) {
     if (arguments != null) {
       originalTMood = arguments['formData'];
       selectedDate = originalTMood.logDateTime;
       selectedTime = TimeOfDay.fromDateTime(selectedDate);
       selectedMood = originalTMood.mMood;
+      selectedSubMood = originalTMood.mMood;
       note = originalTMood.note;
-      originalTActivityList =
-          [].map((tActivity) => tActivity.mActivity as MActivityModel).toList();
+      originalMActivityList = originalTMood.tActivityList
+          .map((tActivity) => tActivity.mActivity)
+          .toList();
     }
   }
   @override
@@ -60,20 +65,19 @@ class _EditFormPageState extends State<EditFormPage> {
   MoodCircleBloc _moodCircleBloc;
   ActivityListBloc _activityListBloc;
   StreamSubscription<ActivityListState> activityListBlocListener;
-  StreamSubscription<TMoodState> transActionBlocListener;
-  TMoodBloc _transActionBloc;
+  StreamSubscription<TMoodState> tMoodBlocListener;
+  TMoodBloc _tMoodBloc;
   TextEditingController textEditingController = TextEditingController();
 
   _EditFormPageState() {
     this._moodCircleBloc = sl<MoodCircleBloc>();
     this._activityListBloc = sl<ActivityListBloc>();
-    this._transActionBloc = sl<TMoodBloc>();
   }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Edit"),
+        title: Text('Edit'),
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -103,34 +107,36 @@ class _EditFormPageState extends State<EditFormPage> {
             SizedBox(
               height: 20,
             ),
-            Content(
-                child: TextField(
-              controller: textEditingController,
-              keyboardType: TextInputType.multiline,
-              maxLines: null,
-              onChanged: (text) {
-                updateNote(text);
-              },
-              style: TextStyle(
-                color: Colors.blueGrey,
-                fontSize: 18,
+            Container(
+              color: Colors.white,
+              child: TextField(
+                controller: textEditingController,
+                keyboardType: TextInputType.multiline,
+                maxLines: null,
+                onChanged: (text) {
+                  updateNote(text);
+                },
+                style: TextStyle(
+                  color: Colors.blueGrey,
+                  fontSize: 18,
+                ),
+                decoration: InputDecoration(
+                    contentPadding: EdgeInsets.all(15),
+                    fillColor: Colors.blueGrey,
+                    border: InputBorder.none,
+                    hintText: 'Add Note...'),
               ),
-              decoration: InputDecoration(
-                  contentPadding: EdgeInsets.all(15),
-                  fillColor: Colors.blueGrey,
-                  border: InputBorder.none,
-                  hintText: 'Add Note...'),
-            )),
+            ),
             ...buildActivityList(),
             SizedBox(height: 20),
           ],
         ),
       ),
-      floatingActionButton: new Visibility(
+      floatingActionButton: Visibility(
         visible: true,
-        child: new FloatingActionButton(
+        child: FloatingActionButton(
           onPressed: saveMood,
-          child: new Icon(Icons.check),
+          child: Icon(Icons.check),
         ),
       ),
     );
@@ -149,13 +155,50 @@ class _EditFormPageState extends State<EditFormPage> {
                   if (state is MoodCircleEmpty || state is MoodCircleLoading) {
                     return LoadingWidget();
                   } else if (state is MoodCircleLoaded) {
+                    //debugger(when:false);
                     widget.mMoodList = state.moodList;
-                    return RadioSelection(
-                      //moodList: widget.mMoodList,
-                      initialValue: widget.selectedMood,
-                      onChange: this.onChange,
-                      parentCircleColor: Colors.blueGrey[50],
-                      parentCircleRadius: 100,
+                    if (widget.mMoodList
+                        .every((element) => element != widget.selectedMood)) {
+                      widget.selectedMood = widget.mMoodList.singleWhere(
+                          (element) => element.mMoodList
+                              .contains(widget.originalTMood.mMood));
+                    }
+                    widget.subMoodList = [
+                      widget.selectedMood,
+                      ...widget.selectedMood.mMoodList
+                    ];
+                    return Column(
+                      children: [
+                        RadioSelection(
+                          moodList: widget.mMoodList,
+                          initialValue: widget.selectedMood,
+                          onChange: this.onChange,
+                          parentCircleColor: Colors.blueGrey[50],
+                          parentCircleRadius: 100,
+                          initialSubValue: widget.selectedSubMood,
+                          showLabel: false,
+                        ),
+                        SizedBox(
+                          height: 20,
+                        ),
+                        ScrollSelect<MMood>(
+                            scrollDirection: ScrollDirection.horizontal,
+                            onChanged: (mMood) {
+                              setState(() {
+                                widget.selectedSubMood = mMood;
+                              });
+                            },
+                            options: ScrollSelectOption.listFrom<MMood, MMood>(
+                                source: widget.subMoodList,
+                                value: (i, v) => v,
+                                label: (i, v) => v.name.toUpperCase(),
+                                color: (i, v) => v.color),
+                            initialValue: widget.selectedSubMood,
+                            itemFontSize: 18,
+                            height: 50,
+                            itemExtent: 150,
+                            backgroundColor: Colors.white.withOpacity(0.0)),
+                      ],
                     );
                   } else if (state is MoodCircleError) {
                     return MessageDisplay(
@@ -173,52 +216,32 @@ class _EditFormPageState extends State<EditFormPage> {
   }
 
   List<Widget> buildActivityList() {
-    return widget.mActivityTypeMapByCode.keys
-        .map((typeCode) => Content(
-              title: widget.mActivityTypeMapByCode[typeCode].name,
-              child: FormField<List<MActivity>>(
-                autovalidate: true,
-                initialValue: widget.selectedMActivityListGroupByType[typeCode],
-                builder: (state) {
-                  return Column(
-                    children: <Widget>[
-                      Container(
-                        alignment: Alignment.centerLeft,
-                        child: ChipsChoice<MActivity>.multiple(
-                          value: state.value,
-                          options: ChipsChoiceOption.listFrom<MActivityModel,
-                              MActivity>(
-                            source: widget.mActivityListGroupByType[typeCode],
-                            value: (i, v) => v,
-                            label: (i, v) => v.name,
-                          ),
-                          onChanged: (value) => {
-                            state.didChange(value),
-                            setActivityList(MapEntry(typeCode, value))
-                          },
-                          itemConfig: ChipsChoiceItemConfig(
-                            selectedColor: Colors.green,
-                            selectedBrightness: Brightness.dark,
-                            unselectedColor: Colors.black,
-                            unselectedBorderOpacity: .3,
-                          ),
-                          isWrapped: true,
-                        ),
-                      ),
-                      Container(
-                          padding: EdgeInsets.fromLTRB(15, 0, 15, 15),
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            state.errorText ??
-                                state.value.length.toString() + '/5 selected',
-                            style: TextStyle(
-                                color: state.hasError
-                                    ? Colors.redAccent
-                                    : Colors.green),
-                          ))
-                    ],
-                  );
-                },
+    return widget.mActivityTypeList
+        .map((type) => Padding(
+              padding: const EdgeInsets.fromLTRB(8.0, 0, 8.0, 0),
+              child: Content(
+                color: Theme.of(context).primaryColor,
+                title: type.name,
+                child: FormField<List<MActivity>>(
+                  autovalidate: true,
+                  initialValue:
+                      widget.selectedMActivityListMapByType[type.code] ?? [],
+                  builder: (state) {
+                    final selected = widget
+                        .selectedMActivityListMapByType.values
+                        .expand((item) => item)
+                        .toList();
+                    return ChoiceChipsByType(
+                        color: Theme.of(context).primaryColor,
+                        activityList: type.mActivityList,
+                        mActivityTypeCode: type.code,
+                        selectOptions: setActivityList,
+                        state: state,
+                        maxReached:
+                            widget.maxActivitySelected == selected.length,
+                        selected: selected);
+                  },
+                ),
               ),
             ))
         .toList();
@@ -227,14 +250,17 @@ class _EditFormPageState extends State<EditFormPage> {
   onChange(value) {
     setState(() {
       widget.selectedMood = value;
+      widget.subMoodList = [value, ...value.mMoodList];
+      widget.selectedSubMood = value;
     });
   }
 
   saveMood() {
-    final selectedMActivityList = widget.selectedMActivityListGroupByType.values
+    //debugger(when:false);
+    final selectedMActivityList = widget.selectedMActivityListMapByType.values
         .expand((item) => item)
         .toList();
-    final deselectedActivityList = widget.originalTActivityList
+    final deselectedActivityList = widget.originalMActivityList
         .where((mActivity) => !selectedMActivityList.contains(mActivity))
         .toList();
     final existingActivityMap = Map.fromEntries(
@@ -242,63 +268,58 @@ class _EditFormPageState extends State<EditFormPage> {
 
     final finalSaveActivityList = List<TActivity>();
     finalSaveActivityList
-        .addAll(selectedMActivityList.map((activity) => TActivityModel(
+        .addAll(selectedMActivityList.map((activity) => TActivityParse(
               transActivityId: existingActivityMap[activity],
-              mActivityModel: activity,
+              mActivity: activity,
             )));
     finalSaveActivityList.addAll(deselectedActivityList.map((activity) =>
-        TActivityModel(
+        TActivityParse(
             transActivityId: existingActivityMap[activity],
-            mActivityModel: activity,
+            mActivity: activity,
             isActive: false)));
-    final saveData = TMoodModel(
+    //debugger(when:false);
+    final saveData = TMoodParse(
         logDateTime:
             DateTimeField.combine(widget.selectedDate, widget.selectedTime),
         transMoodId: widget.originalTMood.id,
-        mMood: widget.selectedMood,
-        note: widget.note);
-    _transActionBloc.add(SaveTMoodEvent(saveData, finalSaveActivityList));
+        mMood: widget.selectedSubMood,
+        note: widget.note,
+        tActivityList: finalSaveActivityList);
+    _tMoodBloc.add(SaveTMoodEvent(saveData, AppConstants.ACTION['UPDATE']));
   }
 
   setActivityList(MapEntry<String, List<MActivity>> mapEntry) {
     setState(() {
-      widget.selectedMActivityListGroupByType[mapEntry.key] = mapEntry.value;
+      widget.selectedMActivityListMapByType[mapEntry.key] = mapEntry.value;
     });
   }
 
   @override
   void initState() {
     super.initState();
-    _moodCircleBloc.add(GetMoodMetaEvent());
-    _activityListBloc.add(GetActivityMetaEvent());
+    _tMoodBloc = BlocProvider.of<TMoodBloc>(context);
+    _moodCircleBloc.add(GetMMoodListEvent());
+    _activityListBloc.add(GetMActivityTypeListEvent());
     activityListBlocListener = _activityListBloc.listen((state) {
-      /*if (state is ActivityListLoaded) {
+      if (state is ActivityTypeListLoaded) {
         setState(() {
-          widget.mActivityListGroupByType = state.mActivityList;
-          widget.mActivityTypeMapByCode = Map.fromEntries(widget
-              .mActivityListGroupByType.values
-              .expand((mActivityList) => mActivityList)
-              //.map((mActivity) => mActivity.mActivityType)
-              .toSet()
-              .map((mActivity) =>
-                  MapEntry(mActivity.code, mActivity as MActivityTypeModel)));
-
-          widget.mActivityListGroupByType.keys.forEach((typeCode) {
-            setActivityList(MapEntry(
-                typeCode,
-                widget.mActivityListGroupByType[typeCode]
-                    .where((element) =>
-                        widget.originalTActivityList.contains(element))
-                    .toList()));
+          widget.mActivityTypeList = state.mActivityTypeList;
+          widget.originalMActivityList.forEach((element) {
+            final type = widget.mActivityTypeList.singleWhere((mActivityType) =>
+                mActivityType.mActivityList
+                    .any((mActivity) => mActivity == element));
+            if (widget.selectedMActivityListMapByType.containsKey(type.code)) {
+              widget.selectedMActivityListMapByType[type.code].add(element);
+            } else {
+              widget.selectedMActivityListMapByType[type.code] = [element];
+            }
           });
         });
-      }*/
+      }
     });
-    transActionBlocListener = _transActionBloc.listen((state) {
+    tMoodBlocListener = _tMoodBloc.listen((state) {
       if (state is TMoodSaved) {
-        Navigator.of(context).pushNamedAndRemoveUntil(
-            '/trans-list', (route) => false,
-            arguments: {'lastSaved': state.tMood});
+        Navigator.of(context).popUntil((route) => route.isFirst);
       }
     });
     textEditingController.value = TextEditingValue(
@@ -325,8 +346,8 @@ class _EditFormPageState extends State<EditFormPage> {
     if (activityListBlocListener != null) {
       activityListBlocListener.cancel();
     }
-    if (transActionBlocListener != null) {
-      transActionBlocListener.cancel();
+    if (tMoodBlocListener != null) {
+      tMoodBlocListener.cancel();
     }
     if (textEditingController != null) {
       textEditingController.dispose();

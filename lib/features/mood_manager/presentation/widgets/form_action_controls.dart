@@ -12,7 +12,6 @@ class FormActionsControls extends StatefulWidget {
 }
 
 class _FormActionsControlsState extends State<FormActionsControls> {
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -23,7 +22,6 @@ class _FormActionsControlsState extends State<FormActionsControls> {
   @override
   void initState() {
     super.initState();
-    BlocProvider.of<MoodCircleBloc>(context).add(GetMoodMetaEvent());
+    BlocProvider.of<MoodCircleBloc>(context).add(GetMMoodListEvent());
   }
-  
 }

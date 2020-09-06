@@ -1,19 +1,23 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:developer';
+
+import 'package:chips_choice/chips_choice.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:mood_manager/core/util/resource_util.dart';
-import 'package:mood_manager/features/mood_manager/data/models/t_mood_model.dart';
-import 'package:mood_manager/features/mood_manager/data/streams/stream_service.dart';
+import 'package:mood_manager/features/mood_manager/data/models/parse/t_mood_parse.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/m_mood.dart';
 import 'package:mood_manager/features/mood_manager/presentation/bloc/mood_circle_index.dart';
 import 'package:datetime_picker_formfield/datetime_picker_formfield.dart';
-import 'package:mood_manager/features/mood_manager/data/models/m_mood_model.dart';
+import 'package:mood_manager/features/mood_manager/presentation/widgets/activity_choice_chips.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/date_selector.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/empty_widget.dart';
+import 'package:mood_manager/features/mood_manager/presentation/widgets/scroll_select.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/time_picker.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/radio_selection.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider/provider.dart';
+import 'package:tinycolor/tinycolor.dart';
 
 import '../../../../injection_container.dart';
 
@@ -21,69 +25,64 @@ class MoodFormPage extends StatefulWidget {
   DateTime date = DateTime.now();
   TimeOfDay time = TimeOfDay.now();
   List<MMood> moodList;
-  MMoodModel selectedMood;
+  List<MMood> subMoodList = [];
+  MMood selectedMood;
+  MMood selectedSubMood;
   Map<String, dynamic> arguments;
-  MoodFormPage(this.arguments);
+  MoodFormPage({this.arguments});
   @override
   State<MoodFormPage> createState() => _MoodFormPageState();
 }
 
 class _MoodFormPageState extends State<MoodFormPage> {
   MoodCircleBloc _moodCircleBloc;
+  FixedExtentScrollController _scrollController;
 
   _MoodFormPageState() {
     this._moodCircleBloc = sl<MoodCircleBloc>();
   }
   @override
   Widget build(BuildContext context) {
+    final content = Column(
+      children: <Widget>[
+        DateSelector(
+            initialDate: widget.date,
+            selectDate: (DateTime date) {
+              setState(() {
+                widget.date = date;
+              });
+            }),
+        TimePicker(
+          selectedTime: widget.time,
+          selectTime: (time) {
+            setState(() {
+              widget.time = time;
+            });
+          },
+        ),
+        Text(
+          'how are you ?'.toUpperCase(),
+          style: TextStyle(
+            fontSize: 30,
+          ),
+        ),
+        buildMoodCircle(context),
+        SizedBox(
+          height: 20,
+        ),
+      ],
+    );
     return Scaffold(
       appBar: AppBar(
-        title: Text("Add Entry"),
+        title: Text('Add Entry'),
       ),
-      body: Column(
-        children: <Widget>[
-          DateSelector(
-              initialDate: widget.date,
-              selectDate: (DateTime date) {
-                setState(() {
-                  widget.date = date;
-                });
-              }),
-          TimePicker(
-            selectedTime: widget.time,
-            selectTime: (time) {
-              setState(() {
-                widget.time = time;
-              });
-            },
-          ),
-          Text(
-            'how are you ?'.toUpperCase(),
-            style: TextStyle(
-              fontSize: 30,
-            ),
-          ),
-          FutureProvider<List<MMood>>.value(
-            initialData: [],
-            value: sl<StreamService>().moods.first,
-            child: RadioSelection(
-              initialValue: widget.selectedMood,
-              onChange: this.updateState,
-              parentCircleColor: Colors.blueGrey[50],
-              parentCircleRadius: 150,
-            ),
-          ),
-          SizedBox(
-            height: 20,
-          ),
-        ],
-      ),
-      floatingActionButton: new Visibility(
+      body: content,
+      floatingActionButton: Visibility(
         visible: widget.selectedMood != null,
-        child: new FloatingActionButton(
+        child: FloatingActionButton(
           onPressed: saveMood,
           tooltip: 'Increment',
-          child: new Icon(Icons.check),
+          child: Icon(Icons.check),
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
@@ -98,7 +97,7 @@ class _MoodFormPageState extends State<MoodFormPage> {
     return RawMaterialButton(
       onPressed: saveMood,
       elevation: 2.0,
-      fillColor: Colors.green,
+      fillColor: Theme.of(context).buttonColor,
       child: Icon(
         Icons.check,
         size: 35.0,
@@ -122,13 +121,43 @@ class _MoodFormPageState extends State<MoodFormPage> {
                   if (state is MoodCircleEmpty || state is MoodCircleLoading) {
                     return LoadingWidget();
                   } else if (state is MoodCircleLoaded) {
+                    //debugger(when:false);
                     widget.moodList = state.moodList;
-                    return RadioSelection(
-                      // moodList: widget.moodList,
-                      initialValue: widget.selectedMood,
-                      onChange: this.updateState,
-                      parentCircleColor: Colors.blueGrey[50],
-                      parentCircleRadius: 150,
+                    return Column(
+                      children: [
+                        RadioSelection(
+                          moodList: widget.moodList,
+                          initialValue: widget.selectedMood,
+                          initialSubValue: widget.selectedSubMood,
+                          onChange: updateState,
+                          parentCircleColor: Colors.blueGrey[50],
+                          parentCircleRadius: 175,
+                        ),
+                        SizedBox(
+                          height: 30,
+                        ),
+                        if (widget.selectedMood != null &&
+                            widget.subMoodList.length > 0)
+                          ScrollSelect<MMood>(
+                              scrollDirection: ScrollDirection.horizontal,
+                              onChanged: (mMood) {
+                                setState(() {
+                                  //debugger(when:false);
+                                  widget.selectedSubMood = mMood;
+                                });
+                              },
+                              options:
+                                  ScrollSelectOption.listFrom<MMood, MMood>(
+                                      source: widget.subMoodList,
+                                      value: (i, v) => v,
+                                      label: (i, v) => v.name.toUpperCase(),
+                                      color: (i, v) => v.color),
+                              initialValue: widget.selectedSubMood,
+                              itemFontSize: 18,
+                              height: 50,
+                              itemExtent: 150,
+                              backgroundColor: Colors.white.withOpacity(0.0))
+                      ],
                     );
                   } else if (state is MoodCircleError) {
                     return MessageDisplay(
@@ -147,23 +176,29 @@ class _MoodFormPageState extends State<MoodFormPage> {
 
   updateState(value) {
     setState(() {
+      //debugger(when:false);
       widget.selectedMood = value;
+      widget.subMoodList = [value, ...value.mMoodList];
+      widget.selectedSubMood = value;
     });
   }
 
   saveMood() {
-    Navigator.pushNamed(context, "/add/activity", arguments: {
-      'formData': TMoodModel(
+    Navigator.pushNamed(context, '/add/activity', arguments: {
+      'formData': TMoodParse(
           note: null,
           logDateTime: DateTimeField.combine(widget.date, widget.time),
-          mMood: widget.selectedMood)
+          mMood: widget.selectedSubMood)
     });
   }
 
   @override
   void initState() {
     super.initState();
-    //_moodCircleBloc.add(GetMoodMetaEvent());
+    widget.date = widget.arguments['selectedDate'] ?? DateTime.now();
+    widget.time = TimeOfDay.fromDateTime(widget.date);
+    _moodCircleBloc.add(GetMMoodListEvent());
+    _scrollController = FixedExtentScrollController();
   }
 
   @override

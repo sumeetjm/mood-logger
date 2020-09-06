@@ -17,7 +17,7 @@ class SplashPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 10.0),
                 Text(
-                  "Loading",
+                  'Loading',
                   style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w400,

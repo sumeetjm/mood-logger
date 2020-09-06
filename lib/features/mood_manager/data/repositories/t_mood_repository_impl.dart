@@ -35,20 +35,12 @@ class TMoodRepositoryImpl implements TMoodRepository {
   }
 
   @override
-  Future<Either<Failure, TMood>> saveTMood(
-      TMood tMood, List<TActivity> tActivityList) async {
+  Future<Either<Failure, TMood>> saveTMood(TMood tMood) async {
     if (await networkInfo.isConnected) {
       //debugger(when: false);
       try {
-        if (tMood.id != null) {
-          final tMoodSaved = await remoteDataSource.updateTMood(
-              tMood: tMood, tActivityList: tActivityList);
-          return Right(tMoodSaved);
-        } else {
-          final tMoodSaved = await remoteDataSource.saveTMood(
-              tMood: tMood, tActivityList: tActivityList);
-          return Right(tMoodSaved);
-        }
+        final tMoodSaved = await remoteDataSource.saveTMood(tMood);
+        return Right(tMoodSaved);
       } on ServerException {
         return Left(ServerFailure());
       }

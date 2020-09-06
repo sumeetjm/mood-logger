@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tinycolor/tinycolor.dart';
 
 class TimePicker extends StatelessWidget {
   const TimePicker({Key key, this.selectedTime, this.selectTime})
@@ -15,7 +16,8 @@ class TimePicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-        child: new RaisedButton(
+        child: RaisedButton(
+      color: TinyColor(Theme.of(context).buttonColor).brighten(40).color,
       child: Text(
         selectedTime.format(context),
         style: TextStyle(fontSize: 20),

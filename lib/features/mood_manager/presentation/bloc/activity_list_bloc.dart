@@ -1,10 +1,10 @@
 import 'dart:async';
+import 'dart:developer';
 
 import 'package:bloc/bloc.dart';
 import 'package:mood_manager/core/error/failures.dart';
 import 'package:mood_manager/core/usecases/usecase.dart';
-import 'package:mood_manager/features/mood_manager/data/models/m_activity_model.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/m_activity.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/m_activity_type.dart';
 import 'package:mood_manager/features/mood_manager/domain/usecases/get_m_activity_list.dart';
 import 'package:dartz/dartz.dart';
 import 'package:meta/meta.dart';
@@ -15,30 +15,36 @@ const String SERVER_FAILURE_MESSAGE = 'Server Failure';
 const String CACHE_FAILURE_MESSAGE = 'Cache Failure';
 
 class ActivityListBloc extends Bloc<ActivityListEvent, ActivityListState> {
-  final GetMActivityList getActivityMetaList;
+  final GetMActivityTypeList getMActivityTypeList;
 
-  ActivityListBloc({@required GetMActivityList getActivityMetaList})
-      : assert(getActivityMetaList != null),
-        this.getActivityMetaList = getActivityMetaList,
+  ActivityListBloc({@required GetMActivityTypeList getMActivityTypeList})
+      : assert(getMActivityTypeList != null),
+        this.getMActivityTypeList = getMActivityTypeList,
         super(ActivityListEmpty());
 
   @override
   Stream<ActivityListState> mapEventToState(
     ActivityListEvent event,
   ) async* {
-    if (event is GetActivityMetaEvent) {
-      yield ActivityListLoading();
+    //debugger(when:false);
+    if (event is GetMActivityListEvent) {
+      /*yield ActivityListLoading();
       final failureOrActivityList = await getActivityMetaList(NoParams());
-      yield* _eitherLoadedOrErrorState(failureOrActivityList);
+      yield* _eitherLoadedOrErrorState(failureOrActivityList);*/
+    } else if (event is GetMActivityTypeListEvent) {
+      yield ActivityListLoading();
+      final failureOrActivityTypeList = await getMActivityTypeList(NoParams());
+      yield* _eitherLoadedOrErrorState(failureOrActivityTypeList);
     }
   }
 
   Stream<ActivityListState> _eitherLoadedOrErrorState(
-    Either<Failure, List<MActivity>> failureOrActivityList,
+    Either<Failure, List<MActivityType>> failureOrActivityTypeList,
   ) async* {
-    yield failureOrActivityList.fold(
+    yield failureOrActivityTypeList.fold(
       (failure) => ActivityListError(message: _mapFailureToMessage(failure)),
-      (activityList) => ActivityListLoaded(mActivityList: activityList),
+      (activityTypeList) =>
+          ActivityTypeListLoaded(mActivityTypeList: activityTypeList),
     );
   }
 

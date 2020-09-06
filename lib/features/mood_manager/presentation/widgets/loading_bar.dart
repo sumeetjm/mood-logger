@@ -5,7 +5,7 @@ class LoadingBar extends StatelessWidget {
   LoadingBar(this.isLoading);
   @override
   Widget build(BuildContext context) {
-    ////debugger();
+    ////debugger(when:false);
     return Container(
       height: 5,
       child: Visibility(

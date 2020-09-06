@@ -26,7 +26,7 @@ class MoodCircleBloc extends Bloc<MoodCircleEvent, MoodCircleState> {
   Stream<MoodCircleState> mapEventToState(
     MoodCircleEvent event,
   ) async* {
-    if (event is GetMoodMetaEvent) {
+    if (event is GetMMoodListEvent) {
       yield MoodCircleLoading();
       final failureOrMoodList = await getMoodMetaList(NoParams());
       yield* _eitherLoadedOrErrorState(failureOrMoodList);

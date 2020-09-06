@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-import 'package:mood_manager/features/mood_manager/data/models/t_mood_model.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/t_mood.dart';
 
 abstract class TMoodState extends Equatable {
@@ -12,9 +11,10 @@ class TMoodInitial extends TMoodState {
 }
 
 class TMoodSaved extends TMoodState {
-  final TMoodModel tMood;
+  final TMood tMood;
+  final String action;
 
-  TMoodSaved({this.tMood});
+  TMoodSaved({this.tMood, this.action});
 
   @override
   List<Object> get props => [tMood];

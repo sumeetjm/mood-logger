@@ -13,7 +13,7 @@ class LoginInitial extends LoginState {
 }
 
 class LoginSuccess extends LoginState {
-  final FirebaseUser user;
+  final User user;
   LoginSuccess({this.user}) : super([user]);
 }
 

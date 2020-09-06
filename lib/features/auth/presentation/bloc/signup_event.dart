@@ -6,6 +6,6 @@ abstract class SignupEvent extends Equatable {
 }
 
 class SignupRequest extends SignupEvent {
-  final UserCredential userCredential;
-  SignupRequest({this.userCredential}) : super([userCredential]);
+  final User user;
+  SignupRequest({this.user}) : super([user]);
 }

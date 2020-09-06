@@ -4,12 +4,27 @@ import 'package:mood_manager/auth.dart';
 import 'package:mood_manager/features/auth/presentation/bloc/authentication_bloc.dart';
 import 'package:mood_manager/features/auth/presentation/splash_page.dart';
 import 'package:mood_manager/home.dart';
+import 'package:parse_server_sdk/parse_server_sdk.dart';
 import 'injection_container.dart' as di;
 import 'package:intl/date_symbol_data_local.dart';
+
+const String PARSE_APP_ID = 'M6MIrnNIxvQ3pt7JL5ydeaVfeIYdK8GO5y0B9k3N';
+const String PARSE_APP_URL = 'https://moodmanager.back4app.io';
+const String MASTER_KEY = 'QuamKAN1Lyv7Z9YLUgvfVVcEF0cZBJrjCDYcIy55';
+const String LIVE_QUERY_URL = 'https://moodmanager.back4app.io';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await di.init();
+  await Parse().initialize(
+    PARSE_APP_ID,
+    PARSE_APP_URL,
+    masterKey: MASTER_KEY,
+    liveQueryUrl: LIVE_QUERY_URL,
+    autoSendSessionId: true,
+    debug: true,
+    coreStore: await CoreStoreSharedPrefsImp.getInstance(),
+  );
   initializeDateFormatting().then((_) => runApp(MyApp()));
 }
 

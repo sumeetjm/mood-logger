@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mood_manager/features/auth/domain/entitles/user_credenial.dart';
+import 'package:mood_manager/features/auth/domain/entitles/user.dart';
 import 'package:mood_manager/features/auth/presentation/bloc/authentication_bloc.dart';
 import 'package:mood_manager/features/auth/presentation/bloc/signup_bloc.dart';
 import 'package:mood_manager/features/auth/presentation/widgets/auth_page_link_button.dart';
@@ -24,8 +24,8 @@ class _SignupPageState extends State<SignupPage> {
   void initState() {
     super.initState();
     _signupBloc = sl<SignupBloc>();
-    _emailController = TextEditingController(text: "");
-    _passwordController = TextEditingController(text: "");
+    _emailController = TextEditingController(text: '');
+    _passwordController = TextEditingController(text: '');
   }
 
   TextEditingController _emailController;
@@ -95,12 +95,12 @@ class _SignupPageState extends State<SignupPage> {
 
   void _onFormSubmitted() {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      print("Email and password cannot be empty");
+      print('Email and password cannot be empty');
       return;
     }
     _signupBloc.add(
       SignupRequest(
-        userCredential: UserCredential(
+        user: User(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         ),

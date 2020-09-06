@@ -6,8 +6,8 @@ abstract class LoginEvent extends Equatable {
 }
 
 class LoginRequest extends LoginEvent {
-  final UserCredential userCredential;
-  LoginRequest({this.userCredential}) : super([userCredential]);
+  final User user;
+  LoginRequest({this.user}) : super([user]);
 }
 
 class LoginWithGoogleRequest extends LoginEvent {}

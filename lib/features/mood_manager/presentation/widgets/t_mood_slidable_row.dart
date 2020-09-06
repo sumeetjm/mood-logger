@@ -1,16 +1,14 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
-import 'package:mood_manager/features/mood_manager/data/datasources/m_activity_remote_data_source.dart';
-import 'package:mood_manager/features/mood_manager/data/datasources/t_activity_remote_data_source.dart';
-import 'package:mood_manager/features/mood_manager/data/models/m_mood_model.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/m_activity.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/m_mood.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/t_activity.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/t_mood.dart';
-import 'package:mood_manager/injection_container.dart';
+import 'package:mood_manager/features/mood_manager/presentation/bloc/t_mood_bloc.dart';
+import 'package:mood_manager/features/mood_manager/presentation/bloc/t_mood_state.dart';
+import 'package:provider/provider.dart';
 import 'package:tinycolor/tinycolor.dart';
 import 'package:intl/intl.dart';
-import 'package:mood_manager/features/mood_manager/data/datasources/m_mood_remote_data_source.dart';
 
 class TMoodSlidableRow extends StatelessWidget {
   final TMood tMood;
@@ -27,6 +25,7 @@ class TMoodSlidableRow extends StatelessWidget {
       @required this.deleteCallback});
   @override
   Widget build(BuildContext context) {
+    //debugger(when:false);
     return Slidable.builder(
       key: ValueKey(tMood.id),
       controller: slidableController,
@@ -121,7 +120,10 @@ class TMoodSlidableRow extends StatelessWidget {
                     ? Colors.grey.shade200.withOpacity(animation.value)
                     : Colors.grey.shade200,
                 icon: Icons.edit,
-                onTap: editCallback,
+                onTap: () {
+                  editCallback();
+                  Slidable.of(context).close();
+                },
                 closeOnTap: false,
               );
             } else {
@@ -148,84 +150,59 @@ class VerticalListItem extends StatefulWidget {
   State<StatefulWidget> createState() => VerticalListItemState();
 }
 
-class VerticalListItemState extends State<VerticalListItem> {
-  Future<MMood> mMoodFuture;
-  Future<List<TActivity>> tActivityListFuture;
-  Future<List<MActivity>> mActivityListFuture;
-  MMoodRemoteDataSource mMoodRemoteDataSource;
-  VerticalListItemState() {
-    mMoodRemoteDataSource = sl<MMoodRemoteDataSource>();
-  }
-
+class VerticalListItemState extends State<VerticalListItem>
+    with SingleTickerProviderStateMixin {
+  double opacity = 0;
+  TextStyle textStyle;
   @override
   void initState() {
     super.initState();
-    mMoodFuture = sl<MMoodRemoteDataSource>().getMMood(widget.tMood.mMood.id);
-    tActivityListFuture =
-        sl<TActivityRemoteDataSource>().getTActvityListByMood(widget.tMood);
+    textStyle =
+        TextStyle(color: TinyColor(widget.tMood.mMood.color).darken(20).color);
   }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () =>
-          Slidable.of(context)?.renderingMode == SlidableRenderingMode.none
-              ? Slidable.of(context)?.open()
-              : Slidable.of(context)?.close(),
-      child: FutureBuilder<MMood>(
-        initialData: MMoodModel.initial(),
-        future: mMoodFuture,
-        builder: (context, snapshot) {
-          return Container(
-            height: 90,
-            decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: Colors.grey[400]))),
-            child: ListTile(
-              isThreeLine: true,
-              leading: CircleAvatar(
-                backgroundColor: snapshot.data.color,
-                foregroundColor: Colors.white,
-                radius: 30,
-              ),
-              title: Text(
-                snapshot.data.name.toUpperCase(),
-                style: TextStyle(
-                    color: TinyColor(snapshot.data.color).darken(20).color),
-              ),
-              subtitle: Wrap(
-                children: <Widget>[
-                  FutureBuilder<List<TActivity>>(
-                    initialData: [],
-                    future: tActivityListFuture,
-                    builder: (context, snapshot) =>
-                        FutureBuilder<List<MActivity>>(
-                            initialData: [],
-                            future: sl<MActivityRemoteDataSource>()
-                                .getMActivityByIds(snapshot.data
-                                    .map((e) => e.mActivity.id)
-                                    .toList()),
-                            builder: (context, snapshot) {
-                              return Text(
-                                snapshot.data.map((e) => e.name).join(" | "),
-                              );
-                            }),
-                  ),
-                  Text(
-                    widget.tMood.note ?? '',
-                  )
-                ],
-              ),
-              trailing: Text(
-                  DateFormat(DateFormat.HOUR_MINUTE)
-                      .format(widget.tMood.logDateTime),
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[800],
-                  )),
+        onTap: () =>
+            Slidable.of(context)?.renderingMode == SlidableRenderingMode.none
+                ? Slidable.of(context)?.open()
+                : Slidable.of(context)?.close(),
+        child: Container(
+          height: 90,
+          decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: Colors.grey[400]))),
+          child: ListTile(
+            isThreeLine: true,
+            leading: CircleAvatar(
+              backgroundColor: widget.tMood.mMood.color,
+              foregroundColor: Colors.white,
+              radius: 30,
             ),
-          );
-        },
-      ),
-    );
+            title: Text(
+              widget.tMood.mMood.name.toUpperCase(),
+              style: TextStyle(
+                  color: TinyColor(widget.tMood.mMood.color).darken(20).color),
+            ),
+            subtitle: Wrap(
+              children: <Widget>[
+                Text(widget.tMood.tActivityList
+                    .map((e) => e.mActivity.name)
+                    .join(' | ')),
+                Text(
+                  widget.tMood.note ?? '',
+                )
+              ],
+            ),
+            trailing: Text(
+                DateFormat(DateFormat.HOUR_MINUTE)
+                    .format(widget.tMood.logDateTime),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                )),
+          ),
+        ),
+      );
   }
 }

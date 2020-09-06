@@ -1,11 +1,9 @@
 import 'dart:async';
-import 'dart:developer';
 
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mood_manager/core/usecases/usecase.dart';
-import 'package:mood_manager/features/auth/domain/entitles/user_credenial.dart';
+import 'package:mood_manager/features/auth/domain/entitles/user.dart';
 import 'package:mood_manager/features/auth/domain/usecases/sign_in_with_credentials.dart';
 import 'package:mood_manager/features/auth/domain/usecases/sign_in_with_google.dart';
 
@@ -29,11 +27,10 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
   Stream<LoginState> mapEventToState(
     LoginEvent event,
   ) async* {
-    //debugger(when: false);
     if (event is LoginWithGoogleRequest) {
       yield* _mapLoginWithGoogleRequestToState();
     } else if (event is LoginRequest) {
-      yield* _mapLoginRequestToState(event.userCredential);
+      yield* _mapLoginRequestToState(event.user);
     }
   }
 
@@ -43,11 +40,10 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
         (failure) => LoginFailure(), (user) => LoginSuccess(user: user));
   }
 
-  Stream<LoginState> _mapLoginRequestToState(
-      UserCredential userCredential) async* {
+  Stream<LoginState> _mapLoginRequestToState(User user) async* {
     yield LoginLoading();
-    final user = await signInWithCredentials(Params(userCredential));
-    yield user.fold(
+    final loggedInuser = await signInWithCredentials(Params(user));
+    yield loggedInuser.fold(
         (failure) => LoginFailure(), (user) => LoginSuccess(user: user));
   }
 }

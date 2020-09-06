@@ -6,15 +6,13 @@ import 'package:dartz/dartz.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/usecases/usecase.dart';
 
-class SaveTMood
-    implements UseCase<TMood, Params<MapEntry<TMood, List<TActivity>>>> {
+class SaveTMood implements UseCase<TMood, Params<TMood>> {
   final TMoodRepository repository;
 
   SaveTMood(this.repository);
 
   @override
-  Future<Either<Failure, TMood>> call(
-      Params<MapEntry<TMood, List<TActivity>>> params) async {
-    return await repository.saveTMood(params.param.key, params.param.value);
+  Future<Either<Failure, TMood>> call(Params<TMood> params) async {
+    return await repository.saveTMood(params.param);
   }
 }

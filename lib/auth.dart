@@ -14,8 +14,8 @@ class AuthApp extends StatelessWidget {
       onGenerateRoute: (RouteSettings settings) {
         print('build route for ${settings.name}');
         final routes = <String, WidgetBuilder>{
-          "/signup": (context) => SignupPage(settings.arguments),
-          "/login": (context) => LoginPage(settings.arguments),
+          '/signup': (context) => SignupPage(settings.arguments),
+          '/login': (context) => LoginPage(settings.arguments),
         };
         WidgetBuilder builder = routes[settings.name];
         return MaterialPageRoute(builder: (ctx) => builder(ctx));

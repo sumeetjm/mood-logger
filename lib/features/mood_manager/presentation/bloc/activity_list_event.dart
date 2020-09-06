@@ -7,5 +7,6 @@ abstract class ActivityListEvent extends Equatable {
   List<Object> get props => [];
 }
 
-class GetActivityMetaEvent extends ActivityListEvent {}
+class GetMActivityListEvent extends ActivityListEvent {}
 
+class GetMActivityTypeListEvent extends ActivityListEvent {}

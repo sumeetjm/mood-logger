@@ -23,7 +23,7 @@ class AuthProvider {
     try {
       await _auth.signOut();
     } catch (e) {
-      print("error logging out");
+      print('error logging out');
     }
   }
 
@@ -41,7 +41,7 @@ class AuthProvider {
       return true;
     } catch (e) {
       print(e.message);
-      print("Error logging with google");
+      print('Error logging with google');
       return false;
     }
   }

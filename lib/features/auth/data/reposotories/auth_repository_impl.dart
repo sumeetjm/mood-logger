@@ -1,10 +1,9 @@
 import 'package:dartz/dartz.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mood_manager/core/error/exceptions.dart';
 import 'package:mood_manager/core/error/failures.dart';
 import 'package:mood_manager/core/network/network_info.dart';
 import 'package:mood_manager/features/auth/data/datasources/auth_data_source.dart';
-import 'package:mood_manager/features/auth/domain/entitles/user_credenial.dart';
+import 'package:mood_manager/features/auth/domain/entitles/user.dart';
 import 'package:mood_manager/features/auth/domain/repositories/auth_repository.dart';
 import '../../../../core/error/exceptions.dart';
 
@@ -18,7 +17,7 @@ class AuthRepositoryImpl implements AuthRepository {
         this.dataSource = dataSource,
         this.networkInfo = networkInfo;
 
-  Future<Either<Failure, FirebaseUser>> signInWithGoogle() async {
+  Future<Either<Failure, User>> signInWithGoogle() async {
     try {
       final user = await dataSource.signInWithGoogle();
       return Right(user);
@@ -27,21 +26,20 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
-  Future<Either<Failure, FirebaseUser>> signInWithCredentials(
-      UserCredential userCredential) async {
+  Future<Either<Failure, User>> signInWithCredentials(User user) async {
     try {
-      final user = await dataSource.signInWithCredentials(
-          email: userCredential.email, password: userCredential.password);
-      return Right(user);
+      final loggedInUser = await dataSource.signInWithCredentials(
+          email: user.email, password: user.password, username: user.userId);
+      return Right(loggedInUser);
     } on ServerException {
       return Left(ServerFailure());
     }
   }
 
-  Future<Either<Failure, void>> signUp(UserCredential userCredential) async {
+  Future<Either<Failure, void>> signUp(User user) async {
     try {
-      return Right(await dataSource.signUp(
-          email: userCredential.email, password: userCredential.password));
+      return Right(
+          await dataSource.signUp(email: user.email, password: user.password));
     } on ServerException {
       return Left(ServerFailure());
     }
@@ -64,7 +62,7 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
-  Future<Either<Failure, FirebaseUser>> getUser() async {
+  Future<Either<Failure, User>> getUser() async {
     try {
       final user = await dataSource.getUser();
       return Right(user);

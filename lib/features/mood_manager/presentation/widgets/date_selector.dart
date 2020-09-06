@@ -74,7 +74,9 @@ class _DateSelectorState extends State<DateSelector> {
       alignment: Alignment.center,
       padding: EdgeInsets.only(top: 8, left: 5, right: 5, bottom: 5),
       decoration: BoxDecoration(
-        color: !isSelectedDate ? Colors.transparent : Colors.white70,
+        color: !isSelectedDate
+            ? Colors.transparent
+            : Theme.of(context).primaryColor.withOpacity(0.4),
         borderRadius: BorderRadius.all(Radius.circular(60)),
       ),
       child: Column(
@@ -91,7 +93,7 @@ class _DateSelectorState extends State<DateSelector> {
       endDate: endDate,
       onDateSelected: onSelect,
       dateTileBuilder: dateTileBuilder,
-      iconColor: Colors.blue,
+      iconColor: Theme.of(context).primaryColor,
       monthNameWidget: _monthNameWidget,
       markedDates: markedDates,
       containerDecoration: BoxDecoration(color: Colors.black12),

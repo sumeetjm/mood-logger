@@ -24,7 +24,7 @@ class EmailField extends StatelessWidget {
           decoration: InputDecoration(
             border: InputBorder.none,
             fillColor: Colors.lightBlueAccent,
-            labelText: 'Email',
+            labelText: 'Username/Email',
             labelStyle: TextStyle(
               color: Colors.white70,
             ),
