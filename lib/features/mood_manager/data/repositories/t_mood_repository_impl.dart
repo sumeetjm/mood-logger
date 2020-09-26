@@ -37,7 +37,6 @@ class TMoodRepositoryImpl implements TMoodRepository {
   @override
   Future<Either<Failure, TMood>> saveTMood(TMood tMood) async {
     if (await networkInfo.isConnected) {
-      //debugger(when: false);
       try {
         final tMoodSaved = await remoteDataSource.saveTMood(tMood);
         return Right(tMoodSaved);

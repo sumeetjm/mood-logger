@@ -29,7 +29,6 @@ class TMoodBloc extends Bloc<TMoodEvent, TMoodState> {
   Stream<TMoodState> mapEventToState(
     TMoodEvent event,
   ) async* {
-    //debugger(when: true);
     if (event is SaveTMoodEvent) {
       final failureOrMood = await saveTMood(Params(event.tMood));
       yield* _eitherSavedOrErrorState(failureOrMood, event);

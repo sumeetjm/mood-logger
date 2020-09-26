@@ -26,7 +26,6 @@ class ActivityListBloc extends Bloc<ActivityListEvent, ActivityListState> {
   Stream<ActivityListState> mapEventToState(
     ActivityListEvent event,
   ) async* {
-    //debugger(when:false);
     if (event is GetMActivityListEvent) {
       /*yield ActivityListLoading();
       final failureOrActivityList = await getActivityMetaList(NoParams());

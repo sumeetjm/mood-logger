@@ -1,11 +1,10 @@
-import 'dart:developer';
-
+import 'package:mood_manager/features/mood_manager/data/models/parse/base_m_parse_mixin.dart';
 import 'package:mood_manager/features/mood_manager/data/models/parse/m_activity_parse.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/m_activity.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/m_activity_type.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
 
-class MActivityTypeParse extends MActivityType {
+class MActivityTypeParse extends MActivityType with BaseMParseMixin {
   MActivityTypeParse({
     String activityTypeId,
     String activityTypeName,
@@ -13,11 +12,12 @@ class MActivityTypeParse extends MActivityType {
     bool isActive = true,
     List<MActivity> mActivityList,
   }) : super(
-            activityTypeId: activityTypeId,
-            activityTypeName: activityTypeCode,
-            activityTypeCode: activityTypeCode,
-            mActivityList: mActivityList,
-            isActive: isActive);
+          activityTypeId: activityTypeId,
+          activityTypeName: activityTypeCode,
+          activityTypeCode: activityTypeCode,
+          mActivityList: mActivityList,
+          isActive: isActive,
+        );
 
   factory MActivityTypeParse.fromId(String activityTypeId) {
     return MActivityTypeParse(activityTypeId: activityTypeId);
@@ -46,13 +46,9 @@ class MActivityTypeParse extends MActivityType {
   }
 
   ParseObject toParseObject() {
-    ParseObject parseObject = ParseObject('mActivityType');
-    parseObject.set('objectId', id);
-    parseObject.set('name', name);
-    parseObject.set('code', code);
-    parseObject.set('isActive', isActive);
-    parseObject.set('mActivity',
-        mActivityList.map((e) => (e as MActivityParse).toParsePointer()));
+    ParseObject parseObject = baseParseObject(this);
+    parseObject.set(
+        'mActivity', mActivityList.map((e) => baseParsePointer(this)));
     return parseObject;
   }
 
@@ -61,9 +57,5 @@ class MActivityTypeParse extends MActivityType {
         .where((element) => (element as ParseObject).get('isActive'))
         .map((parseObject) => MActivityTypeParse.fromParseObject(parseObject))
         .toList();
-  }
-
-  Map<String, dynamic> toParsePointer() {
-    return {'__type': 'Pointer', 'className': 'mActivityType', 'objectId': id};
   }
 }

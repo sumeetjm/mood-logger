@@ -44,7 +44,6 @@ class _ScrollSelectState extends State<ScrollSelect> {
   }
 
   scrollToSelected(context) {
-    //debugger(when:false);
     _scrollController.jumpToItem(widget.options
         .map((e) => e.value)
         .toList()
@@ -104,7 +103,7 @@ class _ScrollSelectState extends State<ScrollSelect> {
                     ),
                 childCount: widget.options.length),*/
               /*children: widget.options.map((curValue) {
-              //debugger(when:false);
+              
               return ListTile(
                 onTap: () => {
                   debugger(when:false),

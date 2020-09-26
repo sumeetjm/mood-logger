@@ -72,7 +72,6 @@ class _ActivityFormPageState extends State<ActivityFormPage> {
             if (state is ActivityListEmpty || state is ActivityListLoading) {
               return LoadingWidget();
             } else if (state is ActivityTypeListLoaded) {
-              //debugger(when:false);
               widget.activityTypeList = state.mActivityTypeList;
               return ActivityChoiceChips(
                 key: widget.activityListKey,
@@ -105,7 +104,6 @@ class _ActivityFormPageState extends State<ActivityFormPage> {
 
   setActivityList(MapEntry<String, List<MActivity>> mapEntry) {
     setState(() {
-      //debugger(when: false);
       widget.selectedActivityMap[mapEntry.key] = mapEntry.value;
       widget.isActivitySelected = widget.selectedActivityMap != null &&
           widget.selectedActivityMap.values
@@ -116,7 +114,6 @@ class _ActivityFormPageState extends State<ActivityFormPage> {
   }
 
   saveMood() {
-    //debugger(when: false);
     tMoodBloc.add(SaveTMoodEvent(
         TMoodParse.fromMood(
             widget.arguments['formData'],

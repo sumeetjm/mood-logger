@@ -46,8 +46,10 @@ class MActivityParseDataSource implements MActivityRemoteDataSource {
             'mActivityType',
           ])
           ..whereEqualTo('isActive', true)
-          ..whereEqualTo('mActivityType',
-              (mActivityType as MActivityTypeParse).toParsePointer());
+          ..whereEqualTo(
+              'mActivityType',
+              (mActivityType as MActivityTypeParse)
+                  .baseParsePointer(mActivityType));
 
     final ParseResponse response = await queryBuilder.query();
     if (response.success) {
@@ -101,7 +103,6 @@ class MActivityParseDataSource implements MActivityRemoteDataSource {
 
   @override
   Future<List<MActivityType>> getMActivityTypeList() async {
-    //debugger(when:false);
     QueryBuilder<ParseObject> queryBuilder =
         QueryBuilder<ParseObject>(ParseObject('mActivityType'))
           ..whereEqualTo('isActive', true)

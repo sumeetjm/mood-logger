@@ -56,7 +56,7 @@ class MMoodParseDataSource implements MMoodRemoteDataSource {
     final ParseResponse response = await queryBuilder.query();
     if (response.success) {
       List<ParseObject> mMoodParseList = response.results ?? [];
-      //debugger(when:false);
+
       List<MMood> mMoodList = MMoodParse.fromParseArray(mMoodParseList);
       return mMoodList;
     } else {

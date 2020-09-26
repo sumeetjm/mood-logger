@@ -1,25 +1,25 @@
-import 'dart:developer';
-
 import 'package:mood_manager/core/util/hex_color.dart';
+import 'package:mood_manager/features/mood_manager/data/models/parse/base_m_parse_mixin.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/m_mood.dart';
 import 'package:flutter/material.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
 
-class MMoodParse extends MMood {
-  MMoodParse(
-      {String moodId,
-      String moodName,
-      String moodCode,
-      Color color,
-      List<MMood> mMoodList,
-      bool isActive = true})
-      : super(
-            moodId: moodId,
-            moodName: moodName,
-            moodCode: moodCode,
-            color: color,
-            mMoodList: mMoodList,
-            isActive: isActive);
+class MMoodParse extends MMood with BaseMParseMixin {
+  MMoodParse({
+    String moodId,
+    String moodName,
+    String moodCode,
+    Color color,
+    List<MMood> mMoodList,
+    bool isActive = true,
+  }) : super(
+          moodId: moodId,
+          moodName: moodName,
+          moodCode: moodCode,
+          color: color,
+          mMoodList: mMoodList,
+          isActive: isActive,
+        );
 
   factory MMoodParse.fromId(String moodId) {
     return MMoodParse(moodId: moodId);
@@ -40,12 +40,13 @@ class MMoodParse extends MMood {
       return null;
     }
     return MMoodParse(
-        moodId: parseObject.get('objectId'),
-        moodName: parseObject.get('name'),
-        moodCode: parseObject.get('code'),
-        isActive: parseObject.get('isActive'),
-        color: HexColor.fromHex(parseObject.get('hexColor')),
-        mMoodList: MMoodParse.fromParseArray(parseObject.get('subMood')));
+      moodId: parseObject.get('objectId'),
+      moodName: parseObject.get('name'),
+      moodCode: parseObject.get('code'),
+      isActive: parseObject.get('isActive'),
+      color: HexColor.fromHex(parseObject.get('hexColor')),
+      mMoodList: MMoodParse.fromParseArray(parseObject.get('subMood')),
+    );
   }
 
   static List<MMoodParse> fromParseArray(List<dynamic> parseArray) {
@@ -56,21 +57,13 @@ class MMoodParse extends MMood {
   }
 
   ParseObject toParseObject() {
-    ParseObject parseObject = ParseObject('mMood');
-    parseObject.set('objectId', id);
-    parseObject.set('name', name);
-    parseObject.set('code', code);
+    ParseObject parseObject = baseParseObject(this);
     parseObject.set('hexColor', color.toHex());
-    parseObject.set('isActive', isActive);
     parseObject.set(
         'subMood',
         mMoodList
             .map((mMood) => (mMood as MMoodParse).toParseObject())
             .toList());
     return parseObject;
-  }
-
-  Map<String, dynamic> toParsePointer() {
-    return {'__type': 'Pointer', 'className': 'mMood', 'objectId': id};
   }
 }

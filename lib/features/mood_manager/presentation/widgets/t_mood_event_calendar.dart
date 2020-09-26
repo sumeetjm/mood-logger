@@ -1,14 +1,11 @@
-import 'dart:developer';
-
+import 'package:auto_animated/auto_animated.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:mood_manager/core/util/color_util.dart';
 import 'package:mood_manager/core/util/date_util.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/m_mood.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/t_mood.dart';
+import 'package:mood_manager/features/mood_manager/presentation/widgets/animation_util.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/t_mood_slidable_row.dart';
-import 'package:mood_manager/injection_container.dart';
-import 'package:provider/provider.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
@@ -104,27 +101,27 @@ class _TMoodEventCalendarState extends State<TMoodEventCalendar>
 
   @override
   Widget build(BuildContext context) {
-    //debugger(when:false);
     return RefreshIndicator(
         onRefresh: widget.refreshCallback,
-        child: ListView(
-          addRepaintBoundaries: true,
-          physics: BouncingScrollPhysics(),
-          controller: widget.scrollController,
-          children: [
-            // Switch out 2 lines below to play with TableCalendar's settings
-            //-----------------------
-            //_buildTableCalendar(),
-            _buildTableCalendarWithBuilders(widget.tMoodListMapByDate),
-            ..._buildEventList(widget
-                .tMoodListMapByDate[DateUtil.getDateOnly(widget.selectedDate)]),
-          ],
-        ));
+        child: AnimateIfVisibleWrapper(
+            showItemInterval: Duration(milliseconds: 150),
+            child: ListView(
+              addRepaintBoundaries: true,
+              physics: BouncingScrollPhysics(),
+              controller: widget.scrollController,
+              children: [
+                // Switch out 2 lines below to play with TableCalendar's settings
+                //-----------------------
+                //_buildTableCalendar(),
+                _buildTableCalendarWithBuilders(widget.tMoodListMapByDate),
+                ..._buildEventList(widget.tMoodListMapByDate[
+                    DateUtil.getDateOnly(widget.selectedDate)]),
+              ],
+            )));
   }
 
   // Simple TableCalendar configuration (using Styles)
   Widget _buildTableCalendar(Map<DateTime, List<TMood>> tMoodListMapByDate) {
-    //debugger(when:false);
     return TableCalendar(
       endDay: DateTime.now(),
       calendarController: _calendarController,
@@ -153,7 +150,7 @@ class _TMoodEventCalendarState extends State<TMoodEventCalendar>
   // More advanced TableCalendar configuration (using Builders & Styles)
   Widget _buildTableCalendarWithBuilders(
       Map<DateTime, List<TMood>> tMoodListMapByDate) {
-    ////debugger(when:false);
+    //
     return Container(
       decoration: BoxDecoration(border: Border(bottom: BorderSide(width: 0))),
       child: TableCalendar(
@@ -219,7 +216,7 @@ class _TMoodEventCalendarState extends State<TMoodEventCalendar>
           },
           markersBuilder: (context, date, events, holidays) {
             final children = <Widget>[];
-            ////debugger(when:false);
+            //
             if (events.isNotEmpty) {
               children.add(
                 Positioned(
@@ -291,32 +288,35 @@ class _TMoodEventCalendarState extends State<TMoodEventCalendar>
       );
 
   List<Widget> _buildEventList(List<TMood> tMoodList) {
-    //debugger(when:false);
     return (tMoodList ?? [])
         .asMap()
         .keys
         .map((index) => _wrapScrollTag(
             highlightColor: tMoodList[index].mMood.color,
             index: index,
-            child: TMoodSlidableRow(
-              tMood: tMoodList[index],
-              slidableController: slidableController,
-              direction: Axis.horizontal,
-              deleteCallback: () {
-                widget.deleteCallback(
-                    widget.getDateOnly(widget.selectedDate), tMoodList[index]);
-                widget
-                    .tMoodListMapByDate[widget.getDateOnly(widget.selectedDate)]
-                    .remove(tMoodList[index]);
-                widget
-                    .tMoodListMapByDate[widget.getDateOnly(widget.selectedDate)]
-                    .remove(tMoodList[index]);
-                //tMoodList.remove(tMoodList[index]);
-              },
-              editCallback: () {
-                widget.editCallback(tMoodList[index]);
-              },
-            )))
+            child: AnimateIfVisible(
+                duration: Duration(milliseconds: 100),
+                reAnimateOnVisibility: true,
+                key: Key('${tMoodList[index].id + 'calendar'}'),
+                builder: animationBuilder(TMoodSlidableRow(
+                  tMood: tMoodList[index],
+                  slidableController: slidableController,
+                  direction: Axis.horizontal,
+                  deleteCallback: () {
+                    widget.deleteCallback(
+                        widget.getDateOnly(widget.selectedDate),
+                        tMoodList[index]);
+                    widget.tMoodListMapByDate[
+                            widget.getDateOnly(widget.selectedDate)]
+                        .remove(tMoodList[index]);
+                    widget.tMoodListMapByDate[
+                            widget.getDateOnly(widget.selectedDate)]
+                        .remove(tMoodList[index]);
+                  },
+                  editCallback: () {
+                    widget.editCallback(tMoodList[index]);
+                  },
+                )))))
         .toList();
   }
 }

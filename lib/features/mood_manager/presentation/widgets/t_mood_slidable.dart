@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:auto_animated/auto_animated.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:mood_manager/core/util/date_util.dart';
@@ -7,6 +8,7 @@ import 'package:mood_manager/features/mood_manager/data/datasources/m_mood_remot
 import 'package:mood_manager/features/mood_manager/data/models/parse/t_mood_parse.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/m_mood.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/t_mood.dart';
+import 'package:mood_manager/features/mood_manager/presentation/widgets/animation_util.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/empty_widget.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/header.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/t_mood_slidable_row.dart';
@@ -75,61 +77,70 @@ class _TMoodSlidableState extends State<TMoodSlidable> {
   Widget _buildList(BuildContext context, Axis direction) {
     List<DateTime> dateKeys = widget.tMoodListMapByDate.keys.toList();
     final Axis slidableDirection = Axis.horizontal;
+
     return RefreshIndicator(
         onRefresh: widget.refreshCallback,
-        child: ListView.builder(
-          addRepaintBoundaries: true,
-          physics: BouncingScrollPhysics(),
-          scrollDirection: direction,
-          itemCount: (widget.tMoodListMapByDate ?? {}).length,
-          controller: widget.scrollController,
-          itemBuilder: (context, index) {
-            var tMoodList = widget.tMoodListMapByDate[dateKeys[index]];
-            return StickyHeader(
-              header:
-                  /*_wrapScrollTag(
-                  index: dateKeys[index].millisecondsSinceEpoch,
-                  highlightColor: tMoodList[0].mMood.color,
-                  child: */
-                  DateHeader(
-                tMoodList: widget
-                    .tMoodListMapByDate[DateUtil.getDateOnly(dateKeys[index])],
-              ) /*)*/,
-              content: Column(
-                children: tMoodList
-                    .asMap()
-                    .keys
-                    .map((i) => _wrapScrollTag(
-                          highlightColor: tMoodList[i].mMood.color,
-                          index: widget.tMoodList.indexWhere(
-                              (element) => element.id == tMoodList[i].id),
-                          child: TMoodSlidableRow(
-                              tMood: tMoodList[i],
-                              editCallback: () {
-                                widget.editCallback(tMoodList[i]);
-                              },
-                              slidableController: slidableController,
-                              direction: slidableDirection,
-                              deleteCallback: () {
-                                //setState(() {
-                                var dateOnly = DateUtil.getDateOnly(
-                                    tMoodList[i].logDateTime);
-                                widget.tMoodListMapByDate[dateOnly]
-                                    .remove(tMoodList[i]);
-                                if (widget
-                                    .tMoodListMapByDate[dateOnly].isEmpty) {
-                                  widget.tMoodListMapByDate.remove(dateOnly);
-                                }
-                                tMoodList.remove(tMoodList[i]);
-                                widget.deleteCallback(dateOnly, tMoodList[i]);
-                                // });
-                              }),
-                        ))
-                    .toList(),
-              ),
-            );
-          },
-        ));
+        child: AnimateIfVisibleWrapper(
+            showItemInterval: Duration(milliseconds: 50),
+            child: ListView.builder(
+              addRepaintBoundaries: true,
+              physics: BouncingScrollPhysics(),
+              scrollDirection: direction,
+              itemCount: (widget.tMoodListMapByDate ?? {}).length,
+              controller: widget.scrollController,
+              itemBuilder: (context, index) {
+                var tMoodList = widget.tMoodListMapByDate[dateKeys[index]];
+                return StickyHeader(
+                  header: AnimateIfVisible(
+                    duration: Duration(milliseconds: 100),
+                    key: Key('${dateKeys[index]}'),
+                    builder: animationBuilder(
+                      DateHeader(
+                        tMoodList: widget.tMoodListMapByDate[
+                            DateUtil.getDateOnly(dateKeys[index])],
+                      ),
+                    ),
+                  ),
+                  content: Column(
+                    children: tMoodList
+                        .asMap()
+                        .keys
+                        .map(
+                          (i) => _wrapScrollTag(
+                            highlightColor: tMoodList[i].mMood.color,
+                            index: widget.tMoodList.indexWhere(
+                                (element) => element.id == tMoodList[i].id),
+                            child: AnimateIfVisible(
+                                duration: Duration(milliseconds: 100),
+                                key: Key('${tMoodList[i].id + 'list'}'),
+                                builder: animationBuilder(TMoodSlidableRow(
+                                    tMood: tMoodList[i],
+                                    editCallback: () {
+                                      widget.editCallback(tMoodList[i]);
+                                    },
+                                    slidableController: slidableController,
+                                    direction: slidableDirection,
+                                    deleteCallback: () {
+                                      final dateOnly = DateUtil.getDateOnly(
+                                          tMoodList[i].logDateTime);
+                                      widget.tMoodListMapByDate[dateOnly]
+                                          .remove(tMoodList[i]);
+                                      if (widget.tMoodListMapByDate[dateOnly]
+                                          .isEmpty) {
+                                        widget.tMoodListMapByDate
+                                            .remove(dateOnly);
+                                      }
+                                      tMoodList.remove(tMoodList[i]);
+                                      widget.deleteCallback(
+                                          dateOnly, tMoodList[i]);
+                                    }))),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                );
+              },
+            )));
   }
 
   Widget _wrapScrollTag({int index, Widget child, Color highlightColor}) =>
@@ -141,12 +152,14 @@ class _TMoodSlidableState extends State<TMoodSlidable> {
         highlightColor: highlightColor.withOpacity(0.3),
       );
 
+  Widget _wrapAnimatedBuilder({Widget child}) {}
+
   Widget _getSlidableWithDelegates(BuildContext context, int index,
       Axis direction, Map<DateTime, List<TMood>> map) {
-    //debugger();
+    //
     var dateKey = map.keys.toList()[index];
     var tMoodListDayWise = map[dateKey];
-    //debugger(when:false);
+
     return Card(
       child: Column(children: [
         if (tMoodListDayWise.length > 0)
@@ -160,13 +173,11 @@ class _TMoodSlidableState extends State<TMoodSlidable> {
                 slidableController: slidableController,
                 direction: direction,
                 deleteCallback: () {
-                  //setState(() {
                   tMoodListMapByDate[dateKey].remove(tMood);
                   if (tMoodListMapByDate[dateKey].isEmpty) {
                     tMoodListMapByDate.remove(dateKey);
                   }
                   widget.deleteCallback(dateKey, tMood);
-                  // });
                 }))
             .toList()
       ]),

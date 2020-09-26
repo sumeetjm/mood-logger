@@ -5,15 +5,18 @@ class MMood extends BaseM {
   final Color color;
   final List<MMood> mMoodList;
 
-  MMood(
-      {String moodId,
-      String moodName,
-      String moodCode,
-      bool isActive,
-      this.color,
-      this.mMoodList})
-      : super(id: moodId, name: moodName, code: moodCode, isActive: isActive);
-
-  @override
-  List<Object> get props => [color, mMoodList, ...super.props];
+  MMood({
+    String moodId,
+    @required String moodName,
+    @required String moodCode,
+    bool isActive = true,
+    @required this.color,
+    @required this.mMoodList,
+  }) : super(
+          id: moodId,
+          name: moodName,
+          code: moodCode,
+          isActive: isActive,
+          className: 'mMood',
+        );
 }

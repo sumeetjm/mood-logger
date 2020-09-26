@@ -155,7 +155,6 @@ class _EditFormPageState extends State<EditFormPage> {
                   if (state is MoodCircleEmpty || state is MoodCircleLoading) {
                     return LoadingWidget();
                   } else if (state is MoodCircleLoaded) {
-                    //debugger(when:false);
                     widget.mMoodList = state.moodList;
                     if (widget.mMoodList
                         .every((element) => element != widget.selectedMood)) {
@@ -256,7 +255,6 @@ class _EditFormPageState extends State<EditFormPage> {
   }
 
   saveMood() {
-    //debugger(when:false);
     final selectedMActivityList = widget.selectedMActivityListMapByType.values
         .expand((item) => item)
         .toList();
@@ -277,7 +275,7 @@ class _EditFormPageState extends State<EditFormPage> {
             transActivityId: existingActivityMap[activity],
             mActivity: activity,
             isActive: false)));
-    //debugger(when:false);
+
     final saveData = TMoodParse(
         logDateTime:
             DateTimeField.combine(widget.selectedDate, widget.selectedTime),

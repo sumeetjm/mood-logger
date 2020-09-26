@@ -1,14 +1,19 @@
-import 'dart:developer';
-
+import 'package:mood_manager/features/mood_manager/data/models/parse/base_t_parse_mixin.dart';
 import 'package:mood_manager/features/mood_manager/data/models/parse/m_activity_parse.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/m_activity.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/t_activity.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
 
-class TActivityParse extends TActivity {
-  TActivityParse(
-      {String transActivityId, MActivity mActivity, bool isActive = true})
-      : super(id: transActivityId, mActivity: mActivity, isActive: isActive);
+class TActivityParse extends TActivity with BaseTParseMixin {
+  TActivityParse({
+    String transActivityId,
+    MActivity mActivity,
+    bool isActive = true,
+  }) : super(
+          id: transActivityId,
+          mActivity: mActivity,
+          isActive: isActive,
+        );
 
   factory TActivityParse.fromId(String transActivityId) {
     return TActivityParse(transActivityId: transActivityId);
@@ -39,13 +44,8 @@ class TActivityParse extends TActivity {
   }
 
   ParseObject toParseObject() {
-    ParseObject parseObject = ParseObject('tActivity');
+    ParseObject parseObject = baseParseObject(this);
     parseObject.set('mActivity', (mActivity as MActivityParse).toParseObject());
-    parseObject.set('isActive', isActive);
     return parseObject;
-  }
-
-  Map<String, dynamic> toParsePointer() {
-    return {'__type': 'Pointer', 'className': 'tActivity', 'objectId': id};
   }
 }

@@ -1,5 +1,6 @@
 import 'package:intl/intl.dart';
 import 'package:mood_manager/core/constants/app_constants.dart';
+import 'package:mood_manager/features/mood_manager/data/models/parse/base_t_parse_mixin.dart';
 
 import 'package:mood_manager/features/mood_manager/data/models/parse/m_mood_parse.dart';
 import 'package:mood_manager/features/mood_manager/data/models/parse/t_activity_parse.dart';
@@ -9,7 +10,7 @@ import 'package:mood_manager/features/mood_manager/domain/entities/t_activity.da
 import 'package:mood_manager/features/mood_manager/domain/entities/t_mood.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
 
-class TMoodParse extends TMood {
+class TMoodParse extends TMood with BaseTParseMixin {
   TMoodParse(
       {String transMoodId,
       String note,
@@ -18,12 +19,13 @@ class TMoodParse extends TMood {
       MMood mMood,
       bool isActive = true})
       : super(
-            id: transMoodId,
-            note: note,
-            logDateTime: logDateTime,
-            mMood: mMood,
-            tActivityList: tActivityList,
-            isActive: isActive);
+          id: transMoodId,
+          note: note,
+          logDateTime: logDateTime,
+          mMood: mMood,
+          tActivityList: tActivityList,
+          isActive: isActive,
+        );
 
   static Map<DateTime, List<TMood>> subListMapByDate(
     List<TMood> tMoodList,
@@ -87,16 +89,10 @@ class TMoodParse extends TMood {
   }
 
   ParseObject toParseObject() {
-    ParseObject tMoodParse = ParseObject('tMood');
-    tMoodParse.set('objectId', id);
+    ParseObject tMoodParse = baseParseObject(this);
     tMoodParse.set('logDateTime', logDateTime.toUtc());
     tMoodParse.set('note', note);
     tMoodParse.set('mMood', (mMood as MMoodParse).toParseObject());
-    tMoodParse.set('isActive', isActive);
     return tMoodParse;
-  }
-
-  Map<String, dynamic> toParsePointer() {
-    return {'__type': 'Pointer', 'className': 'tMood', 'objectId': id};
   }
 }

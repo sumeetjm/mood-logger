@@ -1,29 +1,23 @@
+import 'package:mood_manager/features/mood_manager/data/models/parse/base_m_parse_mixin.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/m_activity.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
 
-class MActivityParse extends MActivity {
-  MActivityParse(
-      {String activityId,
-      String activityName,
-      String activityCode,
-      bool isActive = true})
-      : super(
-            activityId: activityId,
-            activityName: activityName,
-            activityCode: activityCode,
-            isActive: isActive);
+class MActivityParse extends MActivity with BaseMParseMixin {
+  MActivityParse({
+    String activityId,
+    String activityName,
+    String activityCode,
+    bool isActive = true,
+  }) : super(
+          activityId: activityId,
+          activityName: activityName,
+          activityCode: activityCode,
+          isActive: isActive,
+        );
 
   factory MActivityParse.fromId(String activityId) {
     return MActivityParse(activityId: activityId);
   }
-
-  /*static Map<String, List<MActivity>> groupByType(
-      List<MActivity> activityList) {
-    List<String> mActivityTypeCodeList =
-        activityList.map((e) => e.mActivityType.code).toSet().toList();
-    return Map.fromEntries(mActivityTypeCodeList.map((e) => MapEntry(
-        e, activityList.where((element) => element.mActivityType.code == e))));
-  }*/
 
   factory MActivityParse.initial() {
     return MActivityParse(
@@ -49,15 +43,7 @@ class MActivityParse extends MActivity {
   }
 
   ParseObject toParseObject() {
-    ParseObject parseObject = ParseObject('mActivity');
-    parseObject.set('objectId', id);
-    parseObject.set('name', name);
-    parseObject.set('code', code);
-    parseObject.set('isActive', isActive);
+    ParseObject parseObject = baseParseObject(this);
     return parseObject;
-  }
-
-  Map<String, dynamic> toParsePointer() {
-    return {'__type': 'Pointer', 'className': 'mActivity', 'objectId': id};
   }
 }

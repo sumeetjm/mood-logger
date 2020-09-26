@@ -17,7 +17,6 @@ abstract class TMoodRemoteDataSource {
 class TMoodParseDataSource extends TMoodRemoteDataSource {
   @override
   Future<TMood> saveTMood(TMood tMood) async {
-    //debugger(when: true);
     ParseObject tMoodParse = (tMood as TMoodParse).toParseObject();
     debugger(when: false);
     ParseObject user = await ParseUser.currentUser();
@@ -113,7 +112,6 @@ class TMoodParseDataSource extends TMoodRemoteDataSource {
 
     final ParseResponse response = await queryBuilder.query();
     if (response.success) {
-      //debugger(when:false);
       List<ParseObject> tMoodParseList = response.results ?? [];
       List<TMood> tMoodList = TMoodParse.fromParseArray(tMoodParseList);
       return tMoodList;

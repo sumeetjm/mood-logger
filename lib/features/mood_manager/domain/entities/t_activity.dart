@@ -1,15 +1,25 @@
+import 'package:flutter/material.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/base_t.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/m_activity.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/t_mood.dart';
 
 class TActivity extends BaseT {
-  MActivity mActivity;
+  final MActivity mActivity;
 
-  TActivity({String id, DateTime auditDate, bool isActive, this.mActivity})
-      : super(id: id, auditDate: auditDate, isActive: isActive);
-
-  set setMActivity(MActivity mActivity) => this.mActivity = mActivity;
+  TActivity({
+    String id,
+    DateTime auditDate,
+    bool isActive = true,
+    @required this.mActivity,
+  }) : super(
+          id: id,
+          auditDate: auditDate,
+          isActive: isActive,
+          className: 'tActivity',
+        );
 
   @override
-  List<Object> get props => [mActivity, mActivity, ...super.props];
+  List<Object> get props => [
+        mActivity,
+        ...super.props,
+      ];
 }

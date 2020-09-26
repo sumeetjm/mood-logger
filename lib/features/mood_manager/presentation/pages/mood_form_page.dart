@@ -36,7 +36,6 @@ class MoodFormPage extends StatefulWidget {
 
 class _MoodFormPageState extends State<MoodFormPage> {
   MoodCircleBloc _moodCircleBloc;
-  FixedExtentScrollController _scrollController;
 
   _MoodFormPageState() {
     this._moodCircleBloc = sl<MoodCircleBloc>();
@@ -121,7 +120,6 @@ class _MoodFormPageState extends State<MoodFormPage> {
                   if (state is MoodCircleEmpty || state is MoodCircleLoading) {
                     return LoadingWidget();
                   } else if (state is MoodCircleLoaded) {
-                    //debugger(when:false);
                     widget.moodList = state.moodList;
                     return Column(
                       children: [
@@ -142,7 +140,6 @@ class _MoodFormPageState extends State<MoodFormPage> {
                               scrollDirection: ScrollDirection.horizontal,
                               onChanged: (mMood) {
                                 setState(() {
-                                  //debugger(when:false);
                                   widget.selectedSubMood = mMood;
                                 });
                               },
@@ -176,7 +173,6 @@ class _MoodFormPageState extends State<MoodFormPage> {
 
   updateState(value) {
     setState(() {
-      //debugger(when:false);
       widget.selectedMood = value;
       widget.subMoodList = [value, ...value.mMoodList];
       widget.selectedSubMood = value;
@@ -198,7 +194,6 @@ class _MoodFormPageState extends State<MoodFormPage> {
     widget.date = widget.arguments['selectedDate'] ?? DateTime.now();
     widget.time = TimeOfDay.fromDateTime(widget.date);
     _moodCircleBloc.add(GetMMoodListEvent());
-    _scrollController = FixedExtentScrollController();
   }
 
   @override
