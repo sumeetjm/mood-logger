@@ -1,9 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:mood_manager/features/auth/data/datasources/auth_data_source.dart';
-import 'package:mood_manager/features/auth/data/datasources/firestore/auth_firestore_data_source.dart';
 import 'package:mood_manager/features/auth/data/datasources/parse/auth_parse_data_source.dart';
-import 'package:mood_manager/features/auth/data/reposotories/auth_repository_impl.dart';
+import 'package:mood_manager/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:mood_manager/features/auth/domain/repositories/auth_repository.dart';
 import 'package:mood_manager/features/auth/domain/usecases/get_current_user.dart';
 import 'package:mood_manager/features/auth/domain/usecases/is_signed_in.dart';
@@ -25,6 +25,7 @@ import 'package:mood_manager/features/mood_manager/domain/repositories/user_prof
 import 'package:mood_manager/features/mood_manager/domain/usecases/get_current_user_profile.dart';
 import 'package:mood_manager/features/mood_manager/domain/usecases/get_m_activity_list.dart';
 import 'package:mood_manager/features/mood_manager/domain/usecases/get_user_profile.dart';
+import 'package:mood_manager/features/mood_manager/domain/usecases/save_profile_picture.dart';
 import 'package:mood_manager/features/mood_manager/domain/usecases/save_t_mood.dart';
 import 'package:mood_manager/features/mood_manager/data/datasources/m_mood_remote_data_source.dart';
 import 'package:mood_manager/features/mood_manager/data/datasources/t_mood_remote_data_source.dart';
@@ -42,6 +43,9 @@ import 'package:mood_manager/features/mood_manager/presentation/bloc/mood_circle
 import 'package:data_connection_checker/data_connection_checker.dart';
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
+import 'package:uuid/uuid.dart';
+import 'package:uuid/uuid_util.dart';
+import 'package:video_trimmer/video_trimmer.dart';
 
 import 'core/network/network_info.dart';
 import 'core/util/input_converter.dart';
@@ -67,6 +71,7 @@ Future<void> init() async {
         getCurrentUserProfile: sl(),
         getUserProfile: sl(),
         saveUserProfile: sl(),
+        saveProfilePicture: sl(),
       ));
 
   // Use cases
@@ -85,6 +90,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetCurrentUserProfile(sl()));
   sl.registerLazySingleton(() => GetUserProfile(sl()));
   sl.registerLazySingleton(() => SaveUserProfile(sl()));
+  sl.registerLazySingleton(() => SaveProfilePicture(sl()));
 
   // Repository
   sl.registerLazySingleton<MMoodRepository>(
@@ -134,4 +140,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GoogleSignIn());
   sl.registerLazySingleton(
       () => RestCountries.setup('d2b3ecd3f68f52fa52225702e328769e'));
+  sl.registerLazySingleton(() => ImagePicker());
+  sl.registerLazySingleton(() => Trimmer());
+  sl.registerLazySingleton(() => Uuid());
 }

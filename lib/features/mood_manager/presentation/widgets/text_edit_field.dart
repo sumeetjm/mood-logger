@@ -1,6 +1,5 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class TextEditField extends StatefulWidget {
   const TextEditField({
@@ -50,24 +49,57 @@ class _TextEditFieldState extends State<TextEditField> {
               _focus.unfocus();
             },
           );
+
+    /*TextFormField(
+      validator: (value) {
+        if (value != null &&
+            !value.isNotEmpty &&
+            RegExp('^[_A-z0-9]*((-|\s)*[_A-z0-9])*\$').hasMatch(value)) {
+          return 'Invalid';
+        }
+        return null;
+      },
+      inputFormatters: [
+        FilteringTextInputFormatter.allow(
+            RegExp('^[_A-z0-9]*((-|\s)*[_A-z0-9])*\$'))
+      ],
+      keyboardType: TextInputType.text,
+      focusNode: _focus,
+      controller: textEditingController,
+      style: TextStyle(color: Colors.black, fontSize: 16),
+      onChanged: print,
+      decoration: InputDecoration(
+        enabledBorder: InputBorder.none,
+        suffixIcon: Icon(Icons.edit),
+        fillColor: Colors.lightBlueAccent,
+        labelText: widget.label,
+        labelStyle: TextStyle(color: widget.valueColor, fontSize: 16),
+      ),
+    );*/
     return Container(
       height: 65,
       width: MediaQuery.of(context).size.width,
-      child: TextField(
-        keyboardType: widget.inputType,
+      child: TextFormField(
+        autovalidate: true,
+        validator: (value) {
+          if (value != null &&
+              value.isNotEmpty &&
+              RegExp('[_A-z0-9]*((-|\s)*[_A-z0-9])*').hasMatch(value)) {
+            return 'Invalid';
+          }
+          return null;
+        },
+        keyboardType: TextInputType.text,
         focusNode: _focus,
         controller: textEditingController,
-        style: TextStyle(color: widget.valueColor, fontSize: 16),
-        onChanged: (value) {
-          isChanged = true;
-          widget.onChange(value);
-        },
+        style: TextStyle(color: Colors.black, fontSize: 16),
+        onChanged: print,
         decoration: InputDecoration(
           enabledBorder: InputBorder.none,
-          suffixIcon: icon,
+          suffixIcon: Icon(Icons.edit),
           fillColor: Colors.lightBlueAccent,
           labelText: widget.label,
-          labelStyle: TextStyle(color: widget.labelColor, fontSize: 20),
+          labelStyle: TextStyle(color: widget.valueColor, fontSize: 16),
         ),
       ),
     );

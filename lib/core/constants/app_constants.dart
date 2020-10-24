@@ -1,3 +1,5 @@
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:mood_manager/features/mood_manager/data/models/parse/gender_parse.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/gender.dart';
 
 class AppConstants {
@@ -6,26 +8,44 @@ class AppConstants {
   static const DEFAULT_PROFILE_PIC =
       'https://mlrjx6kefml3.i.optimole.com/6AH3zQ-wlC6a5CH/w:300/h:300/q:auto/dpr:1.3/rt:fill/g:ce/https://stratefix.com/wp-content/uploads/2016/04/dummy-profile-pic-male1.jpg';
   static final List<Gender> genderList = [
-    Gender(
+    GenderParse(
       id: null,
+      name: 'Not disclosed',
+      code: '',
+      isActive: true,
+      altName: '',
+      iconData: null,
+      isDummy: true,
+    ),
+    GenderParse(
+      id: 'aXTXI7G2v1',
       name: 'Male',
       code: 'M',
       isActive: true,
       altName: 'Men',
+      iconData: MdiIcons.genderMale,
     ),
-    Gender(
-      id: null,
+    GenderParse(
+      id: 'MCwNrDA48M',
       name: 'Female',
       code: 'F',
       isActive: true,
       altName: 'Women',
+      iconData: MdiIcons.genderFemale,
     ),
-    Gender(
-      id: null,
+    GenderParse(
+      id: 'BXaxjbCbN8',
       name: 'Other',
       code: 'O',
       isActive: true,
       altName: 'Other',
+      iconData: MdiIcons.genderNonBinary,
     )
   ];
+  static const NO_SPECIAL_CHARACTER_REGEX =
+      '^[a-zA-Z]+(([\',. -][a-zA-Z ])?[a-zA-Z]*)*\$';
+  static const EMAIL_REGEX =
+      r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+";
+
+  static final Map dataConstants = {'gender': genderList};
 }

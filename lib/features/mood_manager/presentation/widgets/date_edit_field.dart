@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:mood_manager/core/constants/app_constants.dart';
 import 'package:intl/intl.dart';

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_page_transition/flutter_page_transition.dart';
 import 'package:mood_manager/core/util/hex_color.dart';
+import 'package:mood_manager/features/mood_manager/presentation/pages/memory_form_page.dart';
 import 'package:mood_manager/features/mood_manager/presentation/pages/profile_page.dart';
 import 'package:mood_manager/features/mood_manager/presentation/bloc/t_mood_index.dart';
 import 'package:mood_manager/features/mood_manager/presentation/pages/activity_form_page.dart';
@@ -9,7 +10,7 @@ import 'package:mood_manager/features/mood_manager/presentation/pages/edit_form_
 import 'package:mood_manager/features/mood_manager/presentation/pages/mood_form_page.dart';
 import 'package:mood_manager/features/mood_manager/presentation/pages/t_mood_list_page.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/image_slider.dart';
-import 'package:mood_manager/features/mood_manager/presentation/widgets/smart_select_demo/features.dart';
+import 'package:mood_manager/features/mood_manager/presentation/widgets/video_trimmer_demo.dart';
 import 'package:mood_manager/injection_container.dart';
 
 class Home extends StatefulWidget {
@@ -36,7 +37,7 @@ class _HomeState extends State<Home> {
               primaryColor: HexColor.fromHex('#272f63'),
               accentColor: HexColor.fromHex('#272f63'),
               buttonColor: Colors.blueGrey[800]),
-          home: ProfilePage(),
+          home: MemoryFormPage(),
           onGenerateRoute: (RouteSettings settings) {
             if ('/photo/slider' == settings.name) {
               return MaterialPageRoute(

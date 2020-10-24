@@ -1,5 +1,5 @@
-import 'package:mood_manager/features/mood_manager/domain/entities/user_profile.dart';
 import 'package:dartz/dartz.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/user_profile.dart';
 import 'package:mood_manager/features/mood_manager/domain/repositories/user_profile_repository.dart';
 
 import '../../../../core/error/failures.dart';

@@ -1,23 +1,30 @@
-import 'dart:developer';
-
-import 'package:mood_manager/features/auth/data/model/parse/user_parse.dart';
-import 'package:mood_manager/features/auth/domain/entitles/user.dart';
+import 'package:dartz/dartz.dart' show cast;
 import 'package:mood_manager/features/mood_manager/data/datasources/metadata_data_source.dart';
-import 'package:mood_manager/features/mood_manager/data/models/parse/album_parse.dart';
+import 'package:mood_manager/features/mood_manager/data/models/parse/base_parse_mixin.dart';
+import 'package:mood_manager/features/mood_manager/data/models/parse/collection_parse.dart';
+import 'package:mood_manager/features/mood_manager/data/models/parse/media_collection_parse.dart';
 import 'package:mood_manager/features/mood_manager/data/models/parse/photo_parse.dart';
 import 'package:mood_manager/features/mood_manager/data/models/parse/user_profile_parse.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/collection.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/media.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/media_collection.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/user_profile.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/album.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/photo.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
 
 import '../../../../core/error/exceptions.dart';
 
 abstract class UserProfileRemoteDataSource {
-  Future<UserProfile> getUserProfile(User user);
+  Future<UserProfile> getUserProfile(ParseUser user);
   Future<UserProfile> getCurrentUserProfile();
   Future<UserProfile> saveUserProfile(UserProfile userProfile);
-  Future<List<Photo>> getPhotoListByAlbum(Photo photo);
+  Future<List<MediaCollection>> getMediaCollectionByMedia(
+      Media media, String module, ParseUser user);
+  Future<List<MediaCollection>> getMediaCollectionByCollection(
+      Collection collection);
+  Future<MediaCollection> saveMediaCollection(
+      final MediaCollection mediaCollection);
+  Future<MediaCollection> saveProfilePicture(
+      final Media media, final UserProfile userProfile);
 }
 
 class UserProfileParseDataSource implements UserProfileRemoteDataSource {
@@ -26,16 +33,17 @@ class UserProfileParseDataSource implements UserProfileRemoteDataSource {
   UserProfileParseDataSource({this.metadataSource});
 
   @override
-  Future<UserProfile> getUserProfile(User user) async {
+  Future<UserProfile> getUserProfile(ParseUser user) async {
     QueryBuilder<ParseObject> queryBuilder =
         QueryBuilder<ParseObject>(ParseObject('userDtl'))
-          ..whereEqualTo('user', (user as UserParse).toParsePointer())
+          ..whereEqualTo('user', user.toPointer())
           ..whereEqualTo('isActive', true);
 
     final ParseResponse response = await queryBuilder.query();
     if (response.success) {
-      ParseObject userProfileParse = response.results.first;
-      return UserProfileParse.fromParseObject(userProfileParse);
+      UserProfile userProfileParse =
+          UserProfileParse.from(response.results.first);
+      return userProfileParse;
     } else {
       throw ServerException();
     }
@@ -49,15 +57,17 @@ class UserProfileParseDataSource implements UserProfileRemoteDataSource {
           ..whereEqualTo('user', currentUser.toPointer())
           ..includeObject([
             'user',
+            'gender',
+            'interestedIn',
             'profilePicture',
-            'profilePicture.album',
-            'profilePicture.album.albumType',
+            'profilePictureCollection',
           ]);
 
     final ParseResponse response = await queryBuilder.query();
     if (response.success) {
-      ParseObject userProfileParse = response.results.first;
-      return UserProfileParse.fromParseObject(userProfileParse);
+      UserProfile userProfileParse =
+          UserProfileParse.from(response.results.first);
+      return userProfileParse;
     } else {
       throw ServerException();
     }
@@ -66,51 +76,110 @@ class UserProfileParseDataSource implements UserProfileRemoteDataSource {
   @override
   Future<UserProfile> saveUserProfile(UserProfile userProfile) async {
     ParseResponse response;
-    if (userProfile.profilePicture != null) {
-      response = await (userProfile.profilePicture as PhotoParse)
-          ?.toParseObject()
-          ?.save();
-    }
-    if (response == null || response.success) {
-      ParseObject profilePictureParse = response?.results?.first;
-      ParseObject userProfileParse =
-          (userProfile as UserProfileParse).toParseObject();
-      userProfileParse.set('profilePicture', profilePictureParse?.toPointer());
-      response = await userProfileParse.save();
-      if (response.success) {
-        userProfileParse = response.results.first;
-        profilePictureParse.get('album').set('userDtl', userProfileParse);
-        userProfileParse.set('profilePicture', profilePictureParse);
-        return UserProfileParse.fromParseObject(userProfileParse);
-      } else {
-        throw ServerException();
-      }
+    response = await cast<UserProfileParse>(userProfile).toParse(
+        skipKeys: ['profilePicture'],
+        pointerKeys: ['gender', 'interestedIn']).save();
+    if (response.success) {
+      userProfile = UserProfileParse.from(response.results.first,
+          cacheData: userProfile,
+          cacheKeys: ['profilePicture', 'gender', 'interestedIn']);
+      return userProfile;
     } else {
       throw ServerException();
     }
   }
 
   @override
-  Future<List<Photo>> getPhotoListByAlbum(Photo photo) async {
+  Future<List<MediaCollection>> getMediaCollectionByMedia(
+      Media media, String module, ParseUser user) async {
     QueryBuilder<ParseObject> queryBuilder =
-        QueryBuilder<ParseObject>(ParseObject('photo'))
-          ..whereEqualTo('album',
-              (photo.album as AlbumParse).baseParsePointer(photo.album))
-          ..whereEqualTo('isActive', true)
-          ..includeObject([
-            'album',
-            'album.albumType',
-          ])
-          ..orderByDescending('createdAt');
+        QueryBuilder<ParseObject>(ParseObject('collection'))
+          ..whereEqualTo('module', module)
+          ..whereEqualTo('user', user.toPointer())
+          ..whereEqualTo('isActive', true);
 
     final ParseResponse response = await queryBuilder.query();
+
     if (response.success) {
-      List<ParseObject> photoParseArray = response.results;
-      final photoList =
-          photoParseArray.map((e) => PhotoParse.fromParseObject(e)).toList();
-      photoList.remove(photo);
-      photoList.insert(0, photo);
-      return photoList;
+      Collection collection = CollectionParse.from(response.results.first);
+      return getMediaCollectionByCollection(collection);
+    }
+    throw ServerException();
+  }
+
+  @override
+  Future<List<MediaCollection>> getMediaCollectionByCollection(
+      Collection collection,
+      {Media priorityMedia}) async {
+    QueryBuilder<ParseObject> queryBuilder = QueryBuilder<ParseObject>(
+        ParseObject('mediaCollection'))
+      ..whereEqualTo('collection', cast<CollectionParse>(collection).pointer)
+      ..whereEqualTo('isActive', true)
+      ..includeObject(['media, collection'])
+      ..orderByDescending('createdAt');
+
+    final ParseResponse response = await queryBuilder.query();
+
+    if (response.success) {
+      final List<MediaCollection> mediaCollectionList =
+          ParseMixin.listFrom<MediaCollection>(
+              response.results, MediaCollectionParse.from);
+
+      final priorityMediaCollection = mediaCollectionList
+          .firstWhere((element) => element.media == priorityMedia);
+      mediaCollectionList
+          .removeWhere((element) => element.media == priorityMedia);
+      mediaCollectionList.insert(0, priorityMediaCollection);
+      return mediaCollectionList;
+    } else {
+      throw ServerException();
+    }
+  }
+
+  Future<MediaCollection> saveMediaCollection(
+      final MediaCollection mediaCollection) async {
+    ParseResponse response = await cast<MediaCollectionParse>(mediaCollection)
+        .toParse(pointerKeys: ['collection', 'media']).save();
+    if (response.success) {
+      return MediaCollectionParse.from(response.results.first,
+          cacheData: mediaCollection, cacheKeys: ['collection', 'media']);
+    } else {
+      throw ServerException();
+    }
+  }
+
+  Future<MediaCollection> saveProfilePicture(
+      final Media media, final UserProfile userProfile) async {
+    final MediaCollection mediaCollection = MediaCollectionParse(
+        collection: userProfile.profilePictureCollection,
+        media: await saveMedia(media));
+    ParseObject userProfileParse = ParseObject('userDtl');
+    userProfileParse.set('objectId', userProfile.id);
+    userProfileParse.set(
+        'profilePicture', cast<MediaParse>(mediaCollection.media).pointer);
+    ParseResponse response = await userProfileParse.save();
+    if (response.success) {
+      return await saveMediaCollection(mediaCollection);
+    } else {
+      throw ServerException();
+    }
+  }
+
+  Future<Media> saveMedia(Media media) async {
+    final ParseResponse response =
+        await cast<MediaParse>(media).toParse().save();
+    if (response.success) {
+      return MediaParse.from(response.results.first);
+    } else {
+      throw ServerException();
+    }
+  }
+
+  Future<Collection> saveCollection(Collection collection) async {
+    final ParseResponse response =
+        await cast<CollectionParse>(collection).toParse().save();
+    if (response.success) {
+      return CollectionParse.from(response.results.first);
     } else {
       throw ServerException();
     }

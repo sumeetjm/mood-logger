@@ -1,5 +1,4 @@
-import 'dart:developer';
-
+import 'package:mood_manager/features/mood_manager/data/models/parse/base_parse_mixin.dart';
 import 'package:mood_manager/features/mood_manager/data/models/parse/m_mood_parse.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/m_mood.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
@@ -22,7 +21,7 @@ class MMoodParseDataSource implements MMoodRemoteDataSource {
     final ParseResponse response = await queryBuilder.query();
     if (response.success) {
       ParseObject mMoodParse = response.result;
-      MMood mMood = MMoodParse.fromParseObject(mMoodParse);
+      MMood mMood = MMoodParse.from(mMoodParse);
       return mMood;
     } else {
       throw ServerException();
@@ -37,8 +36,8 @@ class MMoodParseDataSource implements MMoodRemoteDataSource {
 
     final ParseResponse response = await queryBuilder.query();
     if (response.success) {
-      List<ParseObject> mMoodParseList = response.results ?? [];
-      List<MMood> mMoodList = MMoodParse.fromParseArray(mMoodParseList);
+      List<MMood> mMoodList = List.from(
+          ParseMixin.listFrom<MMood>(response.results, MMoodParse.from));
       return mMoodList;
     } else {
       throw ServerException();
@@ -55,9 +54,8 @@ class MMoodParseDataSource implements MMoodRemoteDataSource {
 
     final ParseResponse response = await queryBuilder.query();
     if (response.success) {
-      List<ParseObject> mMoodParseList = response.results ?? [];
-
-      List<MMood> mMoodList = MMoodParse.fromParseArray(mMoodParseList);
+      List<MMood> mMoodList =
+          ParseMixin.listFrom<MMood>(response.results, MMoodParse.from);
       return mMoodList;
     } else {
       throw ServerException();

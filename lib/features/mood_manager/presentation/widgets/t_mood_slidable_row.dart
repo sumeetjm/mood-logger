@@ -1,14 +1,6 @@
-import 'dart:developer';
-
-import 'package:auto_animated/auto_animated.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/t_mood.dart';
-import 'package:mood_manager/features/mood_manager/presentation/bloc/t_mood_bloc.dart';
-import 'package:mood_manager/features/mood_manager/presentation/bloc/t_mood_state.dart';
-import 'package:mood_manager/features/mood_manager/presentation/widgets/animation_util.dart';
-import 'package:provider/provider.dart';
 import 'package:tinycolor/tinycolor.dart';
 import 'package:intl/intl.dart';
 
@@ -181,14 +173,14 @@ class VerticalListItemState extends State<VerticalListItem>
             radius: 30,
           ),
           title: Text(
-            widget.tMood.mMood.name.toUpperCase(),
+            widget.tMood.mMood.moodName.toUpperCase(),
             style: TextStyle(
                 color: TinyColor(widget.tMood.mMood.color).darken(20).color),
           ),
           subtitle: Wrap(
             children: <Widget>[
               Text(widget.tMood.tActivityList
-                  .map((e) => e.mActivity.name)
+                  .map((e) => e.mActivity.activityName)
                   .join(' | ')),
               Text(
                 widget.tMood.note ?? '',

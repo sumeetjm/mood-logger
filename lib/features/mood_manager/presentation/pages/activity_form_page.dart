@@ -1,16 +1,10 @@
 import 'dart:async';
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mood_manager/core/constants/app_constants.dart';
-import 'package:mood_manager/features/mood_manager/data/models/parse/m_activity_parse.dart';
-import 'package:mood_manager/features/mood_manager/data/models/parse/t_activity_parse.dart';
 import 'package:mood_manager/features/mood_manager/data/models/parse/t_mood_parse.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/m_activity.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/m_activity_type.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/t_mood.dart';
-import 'package:mood_manager/features/mood_manager/domain/usecases/get_m_activity_list.dart';
 import 'package:mood_manager/features/mood_manager/presentation/bloc/activity_list_index.dart';
 import 'package:mood_manager/features/mood_manager/presentation/bloc/t_mood_index.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/activity_choice_chips.dart';
@@ -18,7 +12,6 @@ import 'package:mood_manager/features/mood_manager/presentation/widgets/empty_wi
 import 'package:mood_manager/features/mood_manager/presentation/widgets/loading_widget.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/message_display.dart';
 import 'package:mood_manager/injection_container.dart';
-import 'package:provider/provider.dart';
 
 class ActivityFormPage extends StatefulWidget {
   List<MActivityType> activityTypeList;

@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:custom_radio/custom_radio.dart';
 import 'package:flutter/material.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/m_mood.dart';
@@ -59,8 +57,8 @@ class _RadioSelectionState extends State<RadioSelection>
                   ? Text(
                       value == widget.initialValue &&
                               widget.initialSubValue != null
-                          ? widget.initialSubValue.name.toUpperCase()
-                          : value.name.toUpperCase(),
+                          ? widget.initialSubValue.moodName.toUpperCase()
+                          : value.moodName.toUpperCase(),
                       style: TextStyle(color: alpha > 0 ? Colors.white : color))
                   : EmptyWidget()));
     };

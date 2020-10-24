@@ -1,8 +1,7 @@
-import 'dart:developer';
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/photo.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/media.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/media_collection.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/empty_widget.dart';
 
 class ImageSlider extends StatefulWidget {
@@ -12,7 +11,7 @@ class ImageSlider extends StatefulWidget {
     this.initialPhoto = arguments['initial'];
   }
   Function fetchPhotoListCallback;
-  Photo initialPhoto;
+  MediaCollection initialPhoto;
   @override
   ImageSliderWidgetState createState() {
     return new ImageSliderWidgetState();
@@ -20,18 +19,13 @@ class ImageSlider extends StatefulWidget {
 }
 
 class ImageSliderWidgetState extends State<ImageSlider> {
-  Future<List<Photo>> photoList;
+  Future<List<MediaCollection>> mediaCollectionList;
   PageController _controller;
   bool init = true;
   @override
   void initState() {
     super.initState();
-    photoList = widget.fetchPhotoListCallback();
-    /*WidgetsBinding.instance.addPostFrameCallback((_) {
-      setState(() {
-        init = false;
-      });
-    });*/
+    mediaCollectionList = widget.fetchPhotoListCallback();
   }
 
   @override
@@ -47,31 +41,16 @@ class ImageSliderWidgetState extends State<ImageSlider> {
   }
 
   Widget _buildPagerViewSlider() {
-    /*if (init) {
-      return PageView(
-        children: [
-          Hero(
-            tag: widget.initialPhoto.id,
-            child: ClipRRect(
-                child: CachedNetworkImage(
-              imageUrl: widget.initialPhoto.image.url,
-              placeholder: (context, url) =>
-                  new Center(child: CircularProgressIndicator()),
-              errorWidget: (context, url, error) => new Icon(Icons.error),
-            )),
-          )
-        ],
-      );
-    }*/
-    return StreamBuilder<List<Photo>>(
-        stream: photoList.asStream(),
-        initialData: [widget.initialPhoto],
+    return StreamBuilder<List<MediaCollection>>(
+        stream: mediaCollectionList.asStream(),
+        initialData: [if (widget.initialPhoto != null) widget.initialPhoto],
         builder: (context, snapshot) {
           if (snapshot.hasData) {
-            final List<Photo> photoList = snapshot.data;
+            final List<Media> photoList =
+                snapshot.data.map((e) => e.media).toList();
             _controller = PageController(
                 initialPage: photoList
-                    .indexWhere((e) => widget.initialPhoto.id == e.id));
+                    .indexWhere((e) => widget.initialPhoto.media.id == e.id));
             return PageView.builder(
                 physics: AlwaysScrollableScrollPhysics(),
                 controller: _controller,
@@ -81,7 +60,7 @@ class ImageSliderWidgetState extends State<ImageSlider> {
                     tag: photoList[index].id,
                     child: ClipRRect(
                         child: CachedNetworkImage(
-                      imageUrl: photoList[index].image.url,
+                      imageUrl: photoList[index].file.url,
                       placeholder: (context, url) =>
                           new Center(child: CircularProgressIndicator()),
                       errorWidget: (context, url, error) =>

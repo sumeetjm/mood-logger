@@ -1,10 +1,11 @@
-import 'package:mood_manager/features/mood_manager/data/models/parse/base_m_parse_mixin.dart';
+import 'package:mood_manager/features/mood_manager/data/models/parse/base_parse_mixin.dart';
 import 'package:mood_manager/features/mood_manager/data/models/parse/m_activity_parse.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/base.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/m_activity.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/m_activity_type.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
 
-class MActivityTypeParse extends MActivityType with BaseMParseMixin {
+class MActivityTypeParse extends MActivityType with ParseMixin {
   MActivityTypeParse({
     String activityTypeId,
     String activityTypeName,
@@ -32,30 +33,36 @@ class MActivityTypeParse extends MActivityType with BaseMParseMixin {
         isActive: true);
   }
 
-  factory MActivityTypeParse.fromParseObject(ParseObject parseObject) {
+  static MActivityTypeParse from(ParseObject parseObject,
+      {MActivityTypeParse cacheData, List<String> cacheKeys = const []}) {
     if (parseObject == null) {
       return null;
     }
+    final parseOptions = {
+      'cacheData': cacheData,
+      'cacheKeys': cacheKeys ?? [],
+      'data': parseObject,
+    };
     return MActivityTypeParse(
-        activityTypeId: parseObject.get('objectId'),
-        activityTypeName: parseObject.get('name'),
-        activityTypeCode: parseObject.get('code'),
-        isActive: parseObject.get('isActive'),
-        mActivityList: MActivityParse.fromParseArray(
-            parseObject.get('mActivity') as List));
+      activityTypeId: ParseMixin.value('objectId', parseOptions),
+      activityTypeName: ParseMixin.value('name', parseOptions),
+      activityTypeCode: ParseMixin.value('code', parseOptions),
+      isActive: ParseMixin.value('isActive', parseOptions),
+      mActivityList: List<MActivity>.from(ParseMixin.value(
+          'mActivity', parseOptions,
+          transform: MActivityParse.from)),
+    );
   }
 
-  ParseObject toParseObject() {
-    ParseObject parseObject = baseParseObject(this);
-    parseObject.set(
-        'mActivity', mActivityList.map((e) => baseParsePointer(this)));
-    return parseObject;
-  }
+  @override
+  Base get get => this;
 
-  static List<MActivityTypeParse> fromParseArray(List<dynamic> parseArray) {
-    return (parseArray ?? [])
-        .where((element) => (element as ParseObject).get('isActive'))
-        .map((parseObject) => MActivityTypeParse.fromParseObject(parseObject))
-        .toList();
-  }
+  @override
+  Map<String, dynamic> get map => {
+        'objectId': id,
+        'name': activityTypeName,
+        'code': activityTypeCode,
+        'mActivity': mActivityList,
+        'isActive': isActive
+      };
 }

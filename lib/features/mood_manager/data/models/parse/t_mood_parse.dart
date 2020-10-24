@@ -1,16 +1,17 @@
 import 'package:intl/intl.dart';
 import 'package:mood_manager/core/constants/app_constants.dart';
-import 'package:mood_manager/features/mood_manager/data/models/parse/base_t_parse_mixin.dart';
+import 'package:mood_manager/features/mood_manager/data/models/parse/base_parse_mixin.dart';
 
 import 'package:mood_manager/features/mood_manager/data/models/parse/m_mood_parse.dart';
 import 'package:mood_manager/features/mood_manager/data/models/parse/t_activity_parse.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/base.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/m_activity.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/m_mood.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/t_activity.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/t_mood.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
 
-class TMoodParse extends TMood with BaseTParseMixin {
+class TMoodParse extends TMood with ParseMixin {
   TMoodParse(
       {String transMoodId,
       String note,
@@ -67,32 +68,36 @@ class TMoodParse extends TMood with BaseTParseMixin {
         mMood: tMood.mMood);
   }
 
-  factory TMoodParse.fromParseObject(ParseObject parseObject) {
+  static TMoodParse from(ParseObject parseObject,
+      {TMoodParse cacheData, List<String> cacheKeys = const []}) {
     if (parseObject == null) {
       return null;
     }
-
+    final parseOptions = {
+      'cacheData': cacheData,
+      'cacheKeys': cacheKeys ?? [],
+      'data': parseObject,
+    };
     return TMoodParse(
-        transMoodId: parseObject.get('objectId'),
-        note: parseObject.get('note') ?? '',
-        tActivityList: TActivityParse.fromParseArray(
-            (parseObject.get('tActivity') as List)),
-        logDateTime: parseObject.get('logDateTime').toLocal(),
-        mMood: MMoodParse.fromParseObject(parseObject.get('mMood')));
+      transMoodId: ParseMixin.value('objectId', parseOptions),
+      note: ParseMixin.value('note', parseOptions),
+      tActivityList: List<TActivity>.from(ParseMixin.value(
+          'tActivity', parseOptions,
+          transform: TActivityParse.from)),
+      logDateTime: ParseMixin.value('logDateTime', parseOptions),
+      mMood: ParseMixin.value('logDateTime', parseOptions,
+          transform: MMoodParse.from),
+    );
   }
 
-  static List<TMoodParse> fromParseArray(List<dynamic> parseArray) {
-    return (parseArray ?? [])
-        .where((element) => (element as ParseObject).get('isActive'))
-        .map((parseObject) => TMoodParse.fromParseObject(parseObject))
-        .toList();
-  }
+  @override
+  Base get get => this;
 
-  ParseObject toParseObject() {
-    ParseObject tMoodParse = baseParseObject(this);
-    tMoodParse.set('logDateTime', logDateTime.toUtc());
-    tMoodParse.set('note', note);
-    tMoodParse.set('mMood', (mMood as MMoodParse).toParseObject());
-    return tMoodParse;
-  }
+  @override
+  Map<String, dynamic> get map => {
+        'objectId': id,
+        'logDateTime': logDateTime?.toUtc(),
+        'note': note,
+        'mMood': mMood,
+      };
 }

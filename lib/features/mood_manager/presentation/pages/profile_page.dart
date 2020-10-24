@@ -1,11 +1,10 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_page_transition/flutter_page_transition.dart';
 import 'package:loading_overlay/loading_overlay.dart';
 import 'package:mood_manager/features/mood_manager/data/datasources/user_profile_remote_data_source.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/photo.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/media.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/media_collection.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/user_profile.dart';
 import 'package:mood_manager/features/mood_manager/presentation/bloc/profile_bloc.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/loading_widget.dart';
@@ -24,7 +23,7 @@ class _ProfilePageState extends State<ProfilePage> {
   ProfileBloc _profileBloc;
   UserProfileParseDataSource _userProfileRemoteDataSource;
   UserProfile userProfile;
-  List<Photo> photoList;
+  List<Media> photoList;
 
   @override
   void initState() {
@@ -56,29 +55,43 @@ class _ProfilePageState extends State<ProfilePage> {
                 create: (_) => userProfile,
                 child: ProfileView(
                   saveCallback: save,
-                  onChangeCallback: onChange,
+                  resetCallback: () {
+                    setState(() {});
+                  },
+                  profilePictureChangeCallback: (profilePicture) {
+                    profilePicChange(profilePicture: profilePicture);
+                  },
                   onPictureTapCallback: () async {
-                    final photoListByAlbumCallback =
-                        _userProfileRemoteDataSource
-                            .getPhotoListByAlbum(userProfile.profilePicture);
+                    if (userProfile.profilePicture != null) {
+                      final mediaListByCollectionCallback =
+                          _userProfileRemoteDataSource
+                              .getMediaCollectionByCollection(
+                                  userProfile.profilePictureCollection,
+                                  priorityMedia: userProfile.profilePicture);
 
-                    Navigator.pushNamed(
-                      context,
-                      '/photo/slider',
-                      arguments: {
-                        'callback': () => photoListByAlbumCallback,
-                        'initial': userProfile.profilePicture,
-                        'transitionType': PageTransitionType.fadeIn,
-                      },
-                    );
+                      Navigator.pushNamed(
+                        context,
+                        '/photo/slider',
+                        arguments: {
+                          'callback': () => mediaListByCollectionCallback,
+                          'initial': MediaCollection(
+                              collection: userProfile.profilePictureCollection,
+                              media: userProfile.profilePicture),
+                          'transitionType': PageTransitionType.fadeIn,
+                        },
+                      );
+                    }
                   },
                 ));
-          } else if (state is UserProfileSaving) {
+          } else if (state is UserProfileSaving ||
+              state is ProfilePictureSaving) {
             return wrapWithLoader(Provider<UserProfile>(
                 create: (_) => userProfile,
                 child: ProfileView(
-                  saveCallback: save,
-                )));
+                    saveCallback: save,
+                    profilePictureChangeCallback: (profilePicture) {
+                      profilePicChange(profilePicture: profilePicture);
+                    })));
           }
           return LoadingWidget();
         },
@@ -86,13 +99,12 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  void save({UserProfile userProfileFromCallback}) {
-    _profileBloc
-        .add(SaveUserProfileEvent(userProfileFromCallback ?? userProfile));
+  void save(UserProfile toBeSavedUserProfile) {
+    _profileBloc.add(SaveUserProfileEvent(toBeSavedUserProfile));
   }
 
-  void onChange(UserProfile userProfileChanged) {
-    userProfile = userProfileChanged;
+  void profilePicChange({Media profilePicture}) {
+    _profileBloc.add(SaveProfilePictureEvent(profilePicture, userProfile));
   }
 
   wrapWithLoader(Widget widget) {

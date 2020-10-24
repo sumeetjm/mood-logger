@@ -1,12 +1,7 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:chips_choice/chips_choice.dart';
-import 'package:mood_manager/core/util/hex_color.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/m_activity.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/m_activity_type.dart';
-import 'package:mood_manager/features/mood_manager/presentation/widgets/empty_widget.dart';
-import 'package:tinycolor/tinycolor.dart';
 
 class ActivityChoiceChips extends StatefulWidget {
   final ValueChanged<MapEntry<String, List<MActivity>>> selectOptions;
@@ -91,14 +86,14 @@ class ActivityChoiceChipsState extends State<ActivityChoiceChips> {
         ...widget.activityTypeList
             .map((type) => Content(
                 color: widget.color,
-                title: type.name,
+                title: type.activityTypeName,
                 child: FormField<List<MActivity>>(
                     autovalidate: true,
-                    initialValue: widget.initialValue[type.code],
+                    initialValue: widget.initialValue[type.activityTypeCode],
                     builder: (state) {
                       return ChoiceChipsByType(
                           activityList: type.mActivityList,
-                          mActivityTypeCode: type.code,
+                          mActivityTypeCode: type.activityTypeCode,
                           selectOptions: widget.selectOptions,
                           state: state,
                           maxReached:
@@ -144,11 +139,10 @@ class ChoiceChipsByType extends StatelessWidget {
           disabled: (index, item) => maxReached && !selected.contains(item),
           source: activityList,
           value: (i, v) => v,
-          label: (i, v) => v.name,
+          label: (i, v) => v.activityName,
         ),
         onChanged: (value) => {
           state.didChange(value),
-          //debugger(when: false),
           selectOptions(MapEntry(mActivityTypeCode, value))
         },
         isWrapped: true,

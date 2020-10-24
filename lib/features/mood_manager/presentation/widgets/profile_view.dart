@@ -1,51 +1,73 @@
-import 'dart:developer';
 import 'dart:ui';
 
+import 'package:datetime_picker_formfield/datetime_picker_formfield.dart';
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mood_manager/core/constants/app_constants.dart';
-import 'package:mood_manager/features/mood_manager/data/models/parse/album_parse.dart';
-import 'package:mood_manager/features/mood_manager/data/models/parse/album_type_parse.dart';
 import 'package:mood_manager/features/mood_manager/data/models/parse/photo_parse.dart';
 import 'package:mood_manager/features/mood_manager/data/models/parse/user_profile_parse.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/album.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/album_type.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/gender.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/media.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/user_profile.dart';
-import 'package:mood_manager/features/mood_manager/presentation/widgets/date_edit_field.dart';
-import 'package:mood_manager/features/mood_manager/presentation/widgets/select_edit_popup_field.dart';
-import 'package:mood_manager/features/mood_manager/presentation/widgets/text_edit_field.dart';
+import 'package:mood_manager/features/mood_manager/presentation/widgets/empty_widget.dart';
+import 'package:mood_manager/features/mood_manager/presentation/widgets/check_box_list_field.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import 'dart:io';
 
 class ProfileView extends StatelessWidget {
-  final Function saveCallback;
-  final ValueChanged<UserProfile> onChangeCallback;
+  final ValueChanged<UserProfile> saveCallback;
+  final Function resetCallback;
+  final ValueChanged<Media> profilePictureChangeCallback;
   final Function onPictureTapCallback;
-  final AlbumType dpAlbumType =
-      AlbumTypeParse(name: 'Display Picture', code: 'DP', id: 'iZlMon9iCK');
-  final String dpAlbumName = 'Profile Pictures';
-
   ProfileView({
     Key key,
     this.saveCallback,
-    this.onChangeCallback,
+    this.resetCallback,
+    this.profilePictureChangeCallback,
     this.onPictureTapCallback,
   }) : super(key: key);
-  final ImagePicker _picker = ImagePicker();
 
+  String about;
+  String email;
+  String name;
+  DateTime dateOfBirth;
+  String profession;
+  Gender gender;
+  List<Gender> interestedIn;
+  bool isChanged = false;
+
+  UserProfile userProfile;
+  final ImagePicker _picker = ImagePicker();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final FocusNode _focusAbout = FocusNode();
+  final FocusNode _focusEmail = new FocusNode();
+  final FocusNode _focusName = new FocusNode();
+  final FocusNode _focusDateOfBirth = new FocusNode();
+  final FocusNode _focusProfession = new FocusNode();
   @override
   Widget build(BuildContext context) {
-    final userProfile = Provider.of<UserProfile>(context);
+    userProfile = Provider.of<UserProfile>(context);
+    this.about = userProfile.about;
+    this.name =
+        (userProfile.firstName ?? '') + ' ' + (userProfile.lastName ?? '');
+    this.dateOfBirth = userProfile.dateOfBirth;
+    this.profession = userProfile.profession;
+    this.gender = userProfile.gender ??
+        AppConstants.genderList.firstWhere((element) => element.isDummy);
+    this.interestedIn = userProfile.interestedIn ?? [];
+    this.email = userProfile.user.emailAddress;
     ImageProvider image;
-    if (userProfile?.profilePicture?.image?.url != null) {
-      image = NetworkImage(userProfile?.profilePicture?.image?.url);
-    } else if (userProfile?.profilePicture?.image?.file?.path != null) {
-      image = FileImage(userProfile?.profilePicture?.image?.file);
+    if (userProfile?.profilePicture?.file?.url != null) {
+      image = NetworkImage(userProfile?.profilePicture?.file?.url);
+    } else if (userProfile?.profilePicture?.file?.file?.path != null) {
+      image = FileImage(userProfile?.profilePicture?.file?.file);
     } else {
       image = NetworkImage(AppConstants.DEFAULT_PROFILE_PIC);
     }
+
     return ListView(
       children: <Widget>[
         Container(
@@ -77,7 +99,7 @@ class ProfileView extends StatelessWidget {
                             child: GestureDetector(
                               onTap: onPictureTapCallback,
                               child: Hero(
-                                tag: userProfile.profilePicture.id ?? '',
+                                tag: userProfile.profilePicture?.id ?? '',
                                 child: CircleAvatar(
                                   backgroundImage: image,
                                   radius: 60.0,
@@ -234,175 +256,186 @@ class ProfileView extends StatelessWidget {
             )),
         Container(
           padding: EdgeInsets.fromLTRB(10, 20, 10, 10),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              TextEditField(
-                label: 'About',
-                labelColor: Theme.of(context).primaryColor,
-                valueColor: Colors.black,
-                value: userProfile.about,
-                onChange: (value) {
-                  final userProfileParse = UserProfileParse(
-                    about: value.trim(),
-                    city: userProfile.city,
-                    country: userProfile.country,
-                    dateOfBirth: userProfile.dateOfBirth,
-                    firstName: userProfile.firstName,
-                    id: userProfile.id,
-                    isActive: userProfile.isActive,
-                    lastName: userProfile.lastName,
-                    profession: userProfile.profession,
-                    profilePicture: userProfile.profilePicture,
-                    region: userProfile.region,
-                    user: userProfile.user,
-                  );
-                  onChangeCallback(userProfileParse);
-                },
-                save: saveCallback,
-              ),
-              TextEditField(
-                label: 'Email',
-                labelColor: Theme.of(context).primaryColor,
-                valueColor: Colors.black,
-                value: userProfile.user.emailAddress,
-                onChange: (value) {
-                  userProfile.user.emailAddress = value.trim();
-                },
-                save: saveCallback,
-                inputType: TextInputType.emailAddress,
-              ),
-              TextEditField(
-                label: 'Name',
-                labelColor: Theme.of(context).primaryColor,
-                valueColor: Colors.black,
-                value: userProfile.firstName + ' ' + userProfile.lastName,
-                onChange: (value) {
-                  final values = value
-                      .split(' ')
-                      .where((element) => element.isNotEmpty)
-                      .toList();
-                  final userProfileParse = UserProfileParse(
-                    about: userProfile.about,
-                    city: userProfile.city,
-                    country: userProfile.country,
-                    dateOfBirth: userProfile.dateOfBirth,
-                    firstName: values.removeAt(0).trim(),
-                    id: userProfile.id,
-                    isActive: userProfile.isActive,
-                    lastName: values.join(' ').trim(),
-                    profession: userProfile.profession,
-                    profilePicture: userProfile.profilePicture,
-                    region: userProfile.region,
-                    user: userProfile.user,
-                  );
-                  onChangeCallback(userProfileParse);
-                },
-                save: saveCallback,
-              ),
-              DateEditField(
-                label: 'Date of Birth',
-                labelColor: Theme.of(context).primaryColor,
-                valueColor: Colors.black,
-                value: userProfile.dateOfBirth,
-                onChange: (value) {
-                  final userProfileParse = UserProfileParse(
-                    about: userProfile.about,
-                    city: userProfile.city,
-                    country: userProfile.country,
-                    dateOfBirth: value,
-                    firstName: userProfile.firstName,
-                    id: userProfile.id,
-                    isActive: userProfile.isActive,
-                    lastName: userProfile.lastName,
-                    profession: userProfile.profession,
-                    profilePicture: userProfile.profilePicture,
-                    region: userProfile.region,
-                    user: userProfile.user,
-                  );
-                  saveCallback(userProfileFromCallback: userProfileParse);
-                },
-              ),
-              TextEditField(
-                label: 'Profession',
-                labelColor: Theme.of(context).primaryColor,
-                valueColor: Colors.black,
-                value: userProfile.profession,
-                onChange: (value) {
-                  final userProfileParse = UserProfileParse(
-                    about: userProfile.about,
-                    city: userProfile.city,
-                    country: userProfile.country,
-                    dateOfBirth: userProfile.dateOfBirth,
-                    firstName: userProfile.firstName,
-                    id: userProfile.id,
-                    isActive: userProfile.isActive,
-                    lastName: userProfile.lastName,
-                    profession: value.trim(),
-                    profilePicture: userProfile.profilePicture,
-                    region: userProfile.region,
-                    user: userProfile.user,
-                  );
-                  onChangeCallback(userProfileParse);
-                },
-                save: saveCallback,
-              ),
-              TextEditField(
-                label: 'Lives In',
-                labelColor: Theme.of(context).primaryColor,
-                valueColor: Colors.black,
-                value: userProfile.city == null
-                    ? ''
-                    : userProfile.city.city +
-                        ', ' +
-                        userProfile.city.region +
-                        ', ' +
-                        userProfile.city.country,
-                onChange: (value) {
-                  final userProfileParse = UserProfileParse(
-                    about: userProfile.about,
-                    city: userProfile.city,
-                    country: userProfile.country,
-                    dateOfBirth: userProfile.dateOfBirth,
-                    firstName: userProfile.firstName,
-                    id: userProfile.id,
-                    isActive: userProfile.isActive,
-                    lastName: userProfile.lastName,
-                    profession: userProfile.profession,
-                    profilePicture: userProfile.profilePicture,
-                    region: userProfile.region,
-                    user: userProfile.user,
-                  );
-                  onChangeCallback(userProfileParse);
-                },
-                save: saveCallback,
-              ),
-              SelectEditBottomSheetField(
-                label: 'Gender',
-                labelColor: Theme.of(context).primaryColor,
-                valueColor: Colors.black,
-                value: userProfile.gender,
-                onChange: (value) {
-                  final userProfileParse = UserProfileParse(
-                    about: userProfile.about,
-                    city: userProfile.city,
-                    country: userProfile.country,
-                    dateOfBirth: userProfile.dateOfBirth,
-                    firstName: userProfile.firstName,
-                    id: userProfile.id,
-                    isActive: userProfile.isActive,
-                    lastName: userProfile.lastName,
-                    profession: userProfile.profession,
-                    profilePicture: userProfile.profilePicture,
-                    region: userProfile.region,
-                    user: userProfile.user,
-                    gender: value,
-                  );
-                  //saveCallback(userProfileFromCallback: userProfileParse);
-                },
-              ),
-            ],
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                TextFormField(
+                  focusNode: _focusAbout,
+                  initialValue: about,
+                  autovalidate: true,
+                  validator: (value) {
+                    if (value != null &&
+                        value.isNotEmpty &&
+                        !RegExp(AppConstants.NO_SPECIAL_CHARACTER_REGEX)
+                            .hasMatch(value)) {
+                      return 'Invalid';
+                    }
+                    return null;
+                  },
+                  keyboardType: TextInputType.text,
+                  style: TextStyle(color: Colors.black, fontSize: 16),
+                  onChanged: (value) {
+                    isChanged = true;
+                    about = value;
+                  },
+                  decoration: getInputDecoration(context, 'About', _focusAbout),
+                ),
+                TextFormField(
+                  focusNode: _focusEmail,
+                  initialValue: email,
+                  autovalidate: true,
+                  validator: (value) {
+                    if (value != null &&
+                        value.isNotEmpty &&
+                        !RegExp(AppConstants.EMAIL_REGEX).hasMatch(value)) {
+                      return 'Enter a valid email';
+                    }
+                    return null;
+                  },
+                  keyboardType: TextInputType.text,
+                  style: TextStyle(color: Colors.black, fontSize: 16),
+                  onChanged: (value) {
+                    email = value;
+                  },
+                  decoration: getInputDecoration(context, 'Email', _focusEmail),
+                ),
+                TextFormField(
+                  focusNode: _focusName,
+                  initialValue: name,
+                  autovalidate: true,
+                  validator: (value) {
+                    if (value != null &&
+                        value.isNotEmpty &&
+                        !RegExp(AppConstants.NO_SPECIAL_CHARACTER_REGEX)
+                            .hasMatch(value)) {
+                      return 'Enter a valid name';
+                    }
+                    return null;
+                  },
+                  keyboardType: TextInputType.text,
+                  style: TextStyle(color: Colors.black, fontSize: 16),
+                  onChanged: (value) {
+                    name = value;
+                  },
+                  decoration: getInputDecoration(context, 'Name', _focusName),
+                ),
+                DateTimeField(
+                  focusNode: _focusDateOfBirth,
+                  decoration: getInputDecoration(
+                      context, 'Date of Birth', _focusDateOfBirth),
+                  format: DateFormat(AppConstants.HEADER_DATE_FORMAT),
+                  autovalidate: true,
+                  initialValue: dateOfBirth,
+                  onShowPicker: (context, currentValue) {
+                    return showDatePicker(
+                        context: context,
+                        firstDate: DateTime(1900),
+                        lastDate: DateTime.now(),
+                        initialDate: currentValue ?? DateTime.now());
+                  },
+                  onChanged: (value) {
+                    dateOfBirth = value;
+                  },
+                ),
+                TextFormField(
+                  focusNode: _focusProfession,
+                  initialValue: profession,
+                  autovalidate: true,
+                  validator: (value) {
+                    if (value != null &&
+                        value.isNotEmpty &&
+                        !RegExp(AppConstants.NO_SPECIAL_CHARACTER_REGEX)
+                            .hasMatch(value)) {
+                      return 'Invalid';
+                    }
+                    return null;
+                  },
+                  keyboardType: TextInputType.text,
+                  style: TextStyle(color: Colors.black, fontSize: 16),
+                  onChanged: (value) {
+                    profession = value;
+                  },
+                  decoration: getInputDecoration(
+                      context, 'Profession', _focusProfession),
+                ),
+                DropdownButtonFormField<Gender>(
+                  icon: Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 0, 12.0, 0),
+                    child: Icon(Icons.keyboard_arrow_down),
+                  ),
+                  items: AppConstants.genderList.map((gender) {
+                    return new DropdownMenuItem<Gender>(
+                        value: gender,
+                        child: Row(
+                          children: <Widget>[
+                            gender?.iconData != null
+                                ? Icon(gender?.iconData)
+                                : EmptyWidget(),
+                            Text(gender.name),
+                          ],
+                        ));
+                  }).toList(),
+                  onChanged: (value) {
+                    gender = value;
+                  },
+                  value: gender,
+                  decoration: InputDecoration(
+                    errorStyle: TextStyle(fontSize: 12),
+                    enabledBorder: InputBorder.none,
+                    fillColor: Colors.lightBlueAccent,
+                    labelText: 'Gender',
+                    labelStyle: TextStyle(
+                        color: Theme.of(context).primaryColor, fontSize: 16),
+                  ),
+                ),
+                CheckboxSelectBottomSheet(
+                  label: 'Interested in',
+                  labelColor: Theme.of(context).primaryColor,
+                  values: interestedIn,
+                  onChange: (value) => interestedIn = value,
+                  options: AppConstants.genderList,
+                  valueColor: Colors.black,
+                  inputDecoration:
+                      getInputDecoration(context, 'Interested in', null),
+                ),
+                Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ButtonTheme(
+                        minWidth: (MediaQuery.of(context).size.width / 2) - 30,
+                        child: RaisedButton(
+                          onPressed: resetCallback,
+                          child: Text(
+                            'Cancel',
+                            style: TextStyle(
+                                color: Theme.of(context).primaryColor),
+                          ),
+                          color: Colors.white,
+                        ),
+                      ),
+                      SizedBox(
+                        width: 20,
+                      ),
+                      ButtonTheme(
+                        minWidth: (MediaQuery.of(context).size.width / 2) - 30,
+                        child: RaisedButton(
+                          onPressed: save,
+                          child: Text(
+                            'Save',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          color: Theme.of(context).primaryColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ],
@@ -427,32 +460,66 @@ class ProfileView extends StatelessWidget {
             toolbarWidgetColor: Colors.white),
       );
       if (croppedImage != null) {
-        final photoParse = PhotoParse(
-            image: ParseFile(File(croppedImage.path)),
-            album: userProfile.profilePicture?.album ??
-                AlbumParse(
-                    albumType: dpAlbumType,
-                    name: dpAlbumName,
-                    userProfilePointer: (userProfile as UserProfileParse)
-                        .baseParsePointer(userProfile)));
-        final userProfileParse = UserProfileParse(
-          about: userProfile.about,
-          city: userProfile.city,
-          country: userProfile.country,
-          dateOfBirth: userProfile.dateOfBirth,
-          firstName: userProfile.firstName,
-          id: userProfile.id,
-          isActive: userProfile.isActive,
-          lastName: userProfile.lastName,
-          profession: userProfile.profession,
-          profilePicture: photoParse,
-          region: userProfile.region,
-          user: userProfile.user,
+        final profilePicture = MediaParse(
+          file: ParseFile(File(croppedImage.path)),
         );
-        saveCallback(userProfileFromCallback: userProfileParse);
+        profilePictureChangeCallback(profilePicture);
       }
     } catch (e) {
       print(e);
     }
+  }
+
+  void save() {
+    if (_formKey.currentState.validate()) {
+      var names = name
+          .split(' ')
+          .where((element) => element.trim().isNotEmpty)
+          .toList();
+      final user = userProfile.user;
+      user.emailAddress = email;
+      final UserProfile toBeSavedUserProfile = UserProfileParse(
+        about: about,
+        dateOfBirth: dateOfBirth,
+        firstName: names.removeAt(0),
+        lastName: names.join(' '),
+        gender: gender,
+        id: userProfile.id,
+        interestedIn: interestedIn,
+        isActive: userProfile.isActive,
+        profession: profession,
+        profilePicture: userProfile.profilePicture,
+        user: user,
+      );
+      saveCallback(toBeSavedUserProfile);
+    }
+  }
+
+  IconButton getSuffixIcon(FocusNode _focus) {
+    IconButton icon = IconButton(
+      icon: Icon(
+        Icons.edit,
+        size: 18,
+      ),
+      onPressed: () {
+        if (_focus != null) {
+          _focus.unfocus();
+        }
+      },
+    );
+    return icon;
+  }
+
+  InputDecoration getInputDecoration(
+      BuildContext context, String label, FocusNode focusNode) {
+    return InputDecoration(
+      errorStyle: TextStyle(fontSize: 12),
+      enabledBorder: InputBorder.none,
+      suffixIcon: getSuffixIcon(focusNode),
+      fillColor: Colors.lightBlueAccent,
+      labelText: label,
+      labelStyle:
+          TextStyle(color: Theme.of(context).primaryColor, fontSize: 16),
+    );
   }
 }

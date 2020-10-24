@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 
 enum ScrollDirection { horizontal, vertical }
@@ -94,7 +92,6 @@ class _ScrollSelectState extends State<ScrollSelect> {
               /*childDelegate: ListWheelChildBuilderDelegate(
                 builder: (context, index) => ListTile(
                       onTap: () =>
-                          {debugger(when:false), _scrollController.jumpToItem(index)},
                       title: ItemWidget(
                           widget.options[index],
                           widget.backgroundColor,
@@ -106,7 +103,6 @@ class _ScrollSelectState extends State<ScrollSelect> {
               
               return ListTile(
                 onTap: () => {
-                  debugger(when:false),
                   _scrollController.jumpToItem(widget.options.indexOf(curValue))
                 },
                 title: ItemWidget(curValue, widget.backgroundColor,
@@ -138,7 +134,6 @@ class _ItemWidgetState extends State<ItemWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // debugger(when:false);
     return RotatedBox(
       quarterTurns: _listItemRotation,
       child: Row(
@@ -175,7 +170,6 @@ class ScrollSelectOption<T> {
     @required this.label,
   });
 
-  /// Helper to create option list from any list
   static List<ScrollSelectOption<R>> listFrom<R, E>(
           {@required List<E> source,
           @required _ScrollSelectOptionProp<E, R> value,

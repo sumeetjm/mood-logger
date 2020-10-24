@@ -1,6 +1,6 @@
-import 'dart:developer';
-
+import 'package:dartz/dartz.dart' show cast;
 import 'package:mood_manager/core/error/exceptions.dart';
+import 'package:mood_manager/features/mood_manager/data/models/parse/base_parse_mixin.dart';
 import 'package:mood_manager/features/mood_manager/data/models/parse/t_activity_parse.dart';
 import 'package:mood_manager/features/mood_manager/data/models/parse/t_mood_parse.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/t_mood.dart';
@@ -17,8 +17,7 @@ abstract class TMoodRemoteDataSource {
 class TMoodParseDataSource extends TMoodRemoteDataSource {
   @override
   Future<TMood> saveTMood(TMood tMood) async {
-    ParseObject tMoodParse = (tMood as TMoodParse).toParseObject();
-    debugger(when: false);
+    ParseObject tMoodParse = cast<TMoodParse>(tMood).parse;
     ParseObject user = await ParseUser.currentUser();
     tMoodParse.set('user', user.toPointer());
     ParseResponse response = await tMoodParse.save();
@@ -26,8 +25,7 @@ class TMoodParseDataSource extends TMoodRemoteDataSource {
       tMoodParse = response.result;
       List<ParseObject> tActivityParseList = List();
       for (final tActivity in tMood.tActivityList) {
-        ParseObject tActivityParse =
-            (tActivity as TActivityParse).toParseObject();
+        ParseObject tActivityParse = cast<TActivityParse>(tActivity).parse;
         final ParseResponse response = await tActivityParse.save();
         if (response.success) {
           tActivityParse = response.result;
@@ -40,7 +38,7 @@ class TMoodParseDataSource extends TMoodRemoteDataSource {
       response = await tMoodParse.save();
       if (response.success) {
         tMoodParse = response.result;
-        return TMoodParse.fromParseObject(tMoodParse);
+        return TMoodParse.from(tMoodParse);
       } else {
         throw ServerException();
       }
@@ -64,7 +62,7 @@ class TMoodParseDataSource extends TMoodRemoteDataSource {
     final ParseResponse response = await queryBuilder.query();
     if (response.success) {
       ParseObject tMoodParse = response.result;
-      TMood tMood = TMoodParse.fromParseObject(tMoodParse);
+      TMood tMood = TMoodParse.from(tMoodParse);
       return tMood;
     } else {
       throw ServerException();
@@ -86,8 +84,8 @@ class TMoodParseDataSource extends TMoodRemoteDataSource {
 
     final ParseResponse response = await queryBuilder.query();
     if (response.success) {
-      List<ParseObject> tMoodParseList = response.results ?? [];
-      List<TMood> tMoodList = TMoodParse.fromParseArray(tMoodParseList);
+      List<TMood> tMoodList =
+          ParseMixin.listFrom<TMood>(response.results, TMoodParse.from);
       return tMoodList;
     } else {
       throw ServerException();
@@ -112,8 +110,8 @@ class TMoodParseDataSource extends TMoodRemoteDataSource {
 
     final ParseResponse response = await queryBuilder.query();
     if (response.success) {
-      List<ParseObject> tMoodParseList = response.results ?? [];
-      List<TMood> tMoodList = TMoodParse.fromParseArray(tMoodParseList);
+      List<TMood> tMoodList =
+          ParseMixin.listFrom<TMood>(response.results, TMoodParse.from);
       return tMoodList;
     } else {
       throw ServerException();

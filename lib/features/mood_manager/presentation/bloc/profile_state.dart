@@ -46,3 +46,12 @@ class UserProfileSaving extends ProfileState {
   @override
   List<Object> get props => [userProfile];
 }
+
+class ProfilePictureSaving extends ProfileState {
+  final Media photo;
+
+  ProfilePictureSaving({this.photo});
+
+  @override
+  List<Object> get props => [photo];
+}

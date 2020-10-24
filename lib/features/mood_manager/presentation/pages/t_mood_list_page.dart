@@ -1,18 +1,14 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mood_manager/core/constants/app_constants.dart';
 import 'package:mood_manager/core/util/date_util.dart';
 import 'package:mood_manager/features/auth/presentation/bloc/authentication_bloc.dart';
-import 'package:mood_manager/features/mood_manager/data/datasources/t_mood_remote_data_source.dart';
 import 'package:mood_manager/features/mood_manager/data/models/parse/t_mood_parse.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/t_mood.dart';
 import 'package:mood_manager/features/mood_manager/presentation/bloc/t_mood_index.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/empty_widget.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/t_mood_event_calendar.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/t_mood_slidable.dart';
-import 'package:mood_manager/injection_container.dart';
 import 'package:intl/intl.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 

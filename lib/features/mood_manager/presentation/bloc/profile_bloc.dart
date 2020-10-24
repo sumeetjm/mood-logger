@@ -1,14 +1,15 @@
 import 'dart:async';
-
 import 'package:bloc/bloc.dart';
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 import 'package:mood_manager/core/error/failures.dart';
 import 'package:mood_manager/core/usecases/usecase.dart';
 import 'package:mood_manager/features/auth/domain/entitles/user.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/media.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/user_profile.dart';
 import 'package:mood_manager/features/mood_manager/domain/usecases/get_current_user_profile.dart';
 import 'package:mood_manager/features/mood_manager/domain/usecases/get_user_profile.dart';
+import 'package:mood_manager/features/mood_manager/domain/usecases/save_profile_picture.dart';
 import 'package:mood_manager/features/mood_manager/domain/usecases/save_user_profile.dart';
 import 'package:mood_manager/features/mood_manager/presentation/bloc/activity_list_bloc.dart';
 
@@ -19,11 +20,13 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   final GetCurrentUserProfile getCurrentUserProfile;
   final GetUserProfile getUserProfile;
   final SaveUserProfile saveUserProfile;
+  final SaveProfilePicture saveProfilePicture;
 
   ProfileBloc({
     this.getCurrentUserProfile,
     this.getUserProfile,
     this.saveUserProfile,
+    this.saveProfilePicture,
   }) : super(ProfileInitial());
 
   @override
@@ -40,6 +43,12 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     } else if (event is SaveUserProfileEvent) {
       yield UserProfileSaving(userProfile: event.userProfile);
       final either = await saveUserProfile(Params(event.userProfile));
+      yield* _eitherUserProfileSavedOrErrorState(either);
+    } else if (event is SaveProfilePictureEvent) {
+      yield ProfilePictureSaving(photo: event.profilePicture);
+      await saveProfilePicture(
+          Params(MapEntry(event.profilePicture, event.userProfile)));
+      final either = await getCurrentUserProfile(NoParams());
       yield* _eitherUserProfileSavedOrErrorState(either);
     }
   }

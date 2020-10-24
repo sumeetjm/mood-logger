@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/base_m.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/base.dart';
 
-class MMood extends BaseM {
+class MMood extends Base {
+  final String moodName;
+  final String moodCode;
   final Color color;
   final List<MMood> mMoodList;
 
   MMood({
     String moodId,
-    @required String moodName,
-    @required String moodCode,
+    @required this.moodName,
+    @required this.moodCode,
     bool isActive = true,
     @required this.color,
     @required this.mMoodList,
   }) : super(
           id: moodId,
-          name: moodName,
-          code: moodCode,
           isActive: isActive,
           className: 'mMood',
         );

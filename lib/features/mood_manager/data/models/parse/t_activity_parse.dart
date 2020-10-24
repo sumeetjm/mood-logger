@@ -1,10 +1,11 @@
-import 'package:mood_manager/features/mood_manager/data/models/parse/base_t_parse_mixin.dart';
+import 'package:mood_manager/features/mood_manager/data/models/parse/base_parse_mixin.dart';
 import 'package:mood_manager/features/mood_manager/data/models/parse/m_activity_parse.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/base.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/m_activity.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/t_activity.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
 
-class TActivityParse extends TActivity with BaseTParseMixin {
+class TActivityParse extends TActivity with ParseMixin {
   TActivityParse({
     String transActivityId,
     MActivity mActivity,
@@ -26,26 +27,31 @@ class TActivityParse extends TActivity with BaseTParseMixin {
         isActive: true);
   }
 
-  factory TActivityParse.fromParseObject(ParseObject parseObject) {
+  static TActivityParse from(ParseObject parseObject,
+      {TActivityParse cacheData, List<String> cacheKeys = const []}) {
     if (parseObject == null) {
       return null;
     }
+    final parseOptions = {
+      'cacheData': cacheData,
+      'cacheKeys': cacheKeys ?? [],
+      'data': parseObject,
+    };
+    ;
     return TActivityParse(
-        transActivityId: parseObject.get('objectId'),
-        mActivity: MActivityParse.fromParseObject(parseObject.get('mActivity')),
-        isActive: parseObject.get('isActive'));
+        transActivityId: ParseMixin.value('objectId', parseOptions),
+        mActivity: ParseMixin.value('mActivity', parseOptions,
+            transform: MActivityParse.from),
+        isActive: ParseMixin.value('isActive', parseOptions));
   }
 
-  static List<TActivityParse> fromParseArray(List<dynamic> parseArray) {
-    return parseArray
-        .where((element) => (element as ParseObject).get('isActive'))
-        .map((parseObject) => TActivityParse.fromParseObject(parseObject))
-        .toList();
-  }
+  @override
+  Base get get => this;
 
-  ParseObject toParseObject() {
-    ParseObject parseObject = baseParseObject(this);
-    parseObject.set('mActivity', (mActivity as MActivityParse).toParseObject());
-    return parseObject;
-  }
+  @override
+  Map<String, dynamic> get map => {
+        'objectid': id,
+        'mActivity': mActivity,
+        'isActive': isActive
+      };
 }

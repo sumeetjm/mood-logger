@@ -1,8 +1,9 @@
-import 'package:mood_manager/features/mood_manager/data/models/parse/base_m_parse_mixin.dart';
+import 'package:mood_manager/features/mood_manager/data/models/parse/base_parse_mixin.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/base.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/m_activity.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
 
-class MActivityParse extends MActivity with BaseMParseMixin {
+class MActivityParse extends MActivity with ParseMixin {
   MActivityParse({
     String activityId,
     String activityName,
@@ -24,26 +25,32 @@ class MActivityParse extends MActivity with BaseMParseMixin {
         activityId: '', activityCode: '', activityName: '', isActive: true);
   }
 
-  factory MActivityParse.fromParseObject(ParseObject parseObject) {
+  static MActivityParse from(ParseObject parseObject,
+      {MActivityParse cacheData, List<String> cacheKeys = const []}) {
     if (parseObject == null) {
       return null;
     }
+    final parseOptions = {
+      'cacheData': cacheData,
+      'cacheKeys': cacheKeys ?? [],
+      'data': parseObject,
+    };
     return MActivityParse(
-        activityId: parseObject.get('objectId'),
-        activityName: parseObject.get('name'),
-        activityCode: parseObject.get('code'),
-        isActive: parseObject.get('isActive'));
+      activityId: ParseMixin.value('objectId', parseOptions),
+      activityName: ParseMixin.value('name', parseOptions),
+      activityCode: ParseMixin.value('code', parseOptions),
+      isActive: ParseMixin.value('isActive', parseOptions),
+    );
   }
 
-  static List<MActivityParse> fromParseArray(List<dynamic> parseArray) {
-    return (parseArray ?? [])
-        .where((element) => (element as ParseObject).get('isActive'))
-        .map((object) => MActivityParse.fromParseObject(object))
-        .toList();
-  }
+  @override
+  Base get get => this;
 
-  ParseObject toParseObject() {
-    ParseObject parseObject = baseParseObject(this);
-    return parseObject;
-  }
+  @override
+  Map<String, dynamic> get map => {
+        'objectId': id,
+        'name': activityName,
+        'code': activityCode,
+        'isActive': isActive,
+      };
 }

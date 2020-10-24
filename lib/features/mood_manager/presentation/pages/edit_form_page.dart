@@ -1,7 +1,4 @@
 import 'dart:async';
-import 'dart:developer';
-
-import 'package:chips_choice/chips_choice.dart';
 import 'package:mood_manager/core/constants/app_constants.dart';
 import 'package:mood_manager/features/mood_manager/data/models/parse/t_activity_parse.dart';
 import 'package:mood_manager/features/mood_manager/data/models/parse/t_mood_parse.dart';
@@ -190,7 +187,7 @@ class _EditFormPageState extends State<EditFormPage> {
                             options: ScrollSelectOption.listFrom<MMood, MMood>(
                                 source: widget.subMoodList,
                                 value: (i, v) => v,
-                                label: (i, v) => v.name.toUpperCase(),
+                                label: (i, v) => v.moodName.toUpperCase(),
                                 color: (i, v) => v.color),
                             initialValue: widget.selectedSubMood,
                             itemFontSize: 18,
@@ -220,11 +217,12 @@ class _EditFormPageState extends State<EditFormPage> {
               padding: const EdgeInsets.fromLTRB(8.0, 0, 8.0, 0),
               child: Content(
                 color: Theme.of(context).primaryColor,
-                title: type.name,
+                title: type.activityTypeName,
                 child: FormField<List<MActivity>>(
                   autovalidate: true,
-                  initialValue:
-                      widget.selectedMActivityListMapByType[type.code] ?? [],
+                  initialValue: widget.selectedMActivityListMapByType[
+                          type.activityTypeCode] ??
+                      [],
                   builder: (state) {
                     final selected = widget
                         .selectedMActivityListMapByType.values
@@ -233,7 +231,7 @@ class _EditFormPageState extends State<EditFormPage> {
                     return ChoiceChipsByType(
                         color: Theme.of(context).primaryColor,
                         activityList: type.mActivityList,
-                        mActivityTypeCode: type.code,
+                        mActivityTypeCode: type.activityTypeCode,
                         selectOptions: setActivityList,
                         state: state,
                         maxReached:
@@ -306,10 +304,14 @@ class _EditFormPageState extends State<EditFormPage> {
             final type = widget.mActivityTypeList.singleWhere((mActivityType) =>
                 mActivityType.mActivityList
                     .any((mActivity) => mActivity == element));
-            if (widget.selectedMActivityListMapByType.containsKey(type.code)) {
-              widget.selectedMActivityListMapByType[type.code].add(element);
+            if (widget.selectedMActivityListMapByType
+                .containsKey(type.activityTypeCode)) {
+              widget.selectedMActivityListMapByType[type.activityTypeCode]
+                  .add(element);
             } else {
-              widget.selectedMActivityListMapByType[type.code] = [element];
+              widget.selectedMActivityListMapByType[type.activityTypeCode] = [
+                element
+              ];
             }
           });
         });

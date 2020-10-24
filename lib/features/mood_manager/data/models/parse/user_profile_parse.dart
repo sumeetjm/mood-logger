@@ -1,14 +1,18 @@
-import 'package:mood_manager/features/mood_manager/data/models/parse/base_m_parse_mixin.dart';
+import 'package:dartz/dartz.dart';
+import 'package:mood_manager/features/mood_manager/data/models/parse/collection_parse.dart';
+import 'package:mood_manager/features/mood_manager/data/models/parse/gender_parse.dart';
+import 'package:mood_manager/features/mood_manager/data/models/parse/media_collection_parse.dart';
 import 'package:mood_manager/features/mood_manager/data/models/parse/photo_parse.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/city.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/country.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/base.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/collection.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/gender.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/photo.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/region.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/media.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/user_profile.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
 
-class UserProfileParse extends UserProfile with BaseMParseMixin {
+import 'base_parse_mixin.dart';
+
+class UserProfileParse extends UserProfile with ParseMixin {
   UserProfileParse({
     String id,
     String firstName,
@@ -16,13 +20,12 @@ class UserProfileParse extends UserProfile with BaseMParseMixin {
     String about,
     DateTime dateOfBirth,
     String profession,
-    City city,
-    Country country,
     ParseUser user,
-    Region region,
-    Photo profilePicture,
+    Media profilePicture,
     bool isActive,
     Gender gender,
+    List<Gender> interestedIn,
+    Collection profilePictureCollection,
   }) : super(
           id: id,
           firstName: firstName,
@@ -30,63 +33,65 @@ class UserProfileParse extends UserProfile with BaseMParseMixin {
           about: about,
           dateOfBirth: dateOfBirth,
           profession: profession,
-          city: city,
-          country: country,
           user: user,
-          region: region,
           profilePicture: profilePicture,
           isActive: isActive,
           gender: gender,
+          interestedIn: interestedIn,
+          profilePictureCollection: profilePictureCollection,
         );
 
-  static Future<UserProfileParse> fromParseObject(
-      ParseObject parseObject) async {
-    /*var country;
-    var city;
-    var region;
-    if (parseObject.get('country', defaultValue: '').isNotEmpty) {
-      country = await metadataSource.getCountryByCountry(
-          country: parseObject.get('country'));
-      if (parseObject.get('region', defaultValue: '').isNotEmpty) {
-        region = await metadataSource.getRegionByRegion(
-            region: parseObject.get('region'), country: country);
-        if (parseObject.get('city', defaultValue: '').isNotEmpty) {
-          city = await metadataSource.getCityByCity(
-              city: parseObject.get('city'), country: country);
-        }
-      }
-    }*/
+  static UserProfileParse from(ParseObject parseObject,
+      {UserProfileParse cacheData, List<String> cacheKeys = const []}) {
     if (parseObject == null) {
-      return Future.value(null);
+      return null;
     }
+    final parseOptions = {
+      'cacheData': cacheData,
+      'cacheKeys': cacheKeys ?? [],
+      'data': parseObject,
+    };
     return UserProfileParse(
-        id: parseObject.get('objectId'),
-        firstName: parseObject.get('firstName'),
-        lastName: parseObject.get('lastName'),
-        about: parseObject.get('about'),
-        dateOfBirth: (parseObject.get('dateOfBirth') as DateTime).toLocal(),
-        profession: parseObject.get('profession'),
-        //city: city,
-        //country: country,
-        user: parseObject.get('user'),
-        profilePicture:
-            await PhotoParse.fromParseObject(parseObject.get('profilePicture')),
-        //region: region,
-        isActive: parseObject.get('isActive'));
+      id: ParseMixin.value('objectId', parseOptions),
+      firstName: ParseMixin.value('firstName', parseOptions),
+      lastName: ParseMixin.value('lastName', parseOptions),
+      about: ParseMixin.value('about', parseOptions),
+      dateOfBirth: ParseMixin.value('dateOfBirth', parseOptions)?.toLocal(),
+      profession: ParseMixin.value('profession', parseOptions),
+      user: ParseMixin.value('user', parseOptions),
+      profilePicture: ParseMixin.value('profilePicture', parseOptions,
+          transform: MediaParse.from),
+      profilePictureCollection: ParseMixin.value(
+          'profilePictureCollection', parseOptions,
+          transform: CollectionParse.from),
+      gender:
+          ParseMixin.value('gender', parseOptions, transform: GenderParse.from),
+      interestedIn: List<Gender>.from(ParseMixin.value(
+          'interestedIn', parseOptions,
+          transform: GenderParse.from)),
+      isActive: ParseMixin.value(
+        'isActive',
+        parseOptions,
+      ),
+    );
   }
 
-  ParseObject toParseObject() {
-    ParseObject tMoodParse = baseParseObject(this);
-    tMoodParse.set('firstName', firstName);
-    tMoodParse.set('lastName', lastName);
-    tMoodParse.set('about', about);
-    tMoodParse.set('dateOfBirth', dateOfBirth.toUtc());
-    tMoodParse.set('profession', profession);
-    tMoodParse.set('user', user);
-    tMoodParse.set(
-        'profilePicture', (profilePicture as PhotoParse)?.toParseObject());
-    //tMoodParse.set('city', city.city);
-    //tMoodParse.set('country', country.code);
-    return tMoodParse;
+  Map<String, dynamic> get map {
+    return {
+      'firstName': firstName,
+      'lastName': lastName,
+      'about': about,
+      'dateOfBirth': dateOfBirth?.toUtc(),
+      'profession': profession,
+      'user': user,
+      'isActive': isActive,
+      'profilePicture': profilePicture,
+      'profilePictureCollection': profilePictureCollection,
+      'gender': gender,
+      'interestedIn': interestedIn
+    };
   }
+
+  @override
+  Base get get => this;
 }

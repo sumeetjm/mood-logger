@@ -1,5 +1,5 @@
-import 'dart:developer';
-
+import 'package:dartz/dartz.dart';
+import 'package:mood_manager/features/mood_manager/data/models/parse/base_parse_mixin.dart';
 import 'package:mood_manager/features/mood_manager/data/models/parse/m_activity_parse.dart';
 import 'package:mood_manager/features/mood_manager/data/models/parse/m_activity_type_parse.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/m_activity.dart';
@@ -14,6 +14,7 @@ abstract class MActivityRemoteDataSource {
   Future<MActivity> getMActivity(String id);
   Future<List<MActivity>> getMActivityByIds(List<String> ids);
   Future<List<MActivityType>> getMActivityTypeList();
+  Future<List<MActivity>> getMActivityListGroupByType();
 }
 
 class MActivityParseDataSource implements MActivityRemoteDataSource {
@@ -28,9 +29,8 @@ class MActivityParseDataSource implements MActivityRemoteDataSource {
 
     final ParseResponse response = await queryBuilder.query();
     if (response.success) {
-      List<ParseObject> mActivityParseList = response.results ?? [];
       List<MActivity> mActivityList =
-          MActivityParse.fromParseArray(mActivityParseList);
+          ParseMixin.listFrom<MActivity>(response.results, MActivityParse.from);
       return mActivityList;
     } else {
       throw ServerException();
@@ -47,15 +47,12 @@ class MActivityParseDataSource implements MActivityRemoteDataSource {
           ])
           ..whereEqualTo('isActive', true)
           ..whereEqualTo(
-              'mActivityType',
-              (mActivityType as MActivityTypeParse)
-                  .baseParsePointer(mActivityType));
+              'mActivityType', cast<MActivityTypeParse>(mActivityType).pointer);
 
     final ParseResponse response = await queryBuilder.query();
     if (response.success) {
-      List<ParseObject> mActivityParseList = response.results ?? [];
       List<MActivity> mActivityList =
-          MActivityParse.fromParseArray(mActivityParseList);
+          ParseMixin.listFrom<MActivity>(response.results, MActivityParse.from);
       return mActivityList;
     } else {
       throw ServerException();
@@ -74,7 +71,7 @@ class MActivityParseDataSource implements MActivityRemoteDataSource {
     final ParseResponse response = await queryBuilder.query();
     if (response.success) {
       ParseObject mActivityParse = response.result;
-      MActivity mActivity = MActivityParse.fromParseObject(mActivityParse);
+      MActivity mActivity = MActivityParse.from(mActivityParse);
       return mActivity;
     } else {
       throw ServerException();
@@ -92,9 +89,8 @@ class MActivityParseDataSource implements MActivityRemoteDataSource {
 
     final ParseResponse response = await queryBuilder.query();
     if (response.success) {
-      List<ParseObject> mActivityParseList = response.results ?? [];
       List<MActivity> mActivityList =
-          MActivityParse.fromParseArray(mActivityParseList);
+          ParseMixin.listFrom<MActivity>(response.results, MActivityParse.from);
       return mActivityList;
     } else {
       throw ServerException();
@@ -110,12 +106,25 @@ class MActivityParseDataSource implements MActivityRemoteDataSource {
 
     final ParseResponse response = await queryBuilder.query();
     if (response.success) {
-      List<ParseObject> mActivityTypeParseList = response.results ?? [];
       List<MActivityType> mActivityTypeList =
-          MActivityTypeParse.fromParseArray(mActivityTypeParseList);
+          ParseMixin.listFrom<MActivityType>(
+              response.results, MActivityTypeParse.from);
       return mActivityTypeList;
     } else {
       throw ServerException();
     }
+  }
+
+  @override
+  Future<List<MActivity>> getMActivityListGroupByType() async {
+    List<MActivityType> mActivityTypeList = await getMActivityTypeList();
+    List<MActivity> mActivityList = [];
+    mActivityTypeList.forEach((mActivityType) {
+      mActivityType.mActivityList.forEach((mActivity) {
+        mActivity.mActivityType = mActivityType;
+        mActivityList.add(mActivity);
+      });
+    });
+    return mActivityList;
   }
 }

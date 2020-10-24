@@ -1,26 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/city.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/country.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/collection.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/gender.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/photo.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/region.dart';
+import 'package:mood_manager/features/mood_manager/domain/entities/media.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
 
-import 'base_m.dart';
+import 'base.dart';
 
-class UserProfile extends BaseM {
+class UserProfile extends Base {
   final String firstName;
   final String lastName;
   final String about;
   final DateTime dateOfBirth;
   final String profession;
-  final City city;
   final ParseUser user;
-  final Country country;
-  final Region region;
-  final Photo profilePicture;
+  final Media profilePicture;
+  final Collection profilePictureCollection;
   final Gender gender;
-
+  final List<Gender> interestedIn;
   UserProfile({
     String id,
     @required this.firstName,
@@ -28,17 +24,14 @@ class UserProfile extends BaseM {
     @required this.about,
     @required this.dateOfBirth,
     @required this.profession,
-    @required this.city,
-    @required this.country,
     @required this.user,
-    @required this.region,
     @required this.profilePicture,
+    @required this.profilePictureCollection,
     @required this.gender,
+    @required this.interestedIn,
     bool isActive = true,
   }) : super(
           id: id,
-          name: firstName + ' ' + lastName,
-          code: firstName + ' ' + lastName,
           isActive: isActive,
           className: 'userDtl',
         );

@@ -1,6 +1,3 @@
-import 'dart:developer';
-
-import 'package:mood_manager/core/error/exceptions.dart';
 import 'package:mood_manager/features/mood_manager/data/datasources/rest_countries.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/city.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/country.dart';
