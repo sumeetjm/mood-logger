@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mood_manager/core/constants/app_constants.dart';
 import 'package:mood_manager/features/mood_manager/data/models/parse/t_mood_parse.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/m_activity.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/m_activity_type.dart';
+import 'package:mood_manager/features/metadata/domain/entities/m_activity.dart';
+import 'package:mood_manager/features/metadata/domain/entities/m_activity_type.dart';
 import 'package:mood_manager/features/mood_manager/presentation/bloc/activity_list_index.dart';
 import 'package:mood_manager/features/mood_manager/presentation/bloc/t_mood_index.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/activity_choice_chips.dart';
-import 'package:mood_manager/features/mood_manager/presentation/widgets/empty_widget.dart';
-import 'package:mood_manager/features/mood_manager/presentation/widgets/loading_widget.dart';
+import 'package:mood_manager/features/common/presentation/widgets/empty_widget.dart';
+import 'package:mood_manager/features/common/presentation/widgets/loading_widget.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/message_display.dart';
 import 'package:mood_manager/injection_container.dart';
 

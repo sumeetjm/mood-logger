@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:meta/meta.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/base.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/m_mood.dart';
+import 'package:mood_manager/features/common/domain/entities/base.dart';
+import 'package:mood_manager/features/metadata/domain/entities/m_mood.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/t_activity.dart';
 
 class TMood extends Base {

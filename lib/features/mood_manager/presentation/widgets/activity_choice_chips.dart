@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:chips_choice/chips_choice.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/m_activity.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/m_activity_type.dart';
+import 'package:mood_manager/features/metadata/domain/entities/m_activity.dart';
+import 'package:mood_manager/features/metadata/domain/entities/m_activity_type.dart';
 
 class ActivityChoiceChips extends StatefulWidget {
   final ValueChanged<MapEntry<String, List<MActivity>>> selectOptions;

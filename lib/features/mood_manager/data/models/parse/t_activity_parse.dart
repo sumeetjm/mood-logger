@@ -1,7 +1,7 @@
-import 'package:mood_manager/features/mood_manager/data/models/parse/base_parse_mixin.dart';
-import 'package:mood_manager/features/mood_manager/data/models/parse/m_activity_parse.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/base.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/m_activity.dart';
+import 'package:mood_manager/features/common/data/models/parse_mixin.dart';
+import 'package:mood_manager/features/metadata/data/models/m_activity_parse.dart';
+import 'package:mood_manager/features/common/domain/entities/base.dart';
+import 'package:mood_manager/features/metadata/domain/entities/m_activity.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/t_activity.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
 
@@ -49,9 +49,6 @@ class TActivityParse extends TActivity with ParseMixin {
   Base get get => this;
 
   @override
-  Map<String, dynamic> get map => {
-        'objectid': id,
-        'mActivity': mActivity,
-        'isActive': isActive
-      };
+  Map<String, dynamic> get map =>
+      {'objectId': id, 'mActivity': mActivity, 'isActive': isActive};
 }

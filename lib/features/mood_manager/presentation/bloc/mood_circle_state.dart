@@ -1,4 +1,4 @@
-import 'package:mood_manager/features/mood_manager/domain/entities/m_mood.dart';
+import 'package:mood_manager/features/metadata/domain/entities/m_mood.dart';
 import 'package:equatable/equatable.dart';
 import 'package:meta/meta.dart';
 

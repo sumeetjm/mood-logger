@@ -1,6 +1,6 @@
 import 'package:dartz/dartz.dart' show cast;
 import 'package:mood_manager/core/error/exceptions.dart';
-import 'package:mood_manager/features/mood_manager/data/models/parse/base_parse_mixin.dart';
+import 'package:mood_manager/features/common/data/models/parse_mixin.dart';
 import 'package:mood_manager/features/mood_manager/data/models/parse/t_activity_parse.dart';
 import 'package:mood_manager/features/mood_manager/data/models/parse/t_mood_parse.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/t_mood.dart';

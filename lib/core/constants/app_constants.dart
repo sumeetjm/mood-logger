@@ -1,6 +1,6 @@
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
-import 'package:mood_manager/features/mood_manager/data/models/parse/gender_parse.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/gender.dart';
+import 'package:mood_manager/features/metadata/data/models/gender_parse.dart';
+import 'package:mood_manager/features/metadata/domain/entities/gender.dart';
 
 class AppConstants {
   static const HEADER_DATE_FORMAT = 'dd MMMM yyyy';

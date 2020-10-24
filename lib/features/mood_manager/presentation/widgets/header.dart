@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mood_manager/core/constants/app_constants.dart';
 import 'package:mood_manager/core/util/color_util.dart';
-import 'package:mood_manager/features/mood_manager/data/datasources/m_mood_remote_data_source.dart';
+import 'package:mood_manager/features/metadata/data/datasources/m_mood_remote_data_source.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/t_mood.dart';
 import 'package:mood_manager/injection_container.dart';
 import 'package:intl/intl.dart';

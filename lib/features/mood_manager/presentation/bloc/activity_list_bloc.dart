@@ -2,8 +2,8 @@ import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:mood_manager/core/error/failures.dart';
 import 'package:mood_manager/core/usecases/usecase.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/m_activity_type.dart';
-import 'package:mood_manager/features/mood_manager/domain/usecases/get_m_activity_list.dart';
+import 'package:mood_manager/features/metadata/domain/entities/m_activity_type.dart';
+import 'package:mood_manager/features/metadata/domain/usecases/get_m_activity_list.dart';
 import 'package:dartz/dartz.dart';
 import 'package:meta/meta.dart';
 

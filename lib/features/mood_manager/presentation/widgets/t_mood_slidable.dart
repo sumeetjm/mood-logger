@@ -2,7 +2,7 @@ import 'package:auto_animated/auto_animated.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:mood_manager/core/util/date_util.dart';
-import 'package:mood_manager/features/mood_manager/data/datasources/m_mood_remote_data_source.dart';
+import 'package:mood_manager/features/metadata/data/datasources/m_mood_remote_data_source.dart';
 import 'package:mood_manager/features/mood_manager/data/models/parse/t_mood_parse.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/t_mood.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/animation_util.dart';

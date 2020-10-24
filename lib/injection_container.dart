@@ -14,37 +14,35 @@ import 'package:mood_manager/features/auth/domain/usecases/sign_up.dart';
 import 'package:mood_manager/features/auth/presentation/bloc/authentication_bloc.dart';
 import 'package:mood_manager/features/auth/presentation/bloc/login_bloc.dart';
 import 'package:mood_manager/features/auth/presentation/bloc/signup_bloc.dart';
-import 'package:mood_manager/features/mood_manager/data/datasources/m_activity_remote_data_source.dart';
-import 'package:mood_manager/features/mood_manager/data/datasources/metadata_data_source.dart';
+import 'package:mood_manager/features/metadata/data/datasources/m_activity_remote_data_source.dart';
 import 'package:mood_manager/features/mood_manager/data/datasources/rest_countries.dart';
-import 'package:mood_manager/features/mood_manager/data/datasources/user_profile_remote_data_source.dart';
-import 'package:mood_manager/features/mood_manager/data/repositories/m_activity_repository_impl.dart';
-import 'package:mood_manager/features/mood_manager/data/repositories/user_profile_repository_impl.dart';
-import 'package:mood_manager/features/mood_manager/domain/repositories/m_activity_repository.dart';
-import 'package:mood_manager/features/mood_manager/domain/repositories/user_profile_repository.dart';
-import 'package:mood_manager/features/mood_manager/domain/usecases/get_current_user_profile.dart';
-import 'package:mood_manager/features/mood_manager/domain/usecases/get_m_activity_list.dart';
-import 'package:mood_manager/features/mood_manager/domain/usecases/get_user_profile.dart';
-import 'package:mood_manager/features/mood_manager/domain/usecases/save_profile_picture.dart';
+import 'package:mood_manager/features/profile/data/datasources/user_profile_remote_data_source.dart';
+import 'package:mood_manager/features/metadata/data/repositories/m_activity_repository_impl.dart';
+import 'package:mood_manager/features/profile/data/repositories/user_profile_repository_impl.dart';
+import 'package:mood_manager/features/metadata/domain/repositories/m_activity_repository.dart';
+import 'package:mood_manager/features/profile/domain/repositories/user_profile_repository.dart';
+import 'package:mood_manager/features/profile/domain/usecases/get_current_user_profile.dart';
+import 'package:mood_manager/features/metadata/domain/usecases/get_m_activity_list.dart';
+import 'package:mood_manager/features/profile/domain/usecases/get_user_profile.dart';
+import 'package:mood_manager/features/profile/domain/usecases/save_profile_picture.dart';
 import 'package:mood_manager/features/mood_manager/domain/usecases/save_t_mood.dart';
-import 'package:mood_manager/features/mood_manager/data/datasources/m_mood_remote_data_source.dart';
+import 'package:mood_manager/features/metadata/data/datasources/m_mood_remote_data_source.dart';
 import 'package:mood_manager/features/mood_manager/data/datasources/t_mood_remote_data_source.dart';
-import 'package:mood_manager/features/mood_manager/data/repositories/m_mood_repository_impl.dart';
+import 'package:mood_manager/features/metadata/data/repositories/m_mood_repository_impl.dart';
 import 'package:mood_manager/features/mood_manager/data/repositories/t_mood_repository_impl.dart';
-import 'package:mood_manager/features/mood_manager/domain/repositories/m_mood_repository.dart';
+import 'package:mood_manager/features/metadata/domain/repositories/m_mood_repository.dart';
 import 'package:mood_manager/features/mood_manager/domain/repositories/t_mood_repository.dart';
-import 'package:mood_manager/features/mood_manager/domain/usecases/get_m_mood_list.dart';
+import 'package:mood_manager/features/metadata/domain/usecases/get_m_mood_list.dart';
 import 'package:mood_manager/features/mood_manager/domain/usecases/get_t_mood_list.dart';
-import 'package:mood_manager/features/mood_manager/domain/usecases/save_user_profile.dart';
+import 'package:mood_manager/features/profile/domain/usecases/save_user_profile.dart';
 import 'package:mood_manager/features/mood_manager/presentation/bloc/activity_list_index.dart';
-import 'package:mood_manager/features/mood_manager/presentation/bloc/profile_bloc.dart';
+import 'package:mood_manager/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:mood_manager/features/mood_manager/presentation/bloc/t_mood_index.dart';
 import 'package:mood_manager/features/mood_manager/presentation/bloc/mood_circle_index.dart';
 import 'package:data_connection_checker/data_connection_checker.dart';
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
-import 'package:uuid/uuid_util.dart';
 import 'package:video_trimmer/video_trimmer.dart';
 
 import 'core/network/network_info.dart';
@@ -123,10 +121,7 @@ Future<void> init() async {
     () => AuthParseDataSource(),
   );
   sl.registerLazySingleton<UserProfileRemoteDataSource>(
-    () => UserProfileParseDataSource(metadataSource: sl()),
-  );
-  sl.registerLazySingleton<MetadataRemoteDataSource>(
-    () => MetadataRemoteDataSourceImpl(restCountries: sl()),
+    () => UserProfileParseDataSource(),
   );
 
   //! Core

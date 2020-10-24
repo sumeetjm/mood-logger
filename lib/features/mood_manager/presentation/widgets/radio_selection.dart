@@ -1,9 +1,9 @@
 import 'package:custom_radio/custom_radio.dart';
 import 'package:flutter/material.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/m_mood.dart';
+import 'package:mood_manager/features/metadata/domain/entities/m_mood.dart';
 import 'dart:math';
 
-import 'package:mood_manager/features/mood_manager/presentation/widgets/empty_widget.dart';
+import 'package:mood_manager/features/common/presentation/widgets/empty_widget.dart';
 
 class RadioSelection extends StatefulWidget {
   RadioSelection(

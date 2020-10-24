@@ -6,7 +6,7 @@ import 'package:mood_manager/features/auth/presentation/bloc/authentication_bloc
 import 'package:mood_manager/features/mood_manager/data/models/parse/t_mood_parse.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/t_mood.dart';
 import 'package:mood_manager/features/mood_manager/presentation/bloc/t_mood_index.dart';
-import 'package:mood_manager/features/mood_manager/presentation/widgets/empty_widget.dart';
+import 'package:mood_manager/features/common/presentation/widgets/empty_widget.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/t_mood_event_calendar.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/t_mood_slidable.dart';
 import 'package:intl/intl.dart';

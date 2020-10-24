@@ -1,12 +1,12 @@
 import 'package:intl/intl.dart';
 import 'package:mood_manager/core/constants/app_constants.dart';
-import 'package:mood_manager/features/mood_manager/data/models/parse/base_parse_mixin.dart';
+import 'package:mood_manager/features/common/data/models/parse_mixin.dart';
 
-import 'package:mood_manager/features/mood_manager/data/models/parse/m_mood_parse.dart';
+import 'package:mood_manager/features/metadata/data/models/m_mood_parse.dart';
 import 'package:mood_manager/features/mood_manager/data/models/parse/t_activity_parse.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/base.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/m_activity.dart';
-import 'package:mood_manager/features/mood_manager/domain/entities/m_mood.dart';
+import 'package:mood_manager/features/common/domain/entities/base.dart';
+import 'package:mood_manager/features/metadata/domain/entities/m_activity.dart';
+import 'package:mood_manager/features/metadata/domain/entities/m_mood.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/t_activity.dart';
 import 'package:mood_manager/features/mood_manager/domain/entities/t_mood.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
