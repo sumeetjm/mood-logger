@@ -3,13 +3,14 @@ import 'package:mood_manager/features/metadata/domain/entities/m_mood.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/radio_selection.dart';
 import 'package:mood_manager/features/common/presentation/widgets/scroll_select.dart';
 
-class MoodSelectionDialog extends StatefulWidget {
+// ignore: must_be_immutable
+class MoodSelectionPage extends StatefulWidget {
   List<MMood> moodList;
   List<MMood> subMoodList = [];
   MMood selectedMood;
   MMood selectedSubMood;
   final ValueChanged<MMood> saveCallback;
-  MoodSelectionDialog({
+  MoodSelectionPage({
     @required this.moodList,
     @required this.saveCallback,
     @required this.selectedMood,
@@ -24,93 +25,26 @@ class MoodSelectionDialog extends StatefulWidget {
   }
 
   @override
-  State<StatefulWidget> createState() => _MoodSelectionDialogState();
+  State<StatefulWidget> createState() => _MoodSelectionPageState();
 }
 
-class _MoodSelectionDialogState extends State<MoodSelectionDialog> {
+class _MoodSelectionPageState extends State<MoodSelectionPage> {
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-      ),
-      elevation: 0.0,
-      backgroundColor: Colors.transparent,
-      child: dialogContent2(context),
+    return Scaffold(
+      body: buildMoodSelection(context),
+      backgroundColor: Colors.black.withOpacity(0.7),
     );
   }
 
-  /*dialogContent(BuildContext context) {
-    return Stack(
-      children: <Widget>[
-        Container(
-          padding: EdgeInsets.only(
-            top: 66.0 + 16.0,
-            bottom: 16.0,
-            left: 16.0,
-            right: 16.0,
-          ),
-          margin: EdgeInsets.only(top: 66.0),
-          decoration: new BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.rectangle,
-            borderRadius: BorderRadius.circular(16.0),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black26,
-                blurRadius: 10.0,
-                offset: const Offset(0.0, 10.0),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min, // To make the card compact
-            children: <Widget>[
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 24.0,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              SizedBox(height: 16.0),
-              Text(
-                description,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16.0,
-                ),
-              ),
-              SizedBox(height: 24.0),
-              Align(
-                alignment: Alignment.bottomRight,
-                child: FlatButton(
-                  onPressed: () {
-                    Navigator.of(context).pop(); // To close the dialog
-                  },
-                  child: Text(buttonText),
-                ),
-              ),
-            ],
-          ),
-        ),
-        Positioned(
-          left: 16.0,
-          right: 16.0,
-          child: CircleAvatar(
-            backgroundColor: Colors.blueAccent,
-            radius: 66.0,
-          ),
-        ),
-      ],
-    );
-  }*/
-
-  dialogContent2(BuildContext context) {
+  buildMoodSelection(BuildContext context) {
     return Container(
-      margin: EdgeInsets.only(top: 120),
+      padding: EdgeInsets.all(10),
       child: ListView(
         children: [
+          SizedBox(
+            height: (MediaQuery.of(context).size.height - 120) / 4,
+          ),
           RadioSelection(
             moodList: widget.moodList,
             initialValue: widget.selectedMood,
@@ -119,6 +53,7 @@ class _MoodSelectionDialogState extends State<MoodSelectionDialog> {
             parentCircleColor: Colors.blueGrey[50],
             parentCircleRadius: 120,
             showLabel: false,
+            showClear: true,
           ),
           SizedBox(
             height: 20,
@@ -126,10 +61,8 @@ class _MoodSelectionDialogState extends State<MoodSelectionDialog> {
           Container(
             padding: EdgeInsets.all(10.0),
             width: 100,
-            height: widget.selectedMood != null && widget.subMoodList.length > 0
-                ? 120
-                : 70,
-            decoration: new BoxDecoration(
+            height: 120,
+            decoration: BoxDecoration(
               color: Colors.white,
               shape: BoxShape.rectangle,
               borderRadius: BorderRadius.circular(16.0),
@@ -162,6 +95,17 @@ class _MoodSelectionDialogState extends State<MoodSelectionDialog> {
                       height: 50,
                       itemExtent: 125,
                       backgroundColor: Colors.white.withOpacity(0.0)),
+                if (!(widget.selectedMood != null &&
+                    widget.subMoodList.length > 0))
+                  SizedBox(
+                    height: 50,
+                    child: Center(
+                        child: Text(
+                      'Tap on circle to select',
+                      style: TextStyle(
+                          fontSize: 18, color: Colors.black.withOpacity(0.5)),
+                    )),
+                  ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -197,8 +141,12 @@ class _MoodSelectionDialogState extends State<MoodSelectionDialog> {
   updateState(value) {
     setState(() {
       widget.selectedMood = value;
-      widget.subMoodList = [value, ...value.mMoodList];
       widget.selectedSubMood = value;
+      if (value != null) {
+        widget.subMoodList = [value, ...value.mMoodList];
+      } else {
+        widget.subMoodList = [];
+      }
     });
   }
 }

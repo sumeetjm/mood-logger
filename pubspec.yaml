@@ -26,9 +26,9 @@ dependencies:
   # Service locator
   get_it: ^3.1.0
   # Bloc for state management
-  flutter_bloc: ^6.0.1
+  flutter_bloc: ^6.1.0
   # Value equality
-  equatable: ^1.2.2
+  equatable: ^1.2.5
   # Functional programming thingies
   dartz: ^0.8.9
   # Remote API
@@ -71,6 +71,15 @@ dependencies:
   material_design_icons_flutter: ^4.0.5655
   video_trimmer: ^0.2.7
   uuid: ^2.2.2
+  video_thumbnail: ^0.2.4
+  multi_image_picker: ^4.7.14
+  flutter_absolute_path: ^1.0.6
+  multi_media_picker: ^0.2.3
+  media_picker_builder: ^1.3.2
+  visibility_detector: ^0.1.5
+  drag_select_grid_view: ^0.3.1
+  image: ^2.1.19
+  path_provider: ^1.6.24
   flutter_test:
     sdk: flutter
 

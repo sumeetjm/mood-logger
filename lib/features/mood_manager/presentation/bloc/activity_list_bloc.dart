@@ -3,7 +3,7 @@ import 'package:bloc/bloc.dart';
 import 'package:mood_manager/core/error/failures.dart';
 import 'package:mood_manager/core/usecases/usecase.dart';
 import 'package:mood_manager/features/metadata/domain/entities/m_activity_type.dart';
-import 'package:mood_manager/features/metadata/domain/usecases/get_m_activity_list.dart';
+import 'package:mood_manager/features/metadata/domain/usecases/get_activity_type_list.dart';
 import 'package:dartz/dartz.dart';
 import 'package:meta/meta.dart';
 
@@ -13,9 +13,9 @@ const String SERVER_FAILURE_MESSAGE = 'Server Failure';
 const String CACHE_FAILURE_MESSAGE = 'Cache Failure';
 
 class ActivityListBloc extends Bloc<ActivityListEvent, ActivityListState> {
-  final GetMActivityTypeList getMActivityTypeList;
+  final GetActivityTypeList getMActivityTypeList;
 
-  ActivityListBloc({@required GetMActivityTypeList getMActivityTypeList})
+  ActivityListBloc({@required GetActivityTypeList getMActivityTypeList})
       : assert(getMActivityTypeList != null),
         this.getMActivityTypeList = getMActivityTypeList,
         super(ActivityListEmpty());

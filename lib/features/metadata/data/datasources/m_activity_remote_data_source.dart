@@ -10,11 +10,12 @@ import '../../../../core/error/exceptions.dart';
 
 abstract class MActivityRemoteDataSource {
   Future<List<MActivity>> getMActivityList();
+  Future<List<MActivity>> getMActivityListBySearchText(String searchText);
   Future<List<MActivity>> getMActivityListByType(MActivityType mActivityType);
   Future<MActivity> getMActivity(String id);
   Future<List<MActivity>> getMActivityByIds(List<String> ids);
   Future<List<MActivityType>> getMActivityTypeList();
-  Future<List<MActivity>> getMActivityListGroupByType();
+  Future<MActivity> addMActivity(MActivity activity);
 }
 
 class MActivityParseDataSource implements MActivityRemoteDataSource {
@@ -101,8 +102,7 @@ class MActivityParseDataSource implements MActivityRemoteDataSource {
   Future<List<MActivityType>> getMActivityTypeList() async {
     QueryBuilder<ParseObject> queryBuilder =
         QueryBuilder<ParseObject>(ParseObject('mActivityType'))
-          ..whereEqualTo('isActive', true)
-          ..includeObject(['mActivity']);
+          ..whereEqualTo('isActive', true);
 
     final ParseResponse response = await queryBuilder.query();
     if (response.success) {
@@ -116,15 +116,39 @@ class MActivityParseDataSource implements MActivityRemoteDataSource {
   }
 
   @override
-  Future<List<MActivity>> getMActivityListGroupByType() async {
-    List<MActivityType> mActivityTypeList = await getMActivityTypeList();
-    List<MActivity> mActivityList = [];
-    mActivityTypeList.forEach((mActivityType) {
-      mActivityType.mActivityList.forEach((mActivity) {
-        mActivity.mActivityType = mActivityType;
-        mActivityList.add(mActivity);
-      });
-    });
-    return mActivityList;
+  Future<MActivity> addMActivity(MActivity activity) async {
+    final ParseResponse response = await cast<MActivityParse>(activity).toParse(
+        pointerKeys: [
+          if (activity.mActivityType.id != null) 'mActivityType'
+        ]).save();
+    if (response.success) {
+      activity = MActivityParse.from(response.results.first,
+          cacheData: activity,
+          cacheKeys: [if (activity.mActivityType.id != null) 'mActivityType']);
+      return activity;
+    } else {
+      throw ServerException();
+    }
+  }
+
+  @override
+  Future<List<MActivity>> getMActivityListBySearchText(
+      String searchText) async {
+    QueryBuilder<ParseObject> queryBuilder =
+        QueryBuilder<ParseObject>(ParseObject('mActivity'))
+          ..includeObject([
+            'mActivityType',
+          ])
+          ..whereContains('name', searchText)
+          ..whereEqualTo('isActive', true);
+
+    final ParseResponse response = await queryBuilder.query();
+    if (response.success) {
+      List<MActivity> mActivityList =
+          ParseMixin.listFrom<MActivity>(response.results, MActivityParse.from);
+      return mActivityList;
+    } else {
+      throw ServerException();
+    }
   }
 }

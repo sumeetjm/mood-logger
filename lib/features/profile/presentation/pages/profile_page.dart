@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_page_transition/flutter_page_transition.dart';
 import 'package:loading_overlay/loading_overlay.dart';
-import 'package:mood_manager/features/profile/data/datasources/user_profile_remote_data_source.dart';
+import 'package:mood_manager/features/common/data/datasources/common_remote_data_source.dart';
 import 'package:mood_manager/features/common/domain/entities/media.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection.dart';
 import 'package:mood_manager/features/profile/domain/entities/user_profile.dart';
@@ -21,7 +21,7 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   ProfileBloc _profileBloc;
-  UserProfileParseDataSource _userProfileRemoteDataSource;
+  CommonRemoteDataSource _commonRemoteDataSource;
   UserProfile userProfile;
   List<Media> photoList;
 
@@ -29,7 +29,7 @@ class _ProfilePageState extends State<ProfilePage> {
   void initState() {
     super.initState();
     this._profileBloc = sl<ProfileBloc>();
-    this._userProfileRemoteDataSource = sl<UserProfileRemoteDataSource>();
+    this._commonRemoteDataSource = sl<CommonRemoteDataSource>();
     _profileBloc.add(GetCurrentUserProfileEvent());
   }
 
@@ -64,7 +64,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   onPictureTapCallback: () async {
                     if (userProfile.profilePicture != null) {
                       final mediaListByCollectionCallback =
-                          _userProfileRemoteDataSource
+                          _commonRemoteDataSource
                               .getMediaCollectionByCollection(
                                   userProfile.profilePictureCollection,
                                   priorityMedia: userProfile.profilePicture);

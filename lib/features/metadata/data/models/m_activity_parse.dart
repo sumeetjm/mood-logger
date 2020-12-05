@@ -1,6 +1,8 @@
 import 'package:mood_manager/features/common/data/models/parse_mixin.dart';
 import 'package:mood_manager/features/common/domain/entities/base.dart';
+import 'package:mood_manager/features/metadata/data/models/m_activity_type_parse.dart';
 import 'package:mood_manager/features/metadata/domain/entities/m_activity.dart';
+import 'package:mood_manager/features/metadata/domain/entities/m_activity_type.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
 
 class MActivityParse extends MActivity with ParseMixin {
@@ -8,11 +10,13 @@ class MActivityParse extends MActivity with ParseMixin {
     String activityId,
     String activityName,
     String activityCode,
+    MActivityType mActivityType,
     bool isActive = true,
   }) : super(
           activityId: activityId,
           activityName: activityName,
           activityCode: activityCode,
+          mActivityType: mActivityType,
           isActive: isActive,
         );
 
@@ -39,6 +43,8 @@ class MActivityParse extends MActivity with ParseMixin {
       activityId: ParseMixin.value('objectId', parseOptions),
       activityName: ParseMixin.value('name', parseOptions),
       activityCode: ParseMixin.value('code', parseOptions),
+      mActivityType: ParseMixin.value('mActivityType', parseOptions,
+          transform: MActivityTypeParse.from),
       isActive: ParseMixin.value('isActive', parseOptions),
     );
   }
@@ -51,6 +57,7 @@ class MActivityParse extends MActivity with ParseMixin {
         'objectId': id,
         'name': activityName,
         'code': activityCode,
+        'mActivityType': mActivityType,
         'isActive': isActive,
       };
 }

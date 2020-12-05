@@ -20,7 +20,7 @@ class TMoodListPage extends StatefulWidget {
   Map<DateTime, List<TMood>> tMoodListMapByDate = {};
   DateTime newSelectedDate = DateTime.now();
 
-  TMoodListPage({this.arguments});
+  TMoodListPage({this.arguments = const {}});
 
   @override
   State<TMoodListPage> createState() => _TMoodListPageState();

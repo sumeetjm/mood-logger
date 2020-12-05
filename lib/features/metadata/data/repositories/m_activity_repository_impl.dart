@@ -45,4 +45,36 @@ class MActivityRepositoryImpl implements MActivityRepository {
       return Left(ServerFailure());
     }
   }
+
+  @override
+  Future<Either<Failure, MActivity>> addMActivity(
+      final MActivity toBeAddedMActivity) async {
+    if (await networkInfo.isConnected) {
+      try {
+        final mActivity =
+            await remoteDataSource.addMActivity(toBeAddedMActivity);
+        return Right(mActivity);
+      } on ServerException {
+        return Left(ServerFailure());
+      }
+    } else {
+      return Left(ServerFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<MActivity>>> getMActivityListBySearchText(
+      String searchText) async {
+    if (await networkInfo.isConnected) {
+      try {
+        final mActivityList =
+            await remoteDataSource.getMActivityListBySearchText(searchText);
+        return Right(mActivityList);
+      } on ServerException {
+        return Left(ServerFailure());
+      }
+    } else {
+      return Left(ServerFailure());
+    }
+  }
 }

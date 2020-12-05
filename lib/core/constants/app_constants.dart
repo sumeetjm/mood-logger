@@ -48,4 +48,5 @@ class AppConstants {
       r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+";
 
   static final Map dataConstants = {'gender': genderList};
+  //static final String thumbnailFolderPath = "/storage/emulated/0/Android/"
 }

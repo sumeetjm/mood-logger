@@ -3,25 +3,29 @@ import 'dart:ui';
 import 'package:datetime_picker_formfield/datetime_picker_formfield.dart';
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:mood_manager/core/constants/app_constants.dart';
-import 'package:mood_manager/features/common/data/models/photo_parse.dart';
+import 'package:mood_manager/features/common/data/models/media_parse.dart';
 import 'package:mood_manager/features/profile/data/models/user_profile_parse.dart';
 import 'package:mood_manager/features/metadata/domain/entities/gender.dart';
 import 'package:mood_manager/features/common/domain/entities/media.dart';
 import 'package:mood_manager/features/profile/domain/entities/user_profile.dart';
 import 'package:mood_manager/features/common/presentation/widgets/empty_widget.dart';
 import 'package:mood_manager/features/common/presentation/widgets/check_box_list_field.dart';
+import 'package:mood_manager/injection_container.dart';
+import 'package:multi_media_picker/multi_media_picker.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
+
+import 'package:uuid/uuid.dart';
 
 class ProfileView extends StatelessWidget {
   final ValueChanged<UserProfile> saveCallback;
   final Function resetCallback;
   final ValueChanged<Media> profilePictureChangeCallback;
   final Function onPictureTapCallback;
+  final Uuid uuid = sl<Uuid>();
   ProfileView({
     Key key,
     this.saveCallback,
@@ -40,7 +44,6 @@ class ProfileView extends StatelessWidget {
   bool isChanged = false;
 
   UserProfile userProfile;
-  final ImagePicker _picker = ImagePicker();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final FocusNode _focusAbout = FocusNode();
   final FocusNode _focusEmail = new FocusNode();
@@ -446,11 +449,10 @@ class ProfileView extends StatelessWidget {
       {BuildContext context}) async {
     Color themeColor = Theme.of(context).primaryColor;
     try {
-      final pickedFile = await _picker.getImage(
-        source: source,
-      );
+      final pickedFileList =
+          await MultiMediaPicker.pickImages(source: source, singleImage: true);
       File croppedImage = await ImageCropper.cropImage(
-        sourcePath: pickedFile.path,
+        sourcePath: pickedFileList[0].path,
         maxWidth: 1080,
         maxHeight: 1080,
         aspectRatio: CropAspectRatio(ratioX: 1.0, ratioY: 1.0),

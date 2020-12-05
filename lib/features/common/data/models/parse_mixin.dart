@@ -11,6 +11,8 @@ mixin ParseMixin {
     return parseObject;
   }
 
+  bool get isSaved => get.id != null;
+
   Map<String, dynamic> get pointer {
     return {
       '__type': 'Pointer',

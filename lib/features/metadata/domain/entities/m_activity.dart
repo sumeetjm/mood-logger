@@ -5,12 +5,13 @@ import 'package:mood_manager/features/metadata/domain/entities/m_activity_type.d
 class MActivity extends Base {
   final String activityName;
   final String activityCode;
-  MActivityType mActivityType;
+  final MActivityType mActivityType;
   MActivity({
     String activityId,
     @required this.activityName,
     @required this.activityCode,
     bool isActive = true,
+    @required this.mActivityType,
   }) : super(
           id: activityId,
           isActive: isActive,
@@ -18,5 +19,6 @@ class MActivity extends Base {
         );
 
   @override
-  List<Object> get props => [...super.props, activityCode, activityName];
+  List<Object> get props =>
+      [...super.props, activityCode, activityName, mActivityType];
 }

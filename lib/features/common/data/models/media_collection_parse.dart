@@ -1,6 +1,6 @@
 import 'package:mood_manager/features/common/data/models/parse_mixin.dart';
 import 'package:mood_manager/features/common/data/models/collection_parse.dart';
-import 'package:mood_manager/features/common/data/models/photo_parse.dart';
+import 'package:mood_manager/features/common/data/models/media_parse.dart';
 import 'package:mood_manager/features/common/domain/entities/base.dart';
 import 'package:mood_manager/features/common/domain/entities/collection.dart';
 import 'package:mood_manager/features/common/domain/entities/media.dart';

@@ -2,7 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:mood_manager/features/common/data/models/collection_parse.dart';
 import 'package:mood_manager/features/metadata/data/models/gender_parse.dart';
 import 'package:mood_manager/features/common/data/models/media_collection_parse.dart';
-import 'package:mood_manager/features/common/data/models/photo_parse.dart';
+import 'package:mood_manager/features/common/data/models/media_parse.dart';
 import 'package:mood_manager/features/common/domain/entities/base.dart';
 import 'package:mood_manager/features/common/domain/entities/collection.dart';
 import 'package:mood_manager/features/metadata/domain/entities/gender.dart';

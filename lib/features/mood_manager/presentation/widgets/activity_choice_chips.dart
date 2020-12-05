@@ -92,7 +92,7 @@ class ActivityChoiceChipsState extends State<ActivityChoiceChips> {
                     initialValue: widget.initialValue[type.activityTypeCode],
                     builder: (state) {
                       return ChoiceChipsByType(
-                          activityList: type.mActivityList,
+                          //activityList: type.mActivityList,
                           mActivityTypeCode: type.activityTypeCode,
                           selectOptions: widget.selectOptions,
                           state: state,

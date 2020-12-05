@@ -5,10 +5,10 @@ import 'package:mood_manager/features/metadata/domain/repositories/m_activity_re
 import '../../../../core/error/failures.dart';
 import '../../../../core/usecases/usecase.dart';
 
-class GetMActivityTypeList implements UseCase<List<MActivityType>, NoParams> {
+class GetActivityTypeList implements UseCase<List<MActivityType>, NoParams> {
   final MActivityRepository repository;
 
-  GetMActivityTypeList(this.repository);
+  GetActivityTypeList(this.repository);
 
   @override
   Future<Either<Failure, List<MActivityType>>> call(NoParams params) async {

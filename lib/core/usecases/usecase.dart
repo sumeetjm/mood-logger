@@ -19,3 +19,11 @@ class Params<T> extends Equatable {
   @override
   List<Object> get props => [param];
 }
+
+class MultiParams extends Equatable {
+  final List param;
+
+  MultiParams(this.param);
+  @override
+  List<Object> get props => [...param];
+}

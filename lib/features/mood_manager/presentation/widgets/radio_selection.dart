@@ -1,5 +1,6 @@
 import 'package:custom_radio/custom_radio.dart';
 import 'package:flutter/material.dart';
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:mood_manager/features/metadata/domain/entities/m_mood.dart';
 import 'dart:math';
 
@@ -14,7 +15,8 @@ class RadioSelection extends StatefulWidget {
       this.parentCircleColor,
       this.initialSubValue,
       this.moodList,
-      this.showLabel = true})
+      this.showLabel = true,
+      this.showClear = false})
       : super(key: key);
 
   MMood initialValue;
@@ -24,6 +26,7 @@ class RadioSelection extends StatefulWidget {
   final Color parentCircleColor;
   final Function onChange;
   bool showLabel;
+  bool showClear;
 
   @override
   State<RadioSelection> createState() => _RadioSelectionState();
@@ -99,7 +102,24 @@ class _RadioSelectionState extends State<RadioSelection>
                     (3 / 4 +
                         sin(key * 2 * pi / widget.moodList.length) * 2 / 3),
               ))
-          .toList()
+          .toList(),
+      if (widget.showClear)
+        Positioned(
+          top: widget.parentCircleRadius * 0.675,
+          left: widget.parentCircleRadius * 0.675,
+          child: IconButton(
+              icon: Icon(
+                MdiIcons.restore,
+                color: Colors.black.withOpacity(0.2),
+                size: widget.parentCircleRadius / 2,
+              ),
+              onPressed: () {
+                setState(() {
+                  widget.initialValue = null;
+                  widget.onChange(null);
+                });
+              }),
+        )
     ];
   }
 

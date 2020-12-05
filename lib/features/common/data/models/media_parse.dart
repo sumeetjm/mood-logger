@@ -8,10 +8,12 @@ class MediaParse extends Media with ParseMixin {
   MediaParse({
     String id,
     @required ParseFile file,
+    @required ParseFile thumbnail,
     bool isActive = true,
   }) : super(
           id: id,
           file: file,
+          thumbnail: thumbnail,
           isActive: isActive,
         );
 
@@ -28,6 +30,7 @@ class MediaParse extends Media with ParseMixin {
     return MediaParse(
       id: ParseMixin.value('objectId', parseOptions),
       file: ParseMixin.value('file', parseOptions),
+      thumbnail: ParseMixin.value('thumbnail', parseOptions),
       isActive: ParseMixin.value('isActive', parseOptions),
     );
   }
@@ -39,6 +42,7 @@ class MediaParse extends Media with ParseMixin {
   Map<String, dynamic> get map => {
         'objectId': id,
         'file': file,
+        'thumbnail': thumbnail,
         'isActive': isActive,
       };
 }
