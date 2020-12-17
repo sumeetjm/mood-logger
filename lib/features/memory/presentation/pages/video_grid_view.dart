@@ -54,50 +54,68 @@ class _VideoGridViewState extends State<VideoGridView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Selected videos"),
-        actions: [
-          IconButton(
-              icon: Icon(
-                Icons.done,
-                color: Colors.white,
-              ),
-              onPressed: () {
-                Navigator.of(context).pop();
-              }),
-          PopupMenuButton(
-            elevation: 3.2,
-            onCanceled: () {
-              print('You have not chossed anything');
-            },
-            tooltip: 'This is tooltip',
-            onSelected: (fn) {
-              fn();
-            },
-            itemBuilder: (BuildContext context) {
-              final popupMap = {
-                if (controller.value.selectedIndexes.length == 1) 'Edit': edit,
-                if (controller.value.selectedIndexes.length > 0)
-                  'Delete': delete,
-                if (controller.value.selectedIndexes.length > 0)
-                  'Deselect All': deselectAll,
-                if (controller.value.selectedIndexes.length !=
-                    widget.videosMap.length)
-                  'Select All': selectAll
-              };
-              return popupMap.keys.map((key) {
-                return PopupMenuItem(
-                  value: popupMap[key],
-                  child: Text(key),
-                );
-              }).toList();
-            },
-          )
-        ],
-      ),
+      backgroundColor: Colors.black.withOpacity(0.7),
       body: Container(
+        margin: EdgeInsets.fromLTRB(30, 60, 30, 60),
+        decoration: BoxDecoration(
+            borderRadius: BorderRadius.all(Radius.circular(15)),
+            color: Colors.white),
+        //color: Colors.white,
         padding: EdgeInsets.all(8.0),
-        child: buildSelectableGrid(),
+        child: Column(
+          children: [
+            Container(
+              height: 40,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(child: BackButton()),
+                  Container(child: Text("Selected videos")),
+                  Container(
+                    child: IconButton(
+                        icon: Icon(
+                          Icons.done,
+                          color: Colors.black,
+                        ),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        }),
+                  ),
+                  Container(
+                    child: PopupMenuButton(
+                      elevation: 3.2,
+                      onCanceled: () {
+                        print('You have not chossed anything');
+                      },
+                      tooltip: 'This is tooltip',
+                      onSelected: (fn) => fn(),
+                      itemBuilder: (BuildContext context) {
+                        final popupMap = {
+                          if (controller.value.selectedIndexes.length == 1)
+                            'Edit': edit,
+                          if (controller.value.selectedIndexes.length > 0)
+                            'Delete': delete,
+                          if (controller.value.selectedIndexes.length > 0)
+                            'Deselect All': deselectAll,
+                          if (controller.value.selectedIndexes.length !=
+                              widget.videosMap.length)
+                            'Select All': selectAll
+                        };
+                        return popupMap.keys.map((key) {
+                          return PopupMenuItem(
+                            value: popupMap[key],
+                            child: Text(key),
+                          );
+                        }).toList();
+                      },
+                    ),
+                  )
+                ],
+              ),
+            ),
+            Expanded(child: buildSelectableGrid())
+          ],
+        ),
       ),
     );
   }
@@ -153,7 +171,7 @@ class _VideoGridViewState extends State<VideoGridView> {
               thumbnailPath: newThumbnailFile.path,
               imageFormat: ImageFormat.JPEG,
               maxHeight:
-                  120, // specify the height of the thumbnail, let the width auto-scaled to keep the source aspect ratio
+                  200, // specify the height of the thumbnail, let the width auto-scaled to keep the source aspect ratio
               quality: 50,
             );
             widget.videosMap.remove(thumbnailFile.path);
@@ -213,7 +231,7 @@ class _VideoGridViewState extends State<VideoGridView> {
                                   thumbnailPath: newThumbnailFile.path,
                                   imageFormat: ImageFormat.JPEG,
                                   maxHeight:
-                                      120, // specify the height of the thumbnail, let the width auto-scaled to keep the source aspect ratio
+                                      200, // specify the height of the thumbnail, let the width auto-scaled to keep the source aspect ratio
                                   quality: 50,
                                 );
                                 widget.videosMap[newThumbnailFile.path] =
@@ -273,7 +291,7 @@ class _VideoGridViewState extends State<VideoGridView> {
                       thumbnailPath: newThumbnailFile.path,
                       imageFormat: ImageFormat.JPEG,
                       maxHeight:
-                          120, // specify the height of the thumbnail, let the width auto-scaled to keep the source aspect ratio
+                          200, // specify the height of the thumbnail, let the width auto-scaled to keep the source aspect ratio
                       quality: 50,
                     );
                     widget.videosMap.remove(thumbnailFile.path);

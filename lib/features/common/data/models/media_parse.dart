@@ -9,11 +9,13 @@ class MediaParse extends Media with ParseMixin {
     String id,
     @required ParseFile file,
     @required ParseFile thumbnail,
+    @required String mediaType,
     bool isActive = true,
   }) : super(
           id: id,
           file: file,
           thumbnail: thumbnail,
+          mediaType: mediaType,
           isActive: isActive,
         );
 
@@ -31,6 +33,7 @@ class MediaParse extends Media with ParseMixin {
       id: ParseMixin.value('objectId', parseOptions),
       file: ParseMixin.value('file', parseOptions),
       thumbnail: ParseMixin.value('thumbnail', parseOptions),
+      mediaType: ParseMixin.value('mediaType', parseOptions),
       isActive: ParseMixin.value('isActive', parseOptions),
     );
   }
@@ -43,6 +46,7 @@ class MediaParse extends Media with ParseMixin {
         'objectId': id,
         'file': file,
         'thumbnail': thumbnail,
+        'mediaType': mediaType,
         'isActive': isActive,
       };
 }

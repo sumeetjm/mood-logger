@@ -39,6 +39,7 @@ class _MemoryFormPageState extends State<MemoryFormPage> {
         listener: (context, state) {
           if (state is MemorySaved) {
             memory = state.memory;
+            Navigator.of(context).popUntil((route) => route.isFirst);
           } else if (state is MemorySaving) {
             memory = state.memory;
           }

@@ -14,6 +14,7 @@ class CollectionParse extends Collection with ParseMixin {
     String code,
     String mediaType,
     String module,
+    int mediaCount,
   }) : super(
           id: id,
           isActive: isActive,
@@ -21,6 +22,7 @@ class CollectionParse extends Collection with ParseMixin {
           name: name,
           mediaType: mediaType,
           module: module,
+          mediaCount: mediaCount,
         );
 
   @override
@@ -30,6 +32,7 @@ class CollectionParse extends Collection with ParseMixin {
         'code': code,
         'mediaType': mediaType,
         'module': module,
+        'mediaCount': mediaCount,
         'isActive': isActive,
       };
 
@@ -49,6 +52,7 @@ class CollectionParse extends Collection with ParseMixin {
       code: ParseMixin.value('code', parseOptions),
       mediaType: ParseMixin.value('collectionType', parseOptions),
       module: ParseMixin.value('module', parseOptions),
+      mediaCount: ParseMixin.value('mediaCount', parseOptions),
       isActive: ParseMixin.value('isActive', parseOptions),
     );
   }

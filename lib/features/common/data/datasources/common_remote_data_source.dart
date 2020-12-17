@@ -19,6 +19,8 @@ abstract class CommonRemoteDataSource {
   Future<List<MediaCollection>> getMediaCollectionByCollection(
       Collection collection,
       {Media priorityMedia});
+  Future<List<MediaCollection>> getMediaCollectionByCollectionList(
+      List<Collection> collectionList);
   Future<List<MediaCollection>> saveMediaCollectionList(
       List<MediaCollection> mediaCollectionList);
 }
@@ -119,12 +121,39 @@ class CommonParseDataSource extends CommonRemoteDataSource {
       final List<MediaCollection> mediaCollectionList =
           ParseMixin.listFrom<MediaCollection>(
               response.results, MediaCollectionParse.from);
+      if (priorityMedia != null) {
+        final priorityMediaCollection = mediaCollectionList
+            .firstWhere((element) => element.media == priorityMedia);
+        mediaCollectionList
+            .removeWhere((element) => element.media == priorityMedia);
+        mediaCollectionList.insert(0, priorityMediaCollection);
+      }
+      return mediaCollectionList;
+    } else {
+      throw ServerException();
+    }
+  }
 
-      final priorityMediaCollection = mediaCollectionList
-          .firstWhere((element) => element.media == priorityMedia);
-      mediaCollectionList
-          .removeWhere((element) => element.media == priorityMedia);
-      mediaCollectionList.insert(0, priorityMediaCollection);
+  @override
+  Future<List<MediaCollection>> getMediaCollectionByCollectionList(
+      List<Collection> collectionList) async {
+    QueryBuilder<ParseObject> queryBuilder = QueryBuilder<ParseObject>(
+        ParseObject('mediaCollection'))
+      ..whereContainedIn(
+          'collection',
+          collectionList
+              .map((collection) => cast<CollectionParse>(collection).pointer)
+              .toList())
+      ..whereEqualTo('isActive', true)
+      ..includeObject(['media, collection'])
+      ..orderByDescending('createdAt');
+
+    final ParseResponse response = await queryBuilder.query();
+
+    if (response.success) {
+      final List<MediaCollection> mediaCollectionList =
+          ParseMixin.listFrom<MediaCollection>(
+              response.results, MediaCollectionParse.from);
       return mediaCollectionList;
     } else {
       throw ServerException();

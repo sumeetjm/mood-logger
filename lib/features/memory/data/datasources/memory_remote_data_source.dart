@@ -27,7 +27,7 @@ class MemoryParseDataSource extends MemoryRemoteDataSource {
       memory = MemoryParse.from(response.results.first,
           cacheData: MemoryParse(
               collectionList:
-                  mediaCollectionList.map((e) => e.collection).toList(),
+                  mediaCollectionList.map((e) => e.collection).toSet().toList(),
               mMood: memory.mMood,
               mActivityList: memory.mActivityList),
           cacheKeys: ['collection', 'mMood', 'mActivity']);
@@ -51,6 +51,7 @@ class MemoryParseDataSource extends MemoryRemoteDataSource {
         QueryBuilder<ParseObject>(ParseObject('memory'))
           ..includeObject([
             'mMood',
+            'mMood.subMood',
             'mActivity',
             'collection',
           ])

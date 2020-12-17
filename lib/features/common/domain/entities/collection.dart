@@ -5,6 +5,7 @@ class Collection extends Base {
   final String name;
   final String code;
   final String module;
+  final int mediaCount;
 
   Collection({
     String id,
@@ -12,6 +13,7 @@ class Collection extends Base {
     this.code,
     this.module,
     this.mediaType,
+    this.mediaCount,
     bool isActive,
   }) : super(
           id: id,
@@ -20,5 +22,6 @@ class Collection extends Base {
         );
 
   @override
-  List<Object> get props => [...super.props, mediaType, name, code, module];
+  List<Object> get props =>
+      [...super.props, mediaType, name, code, module, mediaCount];
 }

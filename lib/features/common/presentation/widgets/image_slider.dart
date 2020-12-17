@@ -43,7 +43,6 @@ class ImageSliderWidgetState extends State<ImageSlider> {
   Widget _buildPagerViewSlider() {
     return StreamBuilder<List<MediaCollection>>(
         stream: mediaCollectionList.asStream(),
-        initialData: [if (widget.initialPhoto != null) widget.initialPhoto],
         builder: (context, snapshot) {
           if (snapshot.hasData) {
             final List<Media> photoList =

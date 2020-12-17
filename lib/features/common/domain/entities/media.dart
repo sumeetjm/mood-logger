@@ -6,11 +6,13 @@ import 'package:mood_manager/features/common/domain/entities/base.dart';
 class Media extends Base {
   final ParseFile file;
   final ParseFile thumbnail;
+  final String mediaType;
 
   Media({
     String id,
     @required this.file,
     @required this.thumbnail,
+    @required this.mediaType,
     bool isActive = true,
   }) : super(
           id: id,
@@ -19,5 +21,6 @@ class Media extends Base {
         );
   @override
   // TODO: implement props
-  List<Object> get props => [...super.props, file.url, thumbnail.url];
+  List<Object> get props =>
+      [...super.props, file.url, thumbnail.url, mediaType];
 }

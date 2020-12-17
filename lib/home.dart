@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_page_transition/flutter_page_transition.dart';
 import 'package:mood_manager/core/util/hex_color.dart';
+import 'package:mood_manager/features/memory/presentation/pages/memory_calendar_page.dart';
 import 'package:mood_manager/features/memory/presentation/pages/memory_form_page.dart';
 import 'package:mood_manager/features/memory/presentation/pages/memory_list_page.dart';
 import 'package:mood_manager/features/profile/presentation/pages/profile_page.dart';
@@ -65,6 +66,15 @@ class _HomeState extends State<Home> {
                     case '/profile':
                       return ProfilePage(arguments: settings.arguments);
                       break;
+                    case '/add/memory':
+                      return MemoryFormPage(arguments: settings.arguments);
+                      break;
+                    case '/memory/list':
+                      return MemoryListPage(arguments: settings.arguments);
+                      break;
+                    case '/memory/calendar':
+                      return MemoryCalendarPage(arguments: settings.arguments);
+                      break;
                     default:
                       return null;
                   }
@@ -75,7 +85,7 @@ class _HomeState extends State<Home> {
                     Animation<double> secondaryAnimation,
                     Widget child) {
                   return effectMap[
-                          (settings.arguments as Map)['transitionType'] ??
+                          (settings.arguments as Map ?? {})['transitionType'] ??
                               PageTransitionType.slideInLeft](
                       Curves.linear, animation, secondaryAnimation, child);
                 });

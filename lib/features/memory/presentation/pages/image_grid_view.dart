@@ -76,7 +76,7 @@ class _ImageGridViewState extends State<ImageGridView> {
       final newThumbnailFile =
           File(thumbnailFile.parent.path + "/" + uuid.v1() + ".jpg");
       newThumbnailFile.writeAsBytesSync(img.encodeJpg(
-          img.copyResize(img.decodeImage(file.readAsBytesSync()), width: 120)));
+          img.copyResize(img.decodeImage(file.readAsBytesSync()), width: 200)));
       widget.imagesMap.remove(thumbnailFile.path);
       thumbnailFile.deleteSync();
       widget.thumbnailPathList[controller.value.selectedIndexes.first] =
@@ -88,48 +88,68 @@ class _ImageGridViewState extends State<ImageGridView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Selected images"),
-        actions: [
-          IconButton(
-              icon: Icon(
-                Icons.done,
-                color: Colors.white,
-              ),
-              onPressed: () {
-                Navigator.of(context).pop();
-              }),
-          PopupMenuButton(
-            elevation: 3.2,
-            onCanceled: () {
-              print('You have not chossed anything');
-            },
-            tooltip: 'This is tooltip',
-            onSelected: (fn) => fn(),
-            itemBuilder: (BuildContext context) {
-              final popupMap = {
-                if (controller.value.selectedIndexes.length == 1) 'Edit': edit,
-                if (controller.value.selectedIndexes.length > 0)
-                  'Delete': delete,
-                if (controller.value.selectedIndexes.length > 0)
-                  'Deselect All': deselectAll,
-                if (controller.value.selectedIndexes.length !=
-                    widget.imagesMap.length)
-                  'Select All': selectAll
-              };
-              return popupMap.keys.map((key) {
-                return PopupMenuItem(
-                  value: popupMap[key],
-                  child: Text(key),
-                );
-              }).toList();
-            },
-          )
-        ],
-      ),
+      backgroundColor: Colors.black.withOpacity(0.7),
       body: Container(
+        margin: EdgeInsets.fromLTRB(30, 60, 30, 60),
+        decoration: BoxDecoration(
+            borderRadius: BorderRadius.all(Radius.circular(15)),
+            color: Colors.white),
+        //color: Colors.white,
         padding: EdgeInsets.all(8.0),
-        child: buildSelectableGrid(),
+        child: Column(
+          children: [
+            Container(
+              height: 40,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(child: BackButton()),
+                  Container(child: Text("Selected images")),
+                  Container(
+                    child: IconButton(
+                        icon: Icon(
+                          Icons.done,
+                          color: Colors.black,
+                        ),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        }),
+                  ),
+                  Container(
+                    child: PopupMenuButton(
+                      elevation: 3.2,
+                      onCanceled: () {
+                        print('You have not chossed anything');
+                      },
+                      tooltip: 'This is tooltip',
+                      onSelected: (fn) => fn(),
+                      itemBuilder: (BuildContext context) {
+                        final popupMap = {
+                          if (controller.value.selectedIndexes.length == 1)
+                            'Edit': edit,
+                          if (controller.value.selectedIndexes.length > 0)
+                            'Delete': delete,
+                          if (controller.value.selectedIndexes.length > 0)
+                            'Deselect All': deselectAll,
+                          if (controller.value.selectedIndexes.length !=
+                              widget.imagesMap.length)
+                            'Select All': selectAll
+                        };
+                        return popupMap.keys.map((key) {
+                          return PopupMenuItem(
+                            value: popupMap[key],
+                            child: Text(key),
+                          );
+                        }).toList();
+                      },
+                    ),
+                  )
+                ],
+              ),
+            ),
+            Expanded(child: buildSelectableGrid())
+          ],
+        ),
       ),
     );
   }
@@ -152,6 +172,7 @@ class _ImageGridViewState extends State<ImageGridView> {
 
   buildSelectableGrid() {
     return DragSelectGridView(
+      //shrinkWrap: true,
       gridController: controller,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 4,
@@ -192,7 +213,7 @@ class _ImageGridViewState extends State<ImageGridView> {
                                 final thumbnailImage = img.copyResize(
                                     img.decodeImage(
                                         pickedFile.readAsBytesSync()),
-                                    width: 120);
+                                    width: 200);
                                 final thumbnailFile = File(
                                     cacheDir.path + "/" + uuid.v1() + ".jpg");
                                 thumbnailFile.writeAsBytesSync(
@@ -244,7 +265,7 @@ class _ImageGridViewState extends State<ImageGridView> {
                     File(thumbnailFile.parent.path + "/" + uuid.v1() + ".jpg");
                 newThumbnailFile.writeAsBytesSync(img.encodeJpg(img.copyResize(
                     img.decodeImage(croppedImage.readAsBytesSync()),
-                    width: 120)));
+                    width: 200)));
                 widget.imagesMap.remove(thumbnailFile.path);
                 thumbnailFile.deleteSync();
                 widget.thumbnailPathList[index] = newThumbnailFile.path;
