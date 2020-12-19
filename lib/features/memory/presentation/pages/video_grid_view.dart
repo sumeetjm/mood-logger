@@ -141,6 +141,7 @@ class _VideoGridViewState extends State<VideoGridView> {
     if (widget.videosMap.isEmpty) {
       Navigator.of(context).pop();
     }
+    widget.onChanged(widget.videosMap);
   }
 
   void selectAll() {
@@ -182,6 +183,7 @@ class _VideoGridViewState extends State<VideoGridView> {
             });
           });
     }));
+    widget.onChanged(widget.videosMap);
   }
 
   buildSelectableGrid() {

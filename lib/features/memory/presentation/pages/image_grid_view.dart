@@ -54,6 +54,7 @@ class _ImageGridViewState extends State<ImageGridView> {
       widget.thumbnailPathList.remove(thumbnailFilePath);
     }
     controller.clear();
+    widget.onChanged(widget.imagesMap);
     if (widget.imagesMap.isEmpty) {
       Navigator.of(context).pop();
     }
@@ -83,6 +84,7 @@ class _ImageGridViewState extends State<ImageGridView> {
           newThumbnailFile.path;
       widget.imagesMap[newThumbnailFile.path] = ParseFile(file);
     });
+    widget.onChanged(widget.imagesMap);
   }
 
   @override

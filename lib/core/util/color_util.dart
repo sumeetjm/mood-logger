@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 class ColorUtil {
@@ -20,4 +22,7 @@ class ColorUtil {
             colors.length,
         1);
   }
+
+  static Color get random =>
+      Color((Random().nextDouble() * 0xFFFFFF).toInt()).withOpacity(1.0);
 }

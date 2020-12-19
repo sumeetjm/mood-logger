@@ -4,6 +4,8 @@ import 'package:datetime_picker_formfield/datetime_picker_formfield.dart';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_cropper/image_cropper.dart';
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:mood_manager/core/util/color_util.dart';
 import 'package:mood_manager/features/common/data/models/media_parse.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection.dart';
 import 'package:mood_manager/features/common/presentation/pages/activity_selection_page.dart';
@@ -19,9 +21,9 @@ import 'package:mood_manager/features/metadata/domain/entities/m_mood.dart';
 import 'package:mood_manager/features/common/presentation/widgets/date_selector.dart';
 import 'package:mood_manager/features/common/presentation/widgets/mood_selection_dialog.dart';
 import 'package:mood_manager/features/common/presentation/widgets/time_picker.dart';
+import 'package:mood_manager/features/mood_manager/presentation/widgets/radio_selection.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/widgets.dart';
 import 'package:mood_manager/injection_container.dart';
-import 'package:multi_image_picker/multi_image_picker.dart';
 import 'package:multi_media_picker/multi_media_picker.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
 import 'package:path_provider/path_provider.dart';
@@ -104,223 +106,14 @@ class _MemoryFormViewState extends State<MemoryFormView> {
                 mainAxisSpacing: 15,
                 crossAxisSpacing: 15,
                 children: [
-                  if (imageFileMapByThumbnail.isNotEmpty)
-                    BlurImageGridItem(
-                      context: context,
-                      child: buildAddImageIconButtonItem(context),
-                      imageList: imageFileMapByThumbnail.keys
-                          .map((e) => ParseFile(File(e)))
-                          .toList(),
-                    ),
-                  if (imageFileMapByThumbnail.isEmpty)
-                    buildAddImageIconButtonItem(context),
-                  if (videoFileMapByThumbnail.isNotEmpty)
-                    BlurImageGridItem(
-                      context: context,
-                      child: buildAddVideoIconButtonItem(context),
-                      imageList: videoFileMapByThumbnail.keys
-                          .map((e) => ParseFile(File(e)))
-                          .toList(),
-                    ),
-                  if (videoFileMapByThumbnail.isEmpty)
-                    buildAddVideoIconButtonItem(context),
-                  if (activityList.isNotEmpty)
-                    BlurActivityGridItem(
-                      context: context,
-                      child: buildAddActivityIconButtonItem(),
-                      activityList: activityList,
-                    ),
-                  if (activityList.isEmpty) buildAddActivityIconButtonItem(),
-                  FutureBuilder<List<MMood>>(
-                      initialData: [],
-                      future: sl<MMoodRemoteDataSource>().getMMoodList(),
-                      builder: (context, snapshot) {
-                        if (!snapshot.hasData || snapshot.data.isEmpty) {
-                          return iconButton(
-                              icon: Container(
-                                  width: 20,
-                                  height: 20,
-                                  child: LoadingWidget()),
-                              onPressed: () {});
-                        }
-                        return IconButtonItem(
-                            icon: Column(
-                              children: [
-                                Container(
-                                  width: 25,
-                                  height: 50,
-                                  child: Image.asset(
-                                    'assets/smiley_face.png',
-                                    height: 25,
-                                  ),
-                                ),
-                                Text('Add Mood')
-                              ],
-                            ),
-                            onPressed: () {
-                              Navigator.of(_scaffoldKey.currentContext)
-                                  .push(TransparentRoute(builder: (context) {
-                                return MoodSelectionPage(
-                                  moodList: snapshot.data,
-                                  saveCallback: saveMood,
-                                  selectedMood: mMood,
-                                );
-                              }));
-                            });
-                      }),
+                  activity,
+                  mood,
+                  image,
+                  video,
                 ],
               ),
             );
           }),
-          /*Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButtonItem(
-                  icon: Column(
-                    children: [
-                      Container(
-                          width: 25, height: 50, child: Icon(Icons.camera)),
-                      Text('Add Photo'),
-                    ],
-                  ),
-                  onPressed: () {
-                    // loadAssets();
-                    showModalBottomSheet(
-                        context: context,
-                        builder: (context) {
-                          return Container(
-                            child: Wrap(
-                              children: <Widget>[
-                                ListTile(
-                                    leading: Icon(Icons.camera),
-                                    title: Text('Camera'),
-                                    onTap: () => {
-                                          Navigator.of(context).pop(),
-                                          _onImageButtonPressedMultiple(
-                                              ImageSource.camera,
-                                              context: context)
-                                        }),
-                                ListTile(
-                                  leading: Icon(Icons.photo_library),
-                                  title: Text('Gallery'),
-                                  onTap: () => {
-                                    Navigator.of(context).pop(),
-                                    _onImageButtonPressedMultiple(
-                                        ImageSource.gallery,
-                                        context: context)
-                                  },
-                                ),
-                              ],
-                            ),
-                          );
-                        });
-                  }),
-              IconButtonItem(
-                  icon: Column(
-                    children: [
-                      Container(
-                          width: 25, height: 50, child: Icon(Icons.videocam)),
-                      Text('Add Video'),
-                    ],
-                  ),
-                  onPressed: () {
-                    showModalBottomSheet(
-                        context: context,
-                        builder: (context) {
-                          return Container(
-                            child: Wrap(
-                              children: <Widget>[
-                                ListTile(
-                                    leading: Icon(Icons.videocam),
-                                    title: Text('Video Camera'),
-                                    onTap: () => {
-                                          Navigator.of(context).pop(),
-                                          _onVideoButtonPressedMultiple(
-                                              ImageSource.camera,
-                                              context: context)
-                                        }),
-                                ListTile(
-                                  leading: Icon(Icons.video_library),
-                                  title: Text('Gallery'),
-                                  onTap: () => {
-                                    Navigator.of(context).pop(),
-                                    _onVideoButtonPressedMultiple(
-                                        ImageSource.gallery,
-                                        context: context)
-                                  },
-                                ),
-                              ],
-                            ),
-                          );
-                        });
-                  }),
-            ],
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButtonItem(
-                  icon: Column(
-                    children: [
-                      Container(
-                        width: 25,
-                        height: 50,
-                        child: Image.asset(
-                          'assets/activity.png',
-                          height: 25,
-                        ),
-                      ),
-                      Text('Add Activity')
-                    ],
-                  ),
-                  onPressed: () {
-                    Navigator.of(_scaffoldKey.currentContext)
-                        .push(MaterialPageRoute(builder: (context) {
-                      return ActivitySelectionPage(
-                        selectedActivityList: activityList,
-                        onChange: (value) {
-                          activityList = value;
-                        },
-                      );
-                    }));
-                  }),
-              FutureBuilder<List<MMood>>(
-                  initialData: [],
-                  future: sl<MMoodRemoteDataSource>().getMMoodList(),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData || snapshot.data.isEmpty) {
-                      return iconButton(
-                          icon: Container(
-                              width: 20, height: 20, child: LoadingWidget()),
-                          onPressed: () {});
-                    }
-                    return IconButtonItem(
-                        icon: Column(
-                          children: [
-                            Container(
-                              width: 25,
-                              height: 50,
-                              child: Image.asset(
-                                'assets/smiley_face.png',
-                                height: 25,
-                              ),
-                            ),
-                            Text('Add Mood')
-                          ],
-                        ),
-                        onPressed: () {
-                          Navigator.of(_scaffoldKey.currentContext)
-                              .push(TransparentRoute(builder: (context) {
-                            return MoodSelectionPage(
-                              moodList: snapshot.data,
-                              saveCallback: saveMood,
-                              selectedMood: mMood,
-                            );
-                          }));
-                        });
-                  }),
-            ],
-          ),*/
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -356,6 +149,46 @@ class _MemoryFormViewState extends State<MemoryFormView> {
     );
   }
 
+  IconButtonItem buildAddMoodIconButtonItem(
+      AsyncSnapshot<List<MMood>> snapshot) {
+    return IconButtonItem(
+        icon: Column(
+          children: [
+            Container(
+              width: 25,
+              height: 50,
+              child: Image.asset(
+                'assets/smiley_face.png',
+                height: 25,
+              ),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  mMood != null ? Icons.edit : Icons.add,
+                  size: 18,
+                ),
+                SizedBox(
+                  width: 8,
+                ),
+                Text('Mood'),
+              ],
+            )
+          ],
+        ),
+        onPressed: () {
+          Navigator.of(_scaffoldKey.currentContext)
+              .push(TransparentRoute(builder: (context) {
+            return MoodSelectionPage(
+              moodList: snapshot.data,
+              saveCallback: saveMood,
+              selectedMood: mMood,
+            );
+          }));
+        });
+  }
+
   IconButtonItem buildAddActivityIconButtonItem() {
     return IconButtonItem(
         icon: Column(
@@ -368,7 +201,19 @@ class _MemoryFormViewState extends State<MemoryFormView> {
                 height: 25,
               ),
             ),
-            Text('Add Activity')
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  (activityList ?? []).isNotEmpty ? Icons.edit : Icons.add,
+                  size: 18,
+                ),
+                SizedBox(
+                  width: 8,
+                ),
+                Text('Activity'),
+              ],
+            )
           ],
         ),
         onPressed: () {
@@ -391,7 +236,19 @@ class _MemoryFormViewState extends State<MemoryFormView> {
         icon: Column(
           children: [
             Container(width: 25, height: 50, child: Icon(Icons.videocam)),
-            Text('Add Video'),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.add,
+                  size: 18,
+                ),
+                SizedBox(
+                  width: 8,
+                ),
+                Text('Video'),
+              ],
+            )
           ],
         ),
         onPressed: () {
@@ -431,7 +288,19 @@ class _MemoryFormViewState extends State<MemoryFormView> {
         icon: Column(
           children: [
             Container(width: 25, height: 50, child: Icon(Icons.camera)),
-            Text('Add Photo'),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.add,
+                  size: 18,
+                ),
+                SizedBox(
+                  width: 8,
+                ),
+                Text('Photo'),
+              ],
+            )
           ],
         ),
         onPressed: () {
@@ -525,73 +394,6 @@ class _MemoryFormViewState extends State<MemoryFormView> {
       onPressed: onPressed,
     );
   }
-
-  /*Widget selectedImageWidget() {
-    return Container(
-        child: Padding(
-      padding: const EdgeInsets.all(15.0),
-      child: Container(
-        width: 150,
-        height: 100,
-        decoration: BoxDecoration(
-            image: DecorationImage(
-                fit: BoxFit.cover,
-                image: FileImage(
-                  imageFile.file,
-                )),
-            border: Border.all(width: 1),
-            borderRadius: BorderRadius.all(Radius.circular(10.0))),
-        child: IconButton(
-          icon: Column(
-            children: [
-              Container(
-                width: 25,
-                height: 50,
-                child: Icon(Icons.camera, color: Colors.white),
-              ),
-              Text(
-                'Add Photo',
-                style: TextStyle(color: Colors.white),
-              ),
-            ],
-          ),
-          onPressed: () {},
-        ),
-      ),
-    ));
-  }*/
-
-  /*Widget selectedVideoWidget() {
-    return Container(
-        child: Padding(
-      padding: const EdgeInsets.all(15.0),
-      child: Container(
-        width: 150,
-        height: 100,
-        decoration: BoxDecoration(
-            image: DecorationImage(
-                fit: BoxFit.cover, image: MemoryImage(thumbnailBytes)),
-            border: Border.all(width: 1),
-            borderRadius: BorderRadius.all(Radius.circular(10.0))),
-        child: IconButton(
-          icon: Column(
-            children: [
-              Container(
-                width: 25,
-                height: 50,
-                child: Icon(Icons.videocam, color: Colors.white),
-              ),
-              Text(
-                'Add Video',
-                style: TextStyle(color: Colors.white),
-              ),
-            ],
-          ),
-          onPressed: () {},
-        ),
-      ),
-    ));
-  }*/
 
   @override
   void initState() {
@@ -730,7 +532,9 @@ class _MemoryFormViewState extends State<MemoryFormView> {
           return ImageGridView(
             imagesMap: imageFileMapByThumbnail,
             onChanged: (value) {
-              imageFileMapByThumbnail = value;
+              setState(() {
+                imageFileMapByThumbnail = value;
+              });
             },
           );
         }));
@@ -763,11 +567,93 @@ class _MemoryFormViewState extends State<MemoryFormView> {
         return VideoGridView(
           videosMap: videoFileMapByThumbnail,
           onChanged: (value) {
-            videoFileMapByThumbnail = value;
+            setState(() {
+              videoFileMapByThumbnail = value;
+            });
           },
         );
       }));
     }
+  }
+
+  get image {
+    if (imageFileMapByThumbnail.isNotEmpty)
+      return BlurImageGridItem(
+          context: context,
+          child: buildAddImageIconButtonItem(context),
+          imageList: imageFileMapByThumbnail.keys
+              .map((e) => ParseFile(File(e)))
+              .toList(),
+          viewCallback: () {
+            Navigator.of(_scaffoldKey.currentContext)
+                .push(TransparentRoute(builder: (context) {
+              return ImageGridView(
+                imagesMap: imageFileMapByThumbnail,
+                onChanged: (value) {
+                  setState(() {
+                    imageFileMapByThumbnail = value;
+                  });
+                },
+              );
+            }));
+          });
+    return buildAddImageIconButtonItem(context);
+  }
+
+  get video {
+    if (videoFileMapByThumbnail.isNotEmpty)
+      return BlurImageGridItem(
+          context: context,
+          child: buildAddVideoIconButtonItem(context),
+          imageList: videoFileMapByThumbnail.keys
+              .map((e) => ParseFile(File(e)))
+              .toList(),
+          viewCallback: () {
+            Navigator.of(_scaffoldKey.currentContext)
+                .push(TransparentRoute(builder: (context) {
+              return ImageGridView(
+                imagesMap: videoFileMapByThumbnail,
+                onChanged: (value) {
+                  setState(() {
+                    videoFileMapByThumbnail = value;
+                  });
+                },
+              );
+            }));
+          });
+    return buildAddVideoIconButtonItem(context);
+  }
+
+  get activity {
+    if (activityList.isNotEmpty)
+      return BlurActivityGridItem(
+        context: context,
+        child: buildAddActivityIconButtonItem(),
+        activityList: activityList,
+      );
+    return buildAddActivityIconButtonItem();
+  }
+
+  get mood {
+    return FutureBuilder<List<MMood>>(
+        initialData: [],
+        future: sl<MMoodRemoteDataSource>().getMMoodList(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData || snapshot.data.isEmpty) {
+            return iconButton(
+                icon: Container(width: 20, height: 20, child: LoadingWidget()),
+                onPressed: () {});
+          }
+          if (mMood != null) {
+            return BlurMoodGridItem(
+              context: context,
+              child: buildAddMoodIconButtonItem(snapshot),
+              moodList: snapshot.data,
+              mood: mMood,
+            );
+          }
+          return buildAddMoodIconButtonItem(snapshot);
+        });
   }
 }
 
@@ -777,11 +663,13 @@ class BlurImageGridItem extends StatelessWidget {
     @required this.context,
     @required this.child,
     @required this.imageList,
+    @required this.viewCallback,
   }) : super(key: key);
 
   final BuildContext context;
   final Widget child;
   final List<ParseFile> imageList;
+  final Function viewCallback;
 
   @override
   Widget build(BuildContext context) {
@@ -789,13 +677,14 @@ class BlurImageGridItem extends StatelessWidget {
       children: [
         ImageFiltered(
           imageFilter: ImageFilter.blur(
-            sigmaX: 2,
-            sigmaY: 2,
+            sigmaX: 0,
+            sigmaY: 0,
           ),
-          child: Container(
-            padding: EdgeInsets.all(6),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
             child: GridView.count(
-              childAspectRatio: 1.25,
+              childAspectRatio:
+                  imageList.length >= 1 && imageList.length < 4 ? 5 / 8 : 5 / 4,
               crossAxisCount: imageList.length >= 2 ? 2 : 1,
               children: imageList
                   .map((e) => Container(
@@ -814,7 +703,19 @@ class BlurImageGridItem extends StatelessWidget {
             ),
             child: child,
           ),
-        )
+        ),
+        Positioned(
+          child: GestureDetector(
+            child: Icon(
+              MdiIcons.viewGridPlusOutline,
+              size: 20,
+              color: Colors.black.withOpacity(0.5),
+            ),
+            onTap: viewCallback,
+          ),
+          right: 1,
+          top: 1,
+        ),
       ],
     );
   }
@@ -851,13 +752,68 @@ class BlurActivityGridItem extends StatelessWidget {
                           child: new RotationTransition(
                         turns: new AlwaysStoppedAnimation(-45 / 360),
                         child: Center(
-                          child: Text(
-                            e.activityName,
-                            style: TextStyle(fontSize: 15),
+                            child: Text(
+                          e.activityName,
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: ColorUtil.random,
                           ),
-                        ),
+                        )),
                       )))
                   .toList(),
+            ),
+          ),
+        ),
+        Positioned.fill(
+          child: ColorFiltered(
+            colorFilter: ColorFilter.mode(
+              Colors.white.withOpacity(0.5),
+              BlendMode.darken,
+            ),
+            child: child,
+          ),
+        )
+      ],
+    );
+  }
+}
+
+class BlurMoodGridItem extends StatelessWidget {
+  const BlurMoodGridItem({
+    Key key,
+    @required this.context,
+    @required this.child,
+    @required this.mood,
+    @required this.moodList,
+  }) : super(key: key);
+
+  final BuildContext context;
+  final Widget child;
+  final MMood mood;
+  final List<MMood> moodList;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        ImageFiltered(
+          imageFilter: ImageFilter.blur(
+            sigmaX: 2,
+            sigmaY: 2,
+          ),
+          child: Container(
+            padding: EdgeInsets.all(6),
+            child: Center(
+              child: RadioSelection(
+                moodList: moodList,
+                initialValue: mood,
+                initialSubValue: mood,
+                onChange: null,
+                parentCircleColor: Colors.blueGrey[50],
+                parentCircleRadius: 55,
+                showLabel: false,
+                //showClear: true,
+              ),
             ),
           ),
         ),
