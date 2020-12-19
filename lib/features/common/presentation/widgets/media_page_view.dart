@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cached_video_player/cached_video_player.dart';
 import 'package:flutter/material.dart';
+import 'package:mime/mime.dart';
 import 'package:mood_manager/features/common/domain/entities/media.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection.dart';
 import 'package:mood_manager/features/common/presentation/widgets/empty_widget.dart';
@@ -29,7 +30,7 @@ class MediaPageView extends StatefulWidget {
 
 class _MediaPageViewState extends State<MediaPageView> {
   PageController _controller;
-  Map<Media, CachedVideoPlayerController> videoPlayerControllerMapByMedia = {};
+  Map<dynamic, CachedVideoPlayerController> videoPlayerControllerMap = {};
 
   @override
   void initState() {
@@ -99,7 +100,7 @@ class _MediaPageViewState extends State<MediaPageView> {
   Widget _buildPagerViewSliderFromMedia(List<Media> mediaList) {
     final List<Media> videoList =
         mediaList.where((e) => e.mediaType == "VIDEO").toList();
-    videoPlayerControllerMapByMedia = getVideoControllerMap(videoList);
+    videoPlayerControllerMap = getVideoControllerMapByMedia(videoList);
     return PageView.builder(
         physics: AlwaysScrollableScrollPhysics(),
         controller: _controller,
@@ -107,13 +108,13 @@ class _MediaPageViewState extends State<MediaPageView> {
         itemBuilder: (BuildContext context, int index) {
           var media = mediaList[index];
           if (media.mediaType == "VIDEO") {
-            return video(media);
+            return videoFromMedia(media);
           }
-          return image(media);
+          return imageFromMedia(media);
         });
   }
 
-  Widget image(Media photo) {
+  Widget imageFromMedia(Media photo) {
     return Hero(
       tag: photo.id,
       child: ClipRRect(
@@ -126,9 +127,9 @@ class _MediaPageViewState extends State<MediaPageView> {
     );
   }
 
-  Widget video(Media video) {
+  Widget videoFromMedia(Media video) {
     return FutureBuilder(
-      future: videoPlayerControllerMapByMedia[video].initialize(),
+      future: videoPlayerControllerMap[video].initialize(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
           return Hero(
@@ -137,30 +138,60 @@ class _MediaPageViewState extends State<MediaPageView> {
                 key: ValueKey(video.id),
                 onVisibilityChanged: (info) {
                   if (info.visibleFraction == 0.0) {
-                    if (videoPlayerControllerMapByMedia[video]
-                        .value
-                        .isPlaying) {
-                      videoPlayerControllerMapByMedia[video].pause();
+                    if (videoPlayerControllerMap[video].value.isPlaying) {
+                      videoPlayerControllerMap[video].pause();
                     }
                   }
                 },
-                child: Stack(
-                  children: [
-                    CachedVideoPlayer(videoPlayerControllerMapByMedia[video]),
-                    if (!videoPlayerControllerMapByMedia[video].value.isPlaying)
-                      Center(
-                          child: IconButton(
-                              icon: Icon(
-                                Icons.play_arrow,
-                                color: Colors.white,
-                                size: 50,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  videoPlayerControllerMapByMedia[video].play();
-                                });
-                              }))
-                  ],
+                child: GestureDetector(
+                  onTap: () {
+                    if (videoPlayerControllerMap[video].value.isPlaying) {
+                      videoPlayerControllerMap[video].pause();
+                    } else {
+                      videoPlayerControllerMap[video].play();
+                    }
+                  },
+                  child: CachedVideoPlayer(videoPlayerControllerMap[video]),
+                ),
+              ));
+        }
+        return LoadingWidget();
+      },
+    );
+  }
+
+  Widget imageFromFile(ParseFile photo) {
+    return Hero(
+      tag: photo.file.path,
+      child: ClipRRect(child: Image.file(photo.file)),
+    );
+  }
+
+  Widget videoFromFile(ParseFile video) {
+    return FutureBuilder(
+      future: videoPlayerControllerMap[video].initialize(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.done) {
+          return Hero(
+              tag: video.file.path,
+              child: VisibilityDetector(
+                key: ValueKey(video.file.path),
+                onVisibilityChanged: (info) {
+                  if (info.visibleFraction == 0.0) {
+                    if (videoPlayerControllerMap[video].value.isPlaying) {
+                      videoPlayerControllerMap[video].pause();
+                    }
+                  }
+                },
+                child: GestureDetector(
+                  onTap: () {
+                    if (videoPlayerControllerMap[video].value.isPlaying) {
+                      videoPlayerControllerMap[video].pause();
+                    } else {
+                      videoPlayerControllerMap[video].play();
+                    }
+                  },
+                  child: CachedVideoPlayer(videoPlayerControllerMap[video]),
                 ),
               ));
         }
@@ -170,26 +201,39 @@ class _MediaPageViewState extends State<MediaPageView> {
   }
 
   Widget _buildPagerViewSliderFromFile(List<ParseFile> parseFileList) {
+    final List<ParseFile> videoList = parseFileList
+        .where((e) => lookupMimeType(e.file.path).startsWith("video"))
+        .toList();
+    videoPlayerControllerMap = getVideoControllerMapByFile(videoList);
     return PageView.builder(
         physics: AlwaysScrollableScrollPhysics(),
         controller: _controller,
         itemCount: parseFileList.length,
         itemBuilder: (BuildContext context, int index) {
-          return Hero(
-            tag: parseFileList[index].file.path,
-            child: ClipRRect(
-              child: Image.file(parseFileList[index].file),
-            ),
-          );
+          final fileType = lookupMimeType(parseFileList[index].file.path);
+          if (fileType.startsWith('video')) {
+            return videoFromFile(parseFileList[index]);
+          }
+          return imageFromFile(parseFileList[index]);
         });
   }
 
-  Map<Media, CachedVideoPlayerController> getVideoControllerMap(
+  Map<Media, CachedVideoPlayerController> getVideoControllerMapByMedia(
       final List<Media> medialist) {
     Map<Media, CachedVideoPlayerController> videoPlayerControllerMap = {};
     medialist.forEach((element) {
       videoPlayerControllerMap[element] =
           CachedVideoPlayerController.network(element.file.url);
+    });
+    return videoPlayerControllerMap;
+  }
+
+  Map<ParseFile, CachedVideoPlayerController> getVideoControllerMapByFile(
+      final List<ParseFile> fileList) {
+    Map<ParseFile, CachedVideoPlayerController> videoPlayerControllerMap = {};
+    fileList.forEach((element) {
+      videoPlayerControllerMap[element] =
+          CachedVideoPlayerController.file(element.file);
     });
     return videoPlayerControllerMap;
   }

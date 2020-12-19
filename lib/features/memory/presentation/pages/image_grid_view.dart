@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:drag_select_grid_view/drag_select_grid_view.dart';
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
-import 'package:mood_manager/features/common/presentation/widgets/memory_image_slider.dart';
+import 'package:mood_manager/features/common/presentation/widgets/media_page_view.dart';
 import 'package:mood_manager/injection_container.dart';
 import 'package:multi_media_picker/multi_media_picker.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
@@ -12,15 +12,15 @@ import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
 
 class ImageGridView extends StatefulWidget {
-  final Map<String, ParseFile> imagesMap;
-  List<String> thumbnailPathList;
-  final ValueChanged<Map<String, ParseFile>> onChanged;
+  final Map<ParseFile, ParseFile> imagesMap;
+  List<ParseFile> thumbnailList;
+  final ValueChanged<Map<ParseFile, ParseFile>> onChanged;
   ImageGridView({
     Key key,
     this.imagesMap,
     this.onChanged,
   }) : super(key: key) {
-    this.thumbnailPathList = imagesMap.keys.toList();
+    this.thumbnailList = imagesMap.keys.toList();
   }
   @override
   State<StatefulWidget> createState() => _ImageGridViewState();
@@ -46,12 +46,12 @@ class _ImageGridViewState extends State<ImageGridView> {
   void scheduleRebuild() => setState(() {});
 
   void delete() {
-    for (final thumbnailFilePath in controller.value.selectedIndexes
-        .map((e) => widget.thumbnailPathList[e])
+    for (final thumbnailFile in controller.value.selectedIndexes
+        .map((e) => widget.thumbnailList[e])
         .toList()) {
-      widget.imagesMap.remove(thumbnailFilePath);
-      File(thumbnailFilePath).deleteSync();
-      widget.thumbnailPathList.remove(thumbnailFilePath);
+      widget.imagesMap.remove(thumbnailFile);
+      thumbnailFile.file.deleteSync();
+      widget.thumbnailList.remove(thumbnailFile);
     }
     controller.clear();
     widget.onChanged(widget.imagesMap);
@@ -61,7 +61,7 @@ class _ImageGridViewState extends State<ImageGridView> {
   }
 
   void selectAll() {
-    controller.value = Selection(widget.thumbnailPathList.asMap().keys.toSet());
+    controller.value = Selection(widget.thumbnailList.asMap().keys.toSet());
   }
 
   void deselectAll() {
@@ -70,19 +70,20 @@ class _ImageGridViewState extends State<ImageGridView> {
 
   void edit() async {
     final selectedThumbnailPath =
-        widget.thumbnailPathList[controller.value.selectedIndexes.first];
+        widget.thumbnailList[controller.value.selectedIndexes.first];
     final file = await cropImage(widget.imagesMap[selectedThumbnailPath].file);
     setState(() {
-      final thumbnailFile = File(selectedThumbnailPath);
+      final thumbnailFile = selectedThumbnailPath;
       final newThumbnailFile =
-          File(thumbnailFile.parent.path + "/" + uuid.v1() + ".jpg");
+          File(thumbnailFile.file.parent.path + "/" + uuid.v1() + ".jpg");
       newThumbnailFile.writeAsBytesSync(img.encodeJpg(
           img.copyResize(img.decodeImage(file.readAsBytesSync()), width: 200)));
-      widget.imagesMap.remove(thumbnailFile.path);
-      thumbnailFile.deleteSync();
-      widget.thumbnailPathList[controller.value.selectedIndexes.first] =
-          newThumbnailFile.path;
-      widget.imagesMap[newThumbnailFile.path] = ParseFile(file);
+      widget.imagesMap.remove(thumbnailFile);
+      thumbnailFile.file.deleteSync();
+      final newThumbnailParseFile = ParseFile(newThumbnailFile);
+      widget.thumbnailList[controller.value.selectedIndexes.first] =
+          newThumbnailParseFile;
+      widget.imagesMap[newThumbnailParseFile] = ParseFile(file);
     });
     widget.onChanged(widget.imagesMap);
   }
@@ -220,9 +221,9 @@ class _ImageGridViewState extends State<ImageGridView> {
                                     cacheDir.path + "/" + uuid.v1() + ".jpg");
                                 thumbnailFile.writeAsBytesSync(
                                     img.encodeJpg(thumbnailImage));
-                                widget.imagesMap[thumbnailFile.path] =
+                                widget.imagesMap[ParseFile(thumbnailFile)] =
                                     ParseFile(pickedFile);
-                                widget.thumbnailPathList =
+                                widget.thumbnailList =
                                     widget.imagesMap.keys.toList();
                               }
                               widget.onChanged(widget.imagesMap);
@@ -243,43 +244,44 @@ class _ImageGridViewState extends State<ImageGridView> {
         }
         if (selected || controller.value.selectedIndexes.isNotEmpty) {
           return SelectableImageItem(
-            image: ParseFile(File(widget.thumbnailPathList[index])),
-            index: index,
+            image: widget.thumbnailList[index],
+            value: widget.imagesMap[widget.thumbnailList[index]],
             selected: selected,
           );
         }
         return GestureDetector(
           onTap: () {
             Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-              return MemoryImageSlider(
-                initialIndex: index,
-                imagesMap: widget.imagesMap,
+              return MediaPageView(
+                initialItem: widget.imagesMap[widget.thumbnailList[index]],
+                fileList: widget.imagesMap.values.toList(),
               );
             }));
           },
           onDoubleTap: () async {
             final croppedImage = await cropImage(
-                widget.imagesMap[widget.thumbnailPathList[index]].file);
+                widget.imagesMap[widget.thumbnailList[index]].file);
             if (croppedImage != null) {
               setState(() {
-                final thumbnailFile = File(widget.thumbnailPathList[index]);
-                final newThumbnailFile =
-                    File(thumbnailFile.parent.path + "/" + uuid.v1() + ".jpg");
+                final thumbnailFile = widget.thumbnailList[index];
+                final newThumbnailFile = File(
+                    thumbnailFile.file.parent.path + "/" + uuid.v1() + ".jpg");
                 newThumbnailFile.writeAsBytesSync(img.encodeJpg(img.copyResize(
                     img.decodeImage(croppedImage.readAsBytesSync()),
                     width: 200)));
-                widget.imagesMap.remove(thumbnailFile.path);
-                thumbnailFile.deleteSync();
-                widget.thumbnailPathList[index] = newThumbnailFile.path;
-                widget.imagesMap[newThumbnailFile.path] =
+                widget.imagesMap.remove(thumbnailFile);
+                thumbnailFile.file.deleteSync();
+                var newThumbnailParseFile = ParseFile(newThumbnailFile);
+                widget.thumbnailList[index] = newThumbnailParseFile;
+                widget.imagesMap[newThumbnailParseFile] =
                     ParseFile(croppedImage);
                 widget.onChanged(widget.imagesMap);
               });
             }
           },
           child: SelectableImageItem(
-            image: ParseFile(File(widget.thumbnailPathList[index])),
-            index: index,
+            image: widget.thumbnailList[index],
+            value: widget.imagesMap[widget.thumbnailList[index]],
             selected: selected,
           ),
         );
@@ -305,12 +307,12 @@ class _ImageGridViewState extends State<ImageGridView> {
 class SelectableImageItem extends StatefulWidget {
   SelectableImageItem({
     Key key,
-    @required this.index,
+    @required this.value,
     @required this.selected,
     @required this.image,
   }) : super(key: key);
 
-  final int index;
+  final ParseFile value;
   bool selected;
   final ParseFile image;
 
@@ -342,7 +344,8 @@ class _SelectableImageItemState extends State<SelectableImageItem>
         width: widget.selected ? 2 : 1,
         color: widget.selected ? Colors.blue : Colors.black,
       )),
-      child: Hero(tag: widget.index, child: Image.file(widget.image.file)),
+      child: Hero(
+          tag: widget.value.file.path, child: Image.file(widget.image.file)),
     );
   }
 

@@ -39,7 +39,7 @@ class MemoryParse extends Memory with ParseMixin {
         'mActivity': mActivityList,
         'collection': collectionList,
         'isActive': isActive,
-        'logDateTime': logDateTime,
+        'logDateTime': logDateTime?.toUtc()
       };
 
   static MemoryParse from(ParseObject parseObject,
@@ -55,12 +55,13 @@ class MemoryParse extends Memory with ParseMixin {
     return MemoryParse(
       id: ParseMixin.value('objectId', parseOptions),
       note: ParseMixin.value('note', parseOptions),
-      logDateTime: ParseMixin.value('logDateTime', parseOptions),
+      logDateTime: ParseMixin.value('logDateTime', parseOptions)?.toLocal(),
       mMood:
           ParseMixin.value('mMood', parseOptions, transform: MMoodParse.from),
       collectionList: List<Collection>.from(ParseMixin.value(
-          'collection', parseOptions,
-          transform: CollectionParse.from)),
+              'collection', parseOptions,
+              transform: CollectionParse.from) ??
+          []),
       mActivityList: List<MActivity>.from(ParseMixin.value(
           'mActivity', parseOptions,
           transform: MActivityParse.from)),

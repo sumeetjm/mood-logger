@@ -14,6 +14,8 @@ import 'package:mood_manager/features/common/presentation/widgets/check_box_list
 import 'package:mood_manager/injection_container.dart';
 import 'package:multi_media_picker/multi_media_picker.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:image/image.dart' as img;
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
@@ -448,6 +450,7 @@ class ProfileView extends StatelessWidget {
   void _onImageButtonPressed(ImageSource source, UserProfile userProfile,
       {BuildContext context}) async {
     Color themeColor = Theme.of(context).primaryColor;
+    final cacheDir = await getTemporaryDirectory();
     try {
       final pickedFileList =
           await MultiMediaPicker.pickImages(source: source, singleImage: true);
@@ -462,9 +465,15 @@ class ProfileView extends StatelessWidget {
             toolbarWidgetColor: Colors.white),
       );
       if (croppedImage != null) {
+        final thumbnailImage = img.copyResize(
+            img.decodeImage(croppedImage.readAsBytesSync()),
+            width: 200);
+        final thumbnailFile = File(cacheDir.path + "/" + uuid.v1() + ".jpg");
+        thumbnailFile.writeAsBytesSync(img.encodeJpg(thumbnailImage));
         final profilePicture = MediaParse(
-          file: ParseFile(File(croppedImage.path)),
-        );
+            mediaType: "PHOTO",
+            file: ParseFile(File(croppedImage.path)),
+            thumbnail: ParseFile(thumbnailFile));
         profilePictureChangeCallback(profilePicture);
       }
     } catch (e) {

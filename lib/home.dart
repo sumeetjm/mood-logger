@@ -37,7 +37,7 @@ class _HomeState extends State<Home> {
               primaryColor: HexColor.fromHex('#272f63'),
               accentColor: HexColor.fromHex('#272f63'),
               buttonColor: Colors.blueGrey[800]),
-          home: MemoryFormPage(),
+          home: MemoryListPage(),
           onGenerateRoute: (RouteSettings settings) {
             if ('/photo/slider' == settings.name) {
               return MaterialPageRoute(

@@ -81,6 +81,7 @@ dependencies:
   image: ^2.1.19
   path_provider: ^1.6.24
   cached_video_player: ^1.0.3
+  mime: ^0.9.7
   flutter_test:
     sdk: flutter
 

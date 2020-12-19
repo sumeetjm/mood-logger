@@ -48,8 +48,8 @@ class _MemoryFormViewState extends State<MemoryFormView> {
   MMood mMood;
   Uuid uuid;
   Memory memory;
-  Map<String, ParseFile> imageFileMapByThumbnail = {};
-  Map<String, ParseFile> videoFileMapByThumbnail = {};
+  Map<ParseFile, ParseFile> imageFileMapByThumbnail = {};
+  Map<ParseFile, ParseFile> videoFileMapByThumbnail = {};
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -76,7 +76,7 @@ class _MemoryFormViewState extends State<MemoryFormView> {
               padding: const EdgeInsets.all(15.0),
               child: TextField(
                 controller: noteController,
-                minLines: 7,
+                minLines: 6,
                 maxLines: 15,
                 autocorrect: false,
                 decoration: InputDecoration(
@@ -114,35 +114,16 @@ class _MemoryFormViewState extends State<MemoryFormView> {
               ),
             );
           }),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ButtonTheme(
-                minWidth: (MediaQuery.of(context).size.width / 2) - 30,
-                child: RaisedButton(
-                  onPressed: () {},
-                  child: Text(
-                    'Back',
-                    style: TextStyle(color: Theme.of(context).primaryColor),
-                  ),
-                  color: Colors.white,
-                ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(15, 8, 15, 0),
+            child: RaisedButton(
+              onPressed: save,
+              child: Text(
+                'Add to Memories',
+                style: TextStyle(color: Colors.white),
               ),
-              SizedBox(
-                width: 20,
-              ),
-              ButtonTheme(
-                minWidth: (MediaQuery.of(context).size.width / 2) - 30,
-                child: RaisedButton(
-                  onPressed: save,
-                  child: Text(
-                    'Save',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  color: Theme.of(context).primaryColor,
-                ),
-              ),
-            ],
+              color: Theme.of(context).primaryColor,
+            ),
           ),
         ],
       ),
@@ -428,9 +409,7 @@ class _MemoryFormViewState extends State<MemoryFormView> {
           media: MediaParse(
               mediaType: "PHOTO",
               file: imageFileMapByThumbnail[key],
-              thumbnail: ParseFile(
-                File(key),
-              )),
+              thumbnail: key),
         );
       }).toList(),
       ...(videoFileMapByThumbnail ?? {}).keys.map((key) {
@@ -440,7 +419,7 @@ class _MemoryFormViewState extends State<MemoryFormView> {
           media: MediaParse(
               mediaType: "VIDEO",
               file: videoFileMapByThumbnail[key],
-              thumbnail: ParseFile(File(key))),
+              thumbnail: key),
         );
       }).toList()
     ];
@@ -524,20 +503,11 @@ class _MemoryFormViewState extends State<MemoryFormView> {
             final thumbnailFile =
                 File(cacheDir.path + "/" + uuid.v1() + ".jpg");
             thumbnailFile.writeAsBytesSync(img.encodeJpg(thumbnailImage));
-            imageFileMapByThumbnail[thumbnailFile.path] = ParseFile(pickedFile);
+            imageFileMapByThumbnail[ParseFile(thumbnailFile)] =
+                ParseFile(pickedFile);
           }
         });
-        Navigator.of(_scaffoldKey.currentContext)
-            .push(TransparentRoute(builder: (context) {
-          return ImageGridView(
-            imagesMap: imageFileMapByThumbnail,
-            onChanged: (value) {
-              setState(() {
-                imageFileMapByThumbnail = value;
-              });
-            },
-          );
-        }));
+        navigateToImageGrid();
       }
     } catch (e) {
       print(e);
@@ -560,19 +530,10 @@ class _MemoryFormViewState extends State<MemoryFormView> {
         quality: 50,
       );
       setState(() {
-        videoFileMapByThumbnail[thumbnailFile.path] = ParseFile(pickedFile);
+        videoFileMapByThumbnail[ParseFile(thumbnailFile)] =
+            ParseFile(pickedFile);
       });
-      Navigator.of(_scaffoldKey.currentContext)
-          .push(TransparentRoute(builder: (context) {
-        return VideoGridView(
-          videosMap: videoFileMapByThumbnail,
-          onChanged: (value) {
-            setState(() {
-              videoFileMapByThumbnail = value;
-            });
-          },
-        );
-      }));
+      navigateToVideoGrid();
     }
   }
 
@@ -581,23 +542,23 @@ class _MemoryFormViewState extends State<MemoryFormView> {
       return BlurImageGridItem(
           context: context,
           child: buildAddImageIconButtonItem(context),
-          imageList: imageFileMapByThumbnail.keys
-              .map((e) => ParseFile(File(e)))
-              .toList(),
-          viewCallback: () {
-            Navigator.of(_scaffoldKey.currentContext)
-                .push(TransparentRoute(builder: (context) {
-              return ImageGridView(
-                imagesMap: imageFileMapByThumbnail,
-                onChanged: (value) {
-                  setState(() {
-                    imageFileMapByThumbnail = value;
-                  });
-                },
-              );
-            }));
-          });
+          imageList: imageFileMapByThumbnail.keys.toList(),
+          viewCallback: navigateToImageGrid);
     return buildAddImageIconButtonItem(context);
+  }
+
+  navigateToImageGrid() {
+    Navigator.of(_scaffoldKey.currentContext)
+        .push(TransparentRoute(builder: (context) {
+      return ImageGridView(
+        imagesMap: imageFileMapByThumbnail,
+        onChanged: (value) {
+          setState(() {
+            imageFileMapByThumbnail = value;
+          });
+        },
+      );
+    }));
   }
 
   get video {
@@ -605,23 +566,23 @@ class _MemoryFormViewState extends State<MemoryFormView> {
       return BlurImageGridItem(
           context: context,
           child: buildAddVideoIconButtonItem(context),
-          imageList: videoFileMapByThumbnail.keys
-              .map((e) => ParseFile(File(e)))
-              .toList(),
-          viewCallback: () {
-            Navigator.of(_scaffoldKey.currentContext)
-                .push(TransparentRoute(builder: (context) {
-              return ImageGridView(
-                imagesMap: videoFileMapByThumbnail,
-                onChanged: (value) {
-                  setState(() {
-                    videoFileMapByThumbnail = value;
-                  });
-                },
-              );
-            }));
-          });
+          imageList: videoFileMapByThumbnail.keys.toList(),
+          viewCallback: navigateToVideoGrid);
     return buildAddVideoIconButtonItem(context);
+  }
+
+  navigateToVideoGrid() {
+    Navigator.of(_scaffoldKey.currentContext)
+        .push(TransparentRoute(builder: (context) {
+      return VideoGridView(
+        videosMap: videoFileMapByThumbnail,
+        onChanged: (value) {
+          setState(() {
+            videoFileMapByThumbnail = value;
+          });
+        },
+      );
+    }));
   }
 
   get activity {
@@ -687,6 +648,7 @@ class BlurImageGridItem extends StatelessWidget {
                   imageList.length >= 1 && imageList.length < 4 ? 5 / 8 : 5 / 4,
               crossAxisCount: imageList.length >= 2 ? 2 : 1,
               children: imageList
+                  .take(4)
                   .map((e) => Container(
                       decoration: BoxDecoration(
                           image: DecorationImage(

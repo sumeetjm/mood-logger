@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
 
 class MemoryImageSlider extends StatefulWidget {
-  final Map<String, ParseFile> imagesMap;
+  final Map<ParseFile, ParseFile> imagesMap;
   final int initialIndex;
-  List<String> thumbnailPathList;
+  List<ParseFile> thumbnailList;
   MemoryImageSlider({this.imagesMap, this.initialIndex}) {
-    thumbnailPathList = this.imagesMap.keys.toList();
+    thumbnailList = this.imagesMap.keys.toList();
   }
   @override
   _MemoryImageSliderState createState() {
@@ -45,7 +45,7 @@ class _MemoryImageSliderState extends State<MemoryImageSlider> {
             tag: index,
             child: ClipRRect(
                 child: Image.file(
-                    widget.imagesMap[widget.thumbnailPathList[index]].file)),
+                    widget.imagesMap[widget.thumbnailList[index]].file)),
           );
         });
   }

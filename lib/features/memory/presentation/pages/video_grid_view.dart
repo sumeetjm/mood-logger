@@ -4,6 +4,7 @@ import 'package:drag_select_grid_view/drag_select_grid_view.dart';
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:mood_manager/features/common/presentation/widgets/loading_widget.dart';
+import 'package:mood_manager/features/common/presentation/widgets/media_page_view.dart';
 import 'package:mood_manager/features/common/presentation/widgets/memory_image_slider.dart';
 import 'package:mood_manager/features/common/presentation/widgets/memory_video_slider.dart';
 import 'package:mood_manager/features/common/presentation/widgets/video_trim_view.dart';
@@ -17,15 +18,15 @@ import 'package:video_thumbnail/video_thumbnail.dart';
 import 'package:path_provider/path_provider.dart';
 
 class VideoGridView extends StatefulWidget {
-  final Map<String, ParseFile> videosMap;
-  List<String> thumbnailPathList;
-  final ValueChanged<Map<String, ParseFile>> onChanged;
+  final Map<ParseFile, ParseFile> videosMap;
+  List<ParseFile> thumbnailList;
+  final ValueChanged<Map<ParseFile, ParseFile>> onChanged;
   VideoGridView({
     Key key,
     this.videosMap,
     this.onChanged,
   }) : super(key: key) {
-    thumbnailPathList = videosMap.keys.toList();
+    thumbnailList = videosMap.keys.toList();
   }
   @override
   State<StatefulWidget> createState() => _VideoGridViewState();
@@ -130,12 +131,12 @@ class _VideoGridViewState extends State<VideoGridView> {
   }
 
   void delete() {
-    for (final thumbnailFilePath in controller.value.selectedIndexes
-        .map((e) => widget.thumbnailPathList[e])
+    for (final thumbnailFile in controller.value.selectedIndexes
+        .map((e) => widget.thumbnailList[e])
         .toList()) {
-      widget.videosMap.remove(thumbnailFilePath);
-      File(thumbnailFilePath).deleteSync();
-      widget.thumbnailPathList.remove(thumbnailFilePath);
+      widget.videosMap.remove(thumbnailFile);
+      thumbnailFile.file.deleteSync();
+      widget.thumbnailList.remove(thumbnailFile);
     }
     controller.clear();
     if (widget.videosMap.isEmpty) {
@@ -145,7 +146,7 @@ class _VideoGridViewState extends State<VideoGridView> {
   }
 
   void selectAll() {
-    controller.value = Selection(widget.thumbnailPathList.asMap().keys.toSet());
+    controller.value = Selection(widget.thumbnailList.asMap().keys.toSet());
   }
 
   void deselectAll() {
@@ -155,18 +156,18 @@ class _VideoGridViewState extends State<VideoGridView> {
   void edit() async {
     await _trimmer.loadVideo(
         videoFile: File(widget
-            .videosMap[widget
-                .thumbnailPathList[controller.value.selectedIndexes.first]]
+            .videosMap[
+                widget.thumbnailList[controller.value.selectedIndexes.first]]
             .file
             .path));
     Navigator.of(context).push(MaterialPageRoute(builder: (context) {
       return VideoTrimView(
           trimmer: _trimmer,
           saveCallback: (value) async {
-            final thumbnailFile = File(widget
-                .thumbnailPathList[controller.value.selectedIndexes.first]);
+            final thumbnailFile =
+                widget.thumbnailList[controller.value.selectedIndexes.first];
             final newThumbnailFile =
-                File(thumbnailFile.parent.path + "/" + uuid.v1() + ".jpg");
+                File(thumbnailFile.file.parent.path + "/" + uuid.v1() + ".jpg");
             await VideoThumbnail.thumbnailFile(
               video: value.path,
               thumbnailPath: newThumbnailFile.path,
@@ -175,10 +176,10 @@ class _VideoGridViewState extends State<VideoGridView> {
                   200, // specify the height of the thumbnail, let the width auto-scaled to keep the source aspect ratio
               quality: 50,
             );
-            widget.videosMap.remove(thumbnailFile.path);
-            thumbnailFile.deleteSync();
+            widget.videosMap.remove(thumbnailFile);
+            thumbnailFile.file.deleteSync();
             setState(() {
-              widget.videosMap[newThumbnailFile.path] = ParseFile(value);
+              widget.videosMap[ParseFile(newThumbnailFile)] = ParseFile(value);
               widget.onChanged(widget.videosMap);
             });
           });
@@ -236,9 +237,9 @@ class _VideoGridViewState extends State<VideoGridView> {
                                       200, // specify the height of the thumbnail, let the width auto-scaled to keep the source aspect ratio
                                   quality: 50,
                                 );
-                                widget.videosMap[newThumbnailFile.path] =
+                                widget.videosMap[ParseFile(newThumbnailFile)] =
                                     ParseFile(pickedFile);
-                                widget.thumbnailPathList =
+                                widget.thumbnailList =
                                     widget.videosMap.keys.toList();
                               }
                               widget.onChanged(widget.videosMap);
@@ -258,11 +259,11 @@ class _VideoGridViewState extends State<VideoGridView> {
           );
         }
         final videoController = VideoPlayerController.file(
-            widget.videosMap[widget.thumbnailPathList[index]].file);
+            widget.videosMap[widget.thumbnailList[index]].file);
         if (selected || controller.value.selectedIndexes.isNotEmpty) {
           return SelectableVideoItem(
-            image: ParseFile(File(widget.thumbnailPathList[index])),
-            index: index,
+            image: widget.thumbnailList[index],
+            value: widget.videosMap[widget.thumbnailList[index]],
             selected: selected,
             controller: videoController,
           );
@@ -270,24 +271,26 @@ class _VideoGridViewState extends State<VideoGridView> {
         return GestureDetector(
           onTap: () {
             Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-              return MemoryVideoSlider(
-                initialIndex: index,
-                options: VideoOption.listFrom(
-                    source: widget.videosMap.values.toList()),
+              return MediaPageView(
+                initialItem: widget.videosMap[widget.thumbnailList[index]],
+                fileList: widget.videosMap.values.toList(),
               );
             }));
           },
           onDoubleTap: () async {
             await _trimmer.loadVideo(
-                videoFile: File(widget
-                    .videosMap[widget.thumbnailPathList[index]].file.path));
+                videoFile: File(
+                    widget.videosMap[widget.thumbnailList[index]].file.path));
             Navigator.of(context).push(MaterialPageRoute(builder: (context) {
               return VideoTrimView(
                   trimmer: _trimmer,
                   saveCallback: (value) async {
-                    final thumbnailFile = File(widget.thumbnailPathList[index]);
+                    final thumbnailFile = widget.thumbnailList[index];
                     final newThumbnailFile = File(
-                        thumbnailFile.parent.path + "/" + uuid.v1() + ".jpg");
+                        thumbnailFile.file.parent.path +
+                            "/" +
+                            uuid.v1() +
+                            ".jpg");
                     await VideoThumbnail.thumbnailFile(
                       video: value.path,
                       thumbnailPath: newThumbnailFile.path,
@@ -296,10 +299,10 @@ class _VideoGridViewState extends State<VideoGridView> {
                           200, // specify the height of the thumbnail, let the width auto-scaled to keep the source aspect ratio
                       quality: 50,
                     );
-                    widget.videosMap.remove(thumbnailFile.path);
-                    thumbnailFile.deleteSync();
+                    widget.videosMap.remove(thumbnailFile);
+                    thumbnailFile.file.deleteSync();
                     setState(() {
-                      widget.videosMap[newThumbnailFile.path] =
+                      widget.videosMap[ParseFile(newThumbnailFile)] =
                           ParseFile(value);
                       widget.onChanged(widget.videosMap);
                     });
@@ -307,8 +310,8 @@ class _VideoGridViewState extends State<VideoGridView> {
             }));
           },
           child: SelectableVideoItem(
-            image: ParseFile(File(widget.thumbnailPathList[index])),
-            index: index,
+            image: widget.thumbnailList[index],
+            value: widget.videosMap[widget.thumbnailList[index]],
             selected: selected,
             controller: videoController,
           ),
@@ -322,13 +325,13 @@ class _VideoGridViewState extends State<VideoGridView> {
 class SelectableVideoItem extends StatefulWidget {
   SelectableVideoItem({
     Key key,
-    @required this.index,
+    @required this.value,
     @required this.selected,
     @required this.image,
     @required this.controller,
   }) : super(key: key);
 
-  final int index;
+  final ParseFile value;
   final VideoPlayerController controller;
   bool selected;
   final ParseFile image;
@@ -362,7 +365,7 @@ class _SelectableVideoItemState extends State<SelectableVideoItem>
         color: widget.selected ? Colors.blue : Colors.black,
       )),
       child: Hero(
-          tag: widget.index,
+          tag: widget.value.file.path,
           child: FutureBuilder(
               future: widget.controller.initialize(),
               builder: (context, snapshot) {
