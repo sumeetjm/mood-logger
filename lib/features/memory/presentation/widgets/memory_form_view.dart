@@ -29,11 +29,13 @@ import 'package:parse_server_sdk/parse_server_sdk.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
+import 'package:palette_generator/palette_generator.dart';
 
 class MemoryFormView extends StatefulWidget {
   final Function saveCallback;
+  DateTime date;
 
-  MemoryFormView({Key key, this.saveCallback}) : super(key: key);
+  MemoryFormView({Key key, this.saveCallback, this.date}) : super(key: key);
 
   @override
   State<StatefulWidget> createState() => _MemoryFormViewState();
@@ -41,7 +43,6 @@ class MemoryFormView extends StatefulWidget {
 
 class _MemoryFormViewState extends State<MemoryFormView> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  DateTime date = DateTime.now();
   TimeOfDay time = TimeOfDay.now();
   List<MActivity> activityList = [];
   final TextEditingController noteController = TextEditingController();
@@ -50,82 +51,87 @@ class _MemoryFormViewState extends State<MemoryFormView> {
   Memory memory;
   Map<ParseFile, ParseFile> imageFileMapByThumbnail = {};
   Map<ParseFile, ParseFile> videoFileMapByThumbnail = {};
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      key: _scaffoldKey,
-      body: ListView(
-        children: [
-          DateSelector(
-              initialDate: date,
-              selectDate: (DateTime date) {
+    return Semantics(
+      label: 'FormView',
+      child: Scaffold(
+        key: _scaffoldKey,
+        body: ListView(
+          physics: BouncingScrollPhysics(),
+          children: [
+            DateSelector(
+                initialDate: widget.date,
+                selectDate: (DateTime date) {
+                  setState(() {
+                    widget.date = date;
+                  });
+                }),
+            TimePicker(
+              selectedTime: time,
+              selectTime: (time) {
                 setState(() {
-                  this.date = date;
+                  this.time = time;
                 });
-              }),
-          TimePicker(
-            selectedTime: time,
-            selectTime: (time) {
-              setState(() {
-                this.time = time;
-              });
-            },
-          ),
-          Container(
-            child: Padding(
-              padding: const EdgeInsets.all(15.0),
-              child: TextField(
-                controller: noteController,
-                minLines: 6,
-                maxLines: 15,
-                autocorrect: false,
-                decoration: InputDecoration(
-                  hintText: 'Write your story here',
-                  filled: true,
-                  fillColor: Theme.of(context).primaryColor.withOpacity(0.1),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(10.0)),
-                    borderSide: BorderSide(color: Colors.grey),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(10.0)),
-                    borderSide: BorderSide(color: Colors.grey),
+              },
+            ),
+            Container(
+              child: Padding(
+                padding: const EdgeInsets.all(15.0),
+                child: TextField(
+                  controller: noteController,
+                  minLines: 6,
+                  maxLines: 15,
+                  autocorrect: false,
+                  decoration: InputDecoration(
+                    hintText: 'Write your story here',
+                    filled: true,
+                    fillColor: Theme.of(context).primaryColor.withOpacity(0.1),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(10.0)),
+                      borderSide: BorderSide(color: Colors.grey),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(10.0)),
+                      borderSide: BorderSide(color: Colors.grey),
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-          OrientationBuilder(builder: (context, orientation) {
-            return Padding(
-              padding: const EdgeInsets.fromLTRB(15.0, 0, 15.0, 0),
-              child: GridView.count(
-                childAspectRatio: 1.25,
-                physics: NeverScrollableScrollPhysics(),
-                shrinkWrap: true,
-                crossAxisCount: orientation == Orientation.portrait ? 2 : 4,
-                mainAxisSpacing: 15,
-                crossAxisSpacing: 15,
-                children: [
-                  activity,
-                  mood,
-                  image,
-                  video,
-                ],
+            OrientationBuilder(builder: (context, orientation) {
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(15.0, 0, 15.0, 0),
+                child: GridView.count(
+                  childAspectRatio: 1.25,
+                  physics: NeverScrollableScrollPhysics(),
+                  shrinkWrap: true,
+                  crossAxisCount: orientation == Orientation.portrait ? 2 : 4,
+                  mainAxisSpacing: 15,
+                  crossAxisSpacing: 15,
+                  children: [
+                    activity,
+                    mood,
+                    image,
+                    video,
+                  ],
+                ),
+              );
+            }),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(15, 8, 15, 0),
+              child: RaisedButton(
+                onPressed: save,
+                child: Text(
+                  'Add to Memories',
+                  style: TextStyle(color: Colors.white),
+                ),
+                color: Theme.of(context).primaryColor,
               ),
-            );
-          }),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(15, 8, 15, 0),
-            child: RaisedButton(
-              onPressed: save,
-              child: Text(
-                'Add to Memories',
-                style: TextStyle(color: Colors.white),
-              ),
-              color: Theme.of(context).primaryColor,
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -336,6 +342,12 @@ class _MemoryFormViewState extends State<MemoryFormView> {
     });
   }
 
+  Future<Color> getImagePalette(ImageProvider imageProvider) async {
+    final PaletteGenerator paletteGenerator =
+        await PaletteGenerator.fromImageProvider(imageProvider);
+    return paletteGenerator.dominantColor.color;
+  }
+
   /*void _onImageButtonPressed(ip.ImageSource source,
       {BuildContext context}) async {
     Color themeColor = Theme.of(context).primaryColor;
@@ -383,8 +395,8 @@ class _MemoryFormViewState extends State<MemoryFormView> {
     uuid = sl<Uuid>();
   }
 
-  void save() {
-    var logDateTime = DateTimeField.combine(date, time);
+  void save() async {
+    var logDateTime = DateTimeField.combine(widget.date, time);
     final pictureCollectionCode = uuid.v1();
     final videoCollectionCode = uuid.v1();
     final pictureCollection = CollectionParse(
@@ -401,27 +413,35 @@ class _MemoryFormViewState extends State<MemoryFormView> {
       module: 'MEMORY',
       mediaCount: videoFileMapByThumbnail.length,
     );
-    final List<MediaCollection> mediaCollectionList = [
-      ...(imageFileMapByThumbnail ?? {}).keys.map((key) {
-        return MediaCollection(
-          collection: pictureCollection,
-          isActive: true,
-          media: MediaParse(
-              mediaType: "PHOTO",
-              file: imageFileMapByThumbnail[key],
-              thumbnail: key),
-        );
-      }).toList(),
-      ...(videoFileMapByThumbnail ?? {}).keys.map((key) {
-        return MediaCollection(
-          collection: videoCollection,
-          isActive: true,
-          media: MediaParse(
-              mediaType: "VIDEO",
-              file: videoFileMapByThumbnail[key],
-              thumbnail: key),
-        );
-      }).toList()
+    final List<Future<MediaCollection>> mediaCollectionList = [
+      ...(imageFileMapByThumbnail ?? {})
+          .keys
+          .map(
+            (key) async => MediaCollection(
+              collection: pictureCollection,
+              isActive: true,
+              media: MediaParse(
+                mediaType: "PHOTO",
+                file: imageFileMapByThumbnail[key],
+                thumbnail: key,
+              ),
+            ),
+          )
+          .toList(),
+      ...(videoFileMapByThumbnail ?? {})
+          .keys
+          .map(
+            (key) async => MediaCollection(
+              collection: videoCollection,
+              isActive: true,
+              media: MediaParse(
+                mediaType: "VIDEO",
+                file: videoFileMapByThumbnail[key],
+                thumbnail: key,
+              ),
+            ),
+          )
+          .toList()
     ];
     final memory = MemoryParse(
         note: noteController.text,
@@ -430,7 +450,7 @@ class _MemoryFormViewState extends State<MemoryFormView> {
         mActivityList: activityList,
         collectionList: [pictureCollection, videoCollection]);
     // return;
-    widget.saveCallback(memory, mediaCollectionList);
+    widget.saveCallback(memory, await Future.wait(mediaCollectionList));
   }
 
   /*Future<void> loadAssets() async {

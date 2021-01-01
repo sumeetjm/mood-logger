@@ -47,4 +47,19 @@ class MemoryRepositoryImpl extends MemoryRepository {
       return Left(ServerFailure());
     }
   }
+
+  @override
+  Future<Either<Failure, List<Memory>>> getMemoryListByDate(
+      DateTime date) async {
+    if (await networkInfo.isConnected) {
+      try {
+        final memoryList = await remoteDataSource.getMemoryListByDate(date);
+        return Right(memoryList);
+      } on ServerException {
+        return Left(ServerFailure());
+      }
+    } else {
+      return Left(ServerFailure());
+    }
+  }
 }

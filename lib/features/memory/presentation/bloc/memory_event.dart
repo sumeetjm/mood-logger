@@ -18,3 +18,9 @@ class SaveMemoryEvent extends MemoryEvent {
 }
 
 class GetMemoryListEvent extends MemoryEvent {}
+
+class GetMemoryListByDateEvent extends MemoryEvent {
+  final DateTime date;
+
+  GetMemoryListByDateEvent(this.date);
+}

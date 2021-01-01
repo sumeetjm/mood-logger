@@ -8,6 +8,7 @@ import 'package:mood_manager/core/usecases/usecase.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection.dart';
 import 'package:mood_manager/features/memory/domain/entities/memory.dart';
 import 'package:mood_manager/features/memory/domain/usecases/get_memory_list.dart';
+import 'package:mood_manager/features/memory/domain/usecases/get_memory_list_by_date.dart';
 import 'package:mood_manager/features/metadata/domain/usecases/add_activity.dart';
 import 'package:mood_manager/features/memory/domain/usecases/save_memory.dart';
 import 'package:mood_manager/features/mood_manager/presentation/bloc/activity_list_bloc.dart';
@@ -18,8 +19,13 @@ part 'memory_state.dart';
 class MemoryBloc extends Bloc<MemoryEvent, MemoryState> {
   final SaveMemory saveMemory;
   final GetMemoryList getMemoryList;
+  final GetMemoryListByDate getMemoryListByDate;
   final AddActivity addActivity;
-  MemoryBloc({this.saveMemory, this.addActivity, this.getMemoryList})
+  MemoryBloc(
+      {this.getMemoryListByDate,
+      this.saveMemory,
+      this.addActivity,
+      this.getMemoryList})
       : super(MemoryInitial());
 
   @override
@@ -34,6 +40,10 @@ class MemoryBloc extends Bloc<MemoryEvent, MemoryState> {
     } else if (event is GetMemoryListEvent) {
       yield MemoryListLoading();
       final mayBeMemoryList = await getMemoryList(NoParams());
+      yield* _eitherListLoadedOrErrorState(mayBeMemoryList);
+    } else if (event is GetMemoryListByDateEvent) {
+      yield MemoryListLoading();
+      final mayBeMemoryList = await getMemoryListByDate(Params(event.date));
       yield* _eitherListLoadedOrErrorState(mayBeMemoryList);
     }
   }

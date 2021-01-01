@@ -8,4 +8,5 @@ abstract class MemoryRepository {
       Memory memory, List<MediaCollection> mediaCollectionList);
 
   Future<Either<Failure, List<Memory>>> getMemoryList();
+  Future<Either<Failure, List<Memory>>> getMemoryListByDate(DateTime date);
 }

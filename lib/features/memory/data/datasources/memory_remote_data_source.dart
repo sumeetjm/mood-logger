@@ -11,6 +11,7 @@ abstract class MemoryRemoteDataSource {
   Future<Memory> saveMemory(
       Memory memory, List<MediaCollection> mediaCollectionList);
   Future<List<Memory>> getMemoryList();
+  Future<List<Memory>> getMemoryListByDate(DateTime date);
 }
 
 class MemoryParseDataSource extends MemoryRemoteDataSource {
@@ -57,6 +58,31 @@ class MemoryParseDataSource extends MemoryRemoteDataSource {
           ])
           ..whereEqualTo('isActive', true)
           ..orderByDescending('logDateTime');
+    final ParseResponse response = await queryBuilder.query();
+    if (response.success) {
+      List<Memory> memoryList =
+          ParseMixin.listFrom<Memory>(response.results, MemoryParse.from);
+      return memoryList;
+    } else {
+      throw ServerException();
+    }
+  }
+
+  @override
+  Future<List<Memory>> getMemoryListByDate(DateTime date) async {
+    DateTime utcDate = date.toUtc();
+    QueryBuilder<ParseObject> queryBuilder = QueryBuilder<ParseObject>(
+        ParseObject('memory'))
+      ..includeObject([
+        'mMood',
+        'mMood.subMood',
+        'mActivity',
+        'collection',
+      ])
+      ..whereEqualTo('isActive', true)
+      ..whereGreaterThanOrEqualsTo('logDateTime', utcDate)
+      ..whereLessThanOrEqualTo('logDateTime', utcDate.add(Duration(days: 1)))
+      ..orderByDescending('logDateTime');
     final ParseResponse response = await queryBuilder.query();
     if (response.success) {
       List<Memory> memoryList =

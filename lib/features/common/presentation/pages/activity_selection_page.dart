@@ -40,7 +40,7 @@ class _ActivitySelectionPageState extends State<ActivitySelectionPage> {
     _activityListBloc.add(GetActivityTypeListEvent());
   }
 
-  Widget titleWidget() { 
+  Widget titleWidget() {
     if (searchMode) {
       return TextField(
         focusNode: _searchFocus,
@@ -106,6 +106,7 @@ class _ActivitySelectionPageState extends State<ActivitySelectionPage> {
         },
         builder: (context, state) {
           final choiceChipGroupSelection = ChoiceChipGroupSelection(
+            maxSelection: 3,
             choiceChipOptions:
                 ChoiceChipGroupSelectionOption.listFrom<MActivity, MActivity>(
                     source: activityList,
@@ -115,7 +116,9 @@ class _ActivitySelectionPageState extends State<ActivitySelectionPage> {
             groupLabel: (group) => group.activityTypeName,
             initialValue: widget.selectedActivityList,
             onChange: (activityList) {
-              widget.selectedActivityList = List.from(activityList);
+              setState(() {
+                widget.selectedActivityList = List.from(activityList);
+              });
             },
             groupList: activityTypeList,
           );

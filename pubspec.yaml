@@ -82,6 +82,8 @@ dependencies:
   path_provider: ^1.6.24
   cached_video_player: ^1.0.3
   mime: ^0.9.7
+  palette_generator: ^0.2.3
+  swipedetector: 1.2.0
   flutter_test:
     sdk: flutter
 

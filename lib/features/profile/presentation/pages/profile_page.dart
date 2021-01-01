@@ -14,7 +14,9 @@ import 'package:provider/provider.dart';
 
 class ProfilePage extends StatefulWidget {
   final Map<dynamic, dynamic> arguments;
-  ProfilePage({this.arguments});
+  final Function navigateToMemoryForm;
+  ProfilePage({this.arguments, Key key, this.navigateToMemoryForm})
+      : super(key: key);
   @override
   State<ProfilePage> createState() => _ProfilePageState();
 }

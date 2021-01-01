@@ -1,25 +1,26 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mood_manager/core/constants/app_constants.dart';
 import 'package:mood_manager/core/util/color_util.dart';
 import 'package:mood_manager/core/util/date_util.dart';
+import 'package:mood_manager/features/common/domain/entities/collection.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection.dart';
 import 'package:mood_manager/features/common/presentation/widgets/empty_widget.dart';
-import 'package:mood_manager/features/common/presentation/widgets/media_page_view.dart';
 import 'package:mood_manager/features/memory/domain/entities/memory.dart';
 import 'package:mood_manager/features/memory/presentation/bloc/memory_bloc.dart';
 import 'package:mood_manager/features/common/data/datasources/common_remote_data_source.dart';
+import 'package:mood_manager/features/memory/presentation/pages/memory_list_page.dart';
 import 'package:mood_manager/injection_container.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:intl/intl.dart';
-import 'package:sticky_headers/sticky_headers.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:tinycolor/tinycolor.dart';
 
 class MemoryCalendarPage extends StatefulWidget {
   final Map<dynamic, dynamic> arguments;
-  MemoryCalendarPage({Key key, this.arguments}) : super(key: key);
+  final Function navigateToMemoryForm;
+  MemoryCalendarPage({Key key, this.arguments, this.navigateToMemoryForm})
+      : super(key: key);
 
   @override
   _MemoryCalendarPageState createState() => _MemoryCalendarPageState();
@@ -36,6 +37,7 @@ class _MemoryCalendarPageState extends State<MemoryCalendarPage>
   AutoScrollController scrollController;
   DateTime selectedDate = DateTime.now();
   CalendarController _calendarController;
+  Memory lastSaved;
 
   @override
   void initState() {
@@ -93,77 +95,104 @@ class _MemoryCalendarPageState extends State<MemoryCalendarPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: Text("Your memories"),
+      appBar: AppBar(
+        title: Text("Your memories"),
+      ),
+      floatingActionButton: AnimatedOpacity(
+        opacity: (memoryListMapByDate[DateUtil.getDateOnly(selectedDate)] ?? [])
+                .isNotEmpty
+            ? 1.0
+            : 0.0,
+        duration: Duration(milliseconds: 500),
+        child: FloatingActionButton(
+          onPressed: navigateToMemoryForm,
+          child: Icon(
+            Icons.add,
+          ),
         ),
-        body: Container(
-          child: BlocConsumer(
-            cubit: _memoryBloc,
-            listener: (context, state) {
-              if (state is MemoryListLoaded) {
-                memoryList = state.memoryList;
-                memoryListMapByDate = subListMapByDate(memoryList);
-                dateKeys = memoryListMapByDate.keys.toList();
-                final Map<String, Future<List<MediaCollection>>>
-                    mediaCollectionMap = {};
-                for (final memory in memoryList) {
-                  mediaCollectionMap[memory.id] = sl<CommonRemoteDataSource>()
-                      .getMediaCollectionByCollectionList(
-                          memory.collectionList);
-                }
-                mediaCollectionListMapByMemory = mediaCollectionMap;
-              }
-            },
-            builder: (context, state) {
-              final addWidgetButton = Container(
-                padding: EdgeInsets.all(8.0),
-                child: FlatButton(
-                  child: Container(
-                    height: 60,
-                    child: Center(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+      ),
+      body: BlocConsumer(
+        cubit: _memoryBloc,
+        listener: (context, state) {
+          if (state is MemoryListLoaded) {
+            memoryList = state.memoryList;
+            memoryListMapByDate = subListMapByDate(memoryList);
+            dateKeys = memoryListMapByDate.keys.toList();
+            final Map<String, Future<List<MediaCollection>>>
+                mediaCollectionMap = {};
+            for (final memory in memoryList) {
+              mediaCollectionMap[memory.id] = sl<CommonRemoteDataSource>()
+                  .getMediaCollectionByCollectionList(memory.collectionList);
+            }
+            mediaCollectionListMapByMemory = mediaCollectionMap;
+            if (lastSaved != null) {
+              final scrollIndex = (memoryList ?? [])
+                  .indexWhere((element) => element.id == lastSaved.id);
+              _scrollToIndex(scrollIndex, false);
+              _onDaySelected(
+                  lastSaved.logDateTime,
+                  memoryListMapByDate[
+                      DateUtil.getDateOnly(lastSaved.logDateTime)]);
+              lastSaved = null;
+            }
+          }
+        },
+        builder: (context, state) {
+          final addWidgetButton = Container(
+            padding: EdgeInsets.all(8.0),
+            child: FlatButton(
+              child: Container(
+                height: 60,
+                child: Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.add,
+                        color: Colors.white,
+                      ),
+                      SizedBox(width: 10),
+                      Text(
+                        'Add Memory',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              color: Theme.of(context).primaryColor,
+              onPressed: navigateToMemoryForm,
+            ),
+          );
+          final memoryListByDate =
+              memoryListMapByDate[DateUtil.getDateOnly(selectedDate)];
+          return Column(
+            children: [
+              _buildTableCalendarWithBuilders(memoryListMapByDate),
+              Expanded(
+                child: ListView(
+                    physics: BouncingScrollPhysics(),
+                    controller: scrollController,
+                    children: [
+                      Column(
                         children: [
-                          Icon(
-                            Icons.add,
-                            color: Colors.white,
-                          ),
-                          SizedBox(width: 10),
-                          Text(
-                            'Add Memory',
-                            style: TextStyle(color: Colors.white),
-                          ),
+                          if ((memoryListByDate ?? []).isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Center(child: Text('No memories')),
+                            ),
+                          if ((memoryListByDate ?? []).isEmpty) addWidgetButton,
+                          if ((memoryListByDate ?? []).isNotEmpty)
+                            ..._buildEventList(memoryListByDate)
                         ],
                       ),
-                    ),
-                  ),
-                  color: Theme.of(context).primaryColor,
-                  onPressed: navigateToAddMemory,
-                ),
-              );
-              final memoryListByDate =
-                  memoryListMapByDate[DateUtil.getDateOnly(selectedDate)];
-              return SingleChildScrollView(
-                  physics: BouncingScrollPhysics(),
-                  child: StickyHeader(
-                    header:
-                        _buildTableCalendarWithBuilders(memoryListMapByDate),
-                    content: Column(
-                      children: [
-                        if ((memoryListByDate ?? []).isEmpty)
-                          Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Center(child: Text('No memories')),
-                          ),
-                        if ((memoryListByDate ?? []).isEmpty) addWidgetButton,
-                        if ((memoryListByDate ?? []).isNotEmpty)
-                          ..._buildEventList(memoryListByDate)
-                      ],
-                    ),
-                  ));
-            },
-          ),
-        ));
+                    ]),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   Widget _buildTableCalendarWithBuilders(
@@ -185,9 +214,8 @@ class _MemoryCalendarPageState extends State<MemoryCalendarPage>
         startingDayOfWeek: StartingDayOfWeek.sunday,
         availableGestures: AvailableGestures.all,
         availableCalendarFormats: const {
-          CalendarFormat.month: '',
-          CalendarFormat.week: '',
-          CalendarFormat.twoWeeks: '',
+          CalendarFormat.month: 'Month',
+          CalendarFormat.week: 'Week',
         },
         calendarStyle: CalendarStyle(
           outsideDaysVisible: false,
@@ -199,7 +227,7 @@ class _MemoryCalendarPageState extends State<MemoryCalendarPage>
         ),
         headerStyle: HeaderStyle(
           centerHeaderTitle: true,
-          formatButtonVisible: false,
+          formatButtonVisible: true,
         ),
         builders: CalendarBuilders(
           selectedDayBuilder: (context, date, _) {
@@ -283,6 +311,10 @@ class _MemoryCalendarPageState extends State<MemoryCalendarPage>
         selectedDate = date;
       }
       //widget.selectDate(widget.selectedDate);
+      if (events.any((element) => List<Collection>.from(element.collectionList)
+          .any((element) => element.mediaCount > 0))) {
+        _calendarController.setCalendarFormat(CalendarFormat.week);
+      }
     });
   }
 
@@ -317,13 +349,12 @@ class _MemoryCalendarPageState extends State<MemoryCalendarPage>
     print('CALLBACK: _onCalendarCreated');
   }
 
-  List<Widget> _buildEventList(List<Memory> memoryList) {
-    return memoryList
-        .asMap()
-        .keys
-        .map((index) => _wrapScrollTag(
-            highlightColor: memoryList[index].mMood?.color ?? Colors.grey,
-            index: index,
+  List<Widget> _buildEventList(List<Memory> eventMemoryList) {
+    return eventMemoryList
+        .map(
+          (e) => _wrapScrollTag(
+            highlightColor: e.mMood?.color ?? Colors.grey,
+            index: memoryList.indexWhere((element) => element == e),
             child: Container(
               padding: EdgeInsets.all(2),
               child: Column(
@@ -332,275 +363,61 @@ class _MemoryCalendarPageState extends State<MemoryCalendarPage>
                       child: Padding(
                     padding: const EdgeInsets.all(4),
                     child: Text(
-                      DateFormat(DateFormat.HOUR_MINUTE)
-                          .format(memoryList[index].logDateTime),
+                      DateFormat(DateFormat.HOUR_MINUTE).format(e.logDateTime),
                     ),
                   )),
-                  Card(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          color: (memoryList[index].mMood?.color ?? Colors.grey)
-                              .withOpacity(0.2),
-                          height: 50,
-                          width: (MediaQuery.of(context).size.width / 2) - 8,
-                          child: Center(
-                            child: Text(
-                              memoryList[index].mActivityList.isEmpty
-                                  ? 'No Activity'
-                                  : memoryList[index]
-                                      .mActivityList
-                                      .map((e) => e.activityName)
-                                      .toList()
-                                      .join(" | "),
-                            ),
-                          ),
-                        ),
-                        Container(
-                          color: (memoryList[index].mMood?.color ?? Colors.grey)
-                              .withOpacity(0.2),
-                          height: 50,
-                          width: (MediaQuery.of(context).size.width / 2) - 4,
-                          child: Row(children: [
-                            CircleAvatar(
-                              backgroundColor:
-                                  (memoryList[index].mMood?.color ??
-                                      Colors.grey),
-                              radius: 15,
-                            ),
-                            SizedBox(
-                              width: 20,
-                            ),
-                            Text(memoryList[index].mMood?.moodName ??
-                                'No Mood'.toUpperCase())
-                          ]),
-                        ),
-                      ],
-                    ),
+                  MemoryActivityAndMood(
+                    memory: e,
+                    tagSuffix: 'CALENDAR',
                   ),
                   FutureBuilder<List<MediaCollection>>(
-                    future:
-                        mediaCollectionListMapByMemory[memoryList[index].id],
+                    future: mediaCollectionListMapByMemory[e.id],
                     builder: (context, snapshot) {
-                      int mediaCount = memoryList[index].collectionList.fold(
+                      final memory = e;
+                      int mediaCount = memory.collectionList.fold(
                           0,
                           (previousValue, element) =>
                               element.mediaCount + previousValue);
                       if (!snapshot.hasData) {
-                        return Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(2.0),
-                            child: GridView.count(
-                              crossAxisCount: mediaCount == 1 ? 1 : 2,
-                              crossAxisSpacing: 1,
-                              mainAxisSpacing: 1,
-                              physics:
-                                  NeverScrollableScrollPhysics(), // to disable GridView's scrolling
-                              shrinkWrap: true,
-                              children: List.generate(
-                                mediaCount >= 4 ? 4 : mediaCount,
-                                (index) => Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(5)),
-                                    border: Border.all(
-                                        color: Colors.grey[400], width: 1),
-                                  ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                          gradient: new LinearGradient(
-                                              colors: [
-                                            Colors.white,
-                                            Colors.grey,
-                                          ],
-                                              stops: [
-                                            0.0,
-                                            1.0
-                                          ],
-                                              begin: FractionalOffset.topCenter,
-                                              end:
-                                                  FractionalOffset.bottomCenter,
-                                              tileMode: TileMode.mirror)),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
+                        return GridPlaceholder(mediaCount: mediaCount);
                       }
                       if ((snapshot.data ?? []).isEmpty) {
                         return EmptyWidget();
                       }
-                      return Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(2.0),
-                          child: GridView.builder(
-                            itemCount: snapshot.data.length >= 4
-                                ? 4
-                                : snapshot.data.length,
-                            gridDelegate:
-                                SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: snapshot.data.length == 1 ? 1 : 2,
-                              crossAxisSpacing: 1,
-                              mainAxisSpacing: 1,
-                            ),
-
-                            itemBuilder: (context, index) {
-                              if (index == 3 &&
-                                  (snapshot.data.length - 3 > 1)) {
-                                return Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(5)),
-                                    border: Border.all(
-                                        color: Colors.grey[400], width: 1),
-                                  ),
-                                  child: Stack(
-                                    children: [
-                                      Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: GestureDetector(
-                                            onTap: () {
-                                              Navigator.of(context).push(
-                                                  MaterialPageRoute(
-                                                      builder: (context) {
-                                                return MediaPageView(
-                                                  mediaCollectionList:
-                                                      snapshot.data,
-                                                  initialItem:
-                                                      snapshot.data[index],
-                                                );
-                                              }));
-                                            },
-                                            child: ColorFiltered(
-                                                colorFilter: ColorFilter.mode(
-                                                  Colors.black.withOpacity(0.4),
-                                                  BlendMode.darken,
-                                                ),
-                                                child: Container(
-                                                  decoration: BoxDecoration(
-                                                    border: Border.all(
-                                                        color: Colors.grey,
-                                                        width: 1),
-                                                  ),
-                                                  child: GridView.builder(
-                                                    physics:
-                                                        NeverScrollableScrollPhysics(),
-                                                    itemCount:
-                                                        snapshot.data.length -
-                                                            3,
-                                                    gridDelegate:
-                                                        SliverGridDelegateWithFixedCrossAxisCount(
-                                                      crossAxisCount: 2,
-                                                      crossAxisSpacing: 2,
-                                                      mainAxisSpacing: 2,
-                                                    ),
-                                                    itemBuilder:
-                                                        (context, index) {
-                                                      final newIndex =
-                                                          index + 3;
-                                                      return Container(
-                                                        child:
-                                                            CachedNetworkImage(
-                                                          fit: BoxFit.cover,
-                                                          imageUrl: snapshot
-                                                              .data[newIndex]
-                                                              .media
-                                                              .thumbnail
-                                                              .url,
-                                                        ),
-                                                      );
-                                                    },
-                                                  ),
-                                                )),
-                                          )),
-                                      Center(
-                                        child: Text(
-                                          (snapshot.data.length - 3)
-                                                  .toString() +
-                                              " more",
-                                          style: TextStyle(color: Colors.white),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }
-                              return Container(
-                                decoration: BoxDecoration(
-                                  borderRadius:
-                                      BorderRadius.all(Radius.circular(5)),
-                                  border: Border.all(
-                                      color: Colors.grey[400], width: 1),
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      Navigator.of(context).push(
-                                          MaterialPageRoute(builder: (context) {
-                                        return MediaPageView(
-                                          mediaCollectionList: snapshot.data,
-                                          initialItem: snapshot.data[index],
-                                        );
-                                      }));
-                                    },
-                                    child: Hero(
-                                      tag: snapshot.data[index].media.id,
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          border: Border.all(
-                                              color: Colors.grey, width: 1),
-                                        ),
-                                        child: CachedNetworkImage(
-                                          fit: BoxFit.cover,
-                                          imageUrl: snapshot.data.length == 1
-                                              ? snapshot
-                                                  .data[index].media.file.url
-                                              : snapshot.data[index].media
-                                                  .thumbnail.url,
-                                          errorWidget: (context, url, error) =>
-                                              new Icon(Icons.error),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                            physics:
-                                NeverScrollableScrollPhysics(), // to disable GridView's scrolling
-                            shrinkWrap:
-                                true, // You won't see infinite size error
-                          ),
-                        ),
+                      return MemoryMediaGrid(
+                        mediaCollectionList: snapshot.data,
                       );
                     },
                   ),
-                  if ((memoryList[index].note ?? "").isNotEmpty)
+                  if ((e.note ?? "").isNotEmpty)
                     Container(
                       padding: EdgeInsets.all(10),
                       child: Row(children: [
-                        Text(memoryList[index].note),
+                        Text(e.note),
                       ]),
                     ),
                 ],
               ),
-            )))
+            ),
+          ),
+        )
         .toList();
   }
 
-  navigateToAddMemory() {
-    Navigator.pushNamed(context, '/add/memory');
+  void navigateToMemoryForm() async {
+    final savedMemory =
+        await widget.navigateToMemoryForm({'selectedDate': selectedDate});
+    if (savedMemory != null) {
+      print(savedMemory.toString());
+    }
+    if (savedMemory is Memory) {
+      lastSaved = savedMemory;
+    }
+    _memoryBloc.add(GetMemoryListEvent());
   }
 
   @override
   void dispose() {
-    // TODO: implement dispose
     _calendarController.dispose();
     super.dispose();
   }

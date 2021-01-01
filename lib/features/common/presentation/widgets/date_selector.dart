@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:calendar_strip/calendar_strip.dart';
+import 'package:table_calendar/table_calendar.dart';
 
 class DateSelector extends StatefulWidget {
   DateTime initialDate;
@@ -14,6 +14,13 @@ class _DateSelectorState extends State<DateSelector> {
   DateTime startDate = DateTime.fromMillisecondsSinceEpoch(0);
   DateTime endDate = DateTime.now();
   List<DateTime> markedDates = [];
+  CalendarController _calendarController;
+
+  @override
+  void initState() {
+    super.initState();
+    _calendarController = new CalendarController();
+  }
 
   onSelect(data) {
     widget.selectDate(data);
@@ -88,17 +95,51 @@ class _DateSelectorState extends State<DateSelector> {
   @override
   Widget build(BuildContext context) {
     return Container(
-        child: CalendarStrip(
-      startDate: startDate,
-      endDate: endDate,
-      onDateSelected: onSelect,
-      dateTileBuilder: dateTileBuilder,
-      iconColor: Theme.of(context).primaryColor,
-      monthNameWidget: _monthNameWidget,
-      markedDates: markedDates,
-      containerDecoration: BoxDecoration(color: Colors.black12),
-      addSwipeGesture: true,
-      selectedDate: widget.initialDate,
-    ));
+      child: _buildTableCalendar(),
+      color: Colors.grey.withOpacity(0.2),
+    );
+  }
+
+  Widget _buildTableCalendar() {
+    return TableCalendar(
+      initialSelectedDay: widget.initialDate,
+      calendarController: _calendarController,
+      initialCalendarFormat: CalendarFormat.week,
+      availableCalendarFormats: {CalendarFormat.week: 'Week'},
+      endDay: DateTime.now(),
+      // events: _events,
+      //holidays: _holidays,
+      startingDayOfWeek: StartingDayOfWeek.sunday,
+      calendarStyle: CalendarStyle(
+        selectedColor: Theme.of(context).primaryColor,
+        todayColor: Theme.of(context).primaryColor.withOpacity(0.5),
+        markersColor: Colors.brown[700],
+        outsideDaysVisible: false,
+      ),
+      headerStyle: HeaderStyle(
+        centerHeaderTitle: true,
+        formatButtonTextStyle:
+            TextStyle().copyWith(color: Colors.white, fontSize: 15.0),
+        formatButtonDecoration: BoxDecoration(
+          color: Colors.deepOrange[400],
+          borderRadius: BorderRadius.circular(16.0),
+        ),
+      ),
+      onDaySelected: (date, events) {
+        onSelect(date);
+      },
+      onVisibleDaysChanged: _onVisibleDaysChanged,
+      onCalendarCreated: _onCalendarCreated,
+    );
+  }
+
+  void _onVisibleDaysChanged(
+      DateTime first, DateTime last, CalendarFormat format) {
+    print('CALLBACK: _onVisibleDaysChanged');
+  }
+
+  void _onCalendarCreated(
+      DateTime first, DateTime last, CalendarFormat format) {
+    print('CALLBACK: _onCalendarCreated');
   }
 }

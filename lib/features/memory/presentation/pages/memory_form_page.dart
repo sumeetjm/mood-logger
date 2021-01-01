@@ -9,7 +9,14 @@ import 'package:mood_manager/injection_container.dart';
 
 class MemoryFormPage extends StatefulWidget {
   final Map<dynamic, dynamic> arguments;
-  MemoryFormPage({this.arguments});
+  DateTime selectedDate;
+  final GlobalKey<NavigatorState> navigatorKey;
+  MemoryFormPage({this.arguments, Key key, this.navigatorKey})
+      : super(key: key) {
+    if (arguments != null) {
+      this.selectedDate = arguments['selectedDate'];
+    }
+  }
   @override
   State<StatefulWidget> createState() => _MemoryFormPageState();
 }
@@ -23,15 +30,13 @@ class _MemoryFormPageState extends State<MemoryFormPage> {
   void initState() {
     super.initState();
     this._memoryBloc = sl<MemoryBloc>();
-    memoryFormViewWidget = MemoryFormView(
-      saveCallback: save,
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     final memoryFormViewWidget = MemoryFormView(
       saveCallback: save,
+      date: widget.selectedDate,
     );
     return Scaffold(
       body: BlocConsumer<MemoryBloc, MemoryState>(
@@ -39,7 +44,7 @@ class _MemoryFormPageState extends State<MemoryFormPage> {
         listener: (context, state) {
           if (state is MemorySaved) {
             memory = state.memory;
-            Navigator.of(context).popUntil((route) => route.isFirst);
+            Navigator.of(context).pop(memory);
           } else if (state is MemorySaving) {
             memory = state.memory;
           }
@@ -57,6 +62,9 @@ class _MemoryFormPageState extends State<MemoryFormPage> {
   void save(Memory toBeSavedMemory, List<MediaCollection> mediaCollectionList) {
     _memoryBloc.add(SaveMemoryEvent(
         memory: toBeSavedMemory, mediaCollectionList: mediaCollectionList));
+    setState(() {
+      widget.selectedDate = toBeSavedMemory.logDateTime;
+    });
   }
 
   wrapWithLoader(Widget widget) {

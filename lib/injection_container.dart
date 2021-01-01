@@ -18,6 +18,7 @@ import 'package:mood_manager/features/memory/data/datasources/memory_remote_data
 import 'package:mood_manager/features/memory/data/repositories/memory_repository.dart';
 import 'package:mood_manager/features/memory/domain/repositories/memory_repository_impl.dart';
 import 'package:mood_manager/features/memory/domain/usecases/get_memory_list.dart';
+import 'package:mood_manager/features/memory/domain/usecases/get_memory_list_by_date.dart';
 import 'package:mood_manager/features/metadata/domain/usecases/add_activity.dart';
 import 'package:mood_manager/features/memory/domain/usecases/save_memory.dart';
 import 'package:mood_manager/features/memory/presentation/bloc/memory_bloc.dart';
@@ -85,6 +86,7 @@ Future<void> init() async {
         saveMemory: sl(),
         addActivity: sl(),
         getMemoryList: sl(),
+        getMemoryListByDate: sl(),
       ));
 
   sl.registerFactory(() => ActivityBloc(
@@ -117,6 +119,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => SaveMemory(sl()));
   sl.registerLazySingleton(() => AddActivity(sl()));
   sl.registerLazySingleton(() => GetMemoryList(sl()));
+  sl.registerLazySingleton(() => GetMemoryListByDate(sl()));
   // Repository
   sl.registerLazySingleton<MMoodRepository>(
     () => MMoodRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()),

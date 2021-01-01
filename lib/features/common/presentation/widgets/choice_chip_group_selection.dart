@@ -10,16 +10,18 @@ class ChoiceChipGroupSelection<T> extends StatefulWidget {
   final List<ChoiceChipGroupSelectionOption<T>> choiceChipOptions;
   final List<dynamic> groupList;
   final Function labelToValue;
+  final int maxSelection;
 
-  ChoiceChipGroupSelection({
-    Key key,
-    this.onChange,
-    this.initialValue,
-    this.choiceChipOptions,
-    this.groupLabel,
-    this.labelToValue,
-    this.groupList,
-  }) : super(key: key);
+  ChoiceChipGroupSelection(
+      {Key key,
+      this.onChange,
+      this.initialValue,
+      this.choiceChipOptions,
+      this.groupLabel,
+      this.labelToValue,
+      this.groupList,
+      this.maxSelection})
+      : super(key: key);
 
   @override
   State<StatefulWidget> createState() => _ChoiceChipGroupSelectionPage();
@@ -70,9 +72,15 @@ class _ChoiceChipGroupSelectionPage<T> extends State<ChoiceChipGroupSelection> {
                   color: Theme.of(context).primaryColor.withOpacity(0.05),
                   alignment: Alignment.centerLeft,
                   child: ChipsChoice<T>.multiple(
+                    itemConfig: ChipsChoiceItemConfig(),
                     value: selectedOptionsGrouped[groupKey] ?? [],
                     options: ChipsChoiceOption.listFrom<T,
                         ChoiceChipGroupSelectionOption>(
+                      disabled: (index, item) =>
+                          widget.maxSelection != null &&
+                          widget.maxSelection ==
+                              (widget.initialValue ?? []).length &&
+                          !widget.initialValue.contains(item.value),
                       source: choiceChipOptionsGrouped[groupKey] ?? [],
                       value: (i, v) => v.value,
                       label: (i, v) => v.label,
