@@ -18,9 +18,7 @@ import 'package:tinycolor/tinycolor.dart';
 
 class MemoryCalendarPage extends StatefulWidget {
   final Map<dynamic, dynamic> arguments;
-  final Function navigateToMemoryForm;
-  MemoryCalendarPage({Key key, this.arguments, this.navigateToMemoryForm})
-      : super(key: key);
+  MemoryCalendarPage({Key key, this.arguments}) : super(key: key);
 
   @override
   _MemoryCalendarPageState createState() => _MemoryCalendarPageState();
@@ -405,8 +403,8 @@ class _MemoryCalendarPageState extends State<MemoryCalendarPage>
   }
 
   void navigateToMemoryForm() async {
-    final savedMemory =
-        await widget.navigateToMemoryForm({'selectedDate': selectedDate});
+    final savedMemory = await Navigator.of(context)
+        .pushNamed('/memory/add', arguments: {'selectedDate': selectedDate});
     if (savedMemory != null) {
       print(savedMemory.toString());
     }

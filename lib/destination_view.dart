@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_page_transition/flutter_page_transition.dart';
 import 'package:mood_manager/features/common/presentation/widgets/empty_widget.dart';
 import 'package:mood_manager/features/memory/presentation/pages/memory_calendar_page.dart';
+import 'package:mood_manager/features/memory/presentation/pages/memory_form_page.dart';
 import 'package:mood_manager/features/memory/presentation/pages/memory_list_page.dart';
 import 'package:mood_manager/features/profile/presentation/pages/profile_page.dart';
+import 'package:swipedetector/swipedetector.dart';
 
 final tabRoutes = {
   '/profile': (context) => ProfilePage(),
@@ -13,15 +15,17 @@ final tabRoutes = {
 };
 
 class DestinationView extends StatefulWidget {
-  final VoidCallback onNavigation;
+  final Function onNavigation;
   final GlobalKey<NavigatorState> navigatorKey;
-  final Function navigateToMemoryForm;
-  const DestinationView({
+  final Function unhideBottomNavigation;
+  final Function handleScrollNotification;
+  DestinationView({
     Key key,
     this.currentRoute,
     this.onNavigation,
     this.navigatorKey,
-    this.navigateToMemoryForm,
+    this.unhideBottomNavigation,
+    this.handleScrollNotification,
   }) : super(key: key);
 
   final String currentRoute;
@@ -41,7 +45,9 @@ class _DestinationViewState extends State<DestinationView> {
     return Navigator(
       key: widget.navigatorKey,
       observers: <NavigatorObserver>[
-        ViewNavigatorObserver(widget.onNavigation),
+        ViewNavigatorObserver(
+          widget.onNavigation,
+        )
       ],
       onGenerateRoute: (RouteSettings settings) {
         return PageRouteBuilder<dynamic>(
@@ -49,35 +55,36 @@ class _DestinationViewState extends State<DestinationView> {
             pageBuilder: (BuildContext context, Animation<double> animation,
                 Animation<double> secondaryAnimation) {
               switch (settings.name) {
+                case '/memory/add':
+                  return MemoryFormPage(
+                    arguments: settings.arguments,
+                  );
                 default:
                   switch (widget.currentRoute) {
                     case '/profile':
-                      return ProfilePage(
-                        arguments: settings.arguments,
-                        navigateToMemoryForm: (arguments) async {
-                          return widget.navigateToMemoryForm(
-                              (widget.key as GlobalKey).currentContext,
-                              arguments);
-                        },
+                      return SwipeDetector(
+                        onSwipeUp: widget.unhideBottomNavigation,
+                        child: NotificationListener<ScrollNotification>(
+                          onNotification: widget.handleScrollNotification,
+                          child: ProfilePage(arguments: settings.arguments),
+                        ),
                       );
                     case '/list':
-                      return MemoryListPage(
-                        arguments: settings.arguments,
-                        navigateToMemoryForm: (arguments) async {
-                          return widget.navigateToMemoryForm(
-                              (widget.key as GlobalKey).currentContext,
-                              arguments);
-                        },
-                      );
+                      return SwipeDetector(
+                          onSwipeUp: widget.unhideBottomNavigation,
+                          child: NotificationListener<ScrollNotification>(
+                              onNotification: widget.handleScrollNotification,
+                              child: MemoryListPage(
+                                arguments: settings.arguments,
+                              )));
                     case '/calendar':
-                      return MemoryCalendarPage(
-                        arguments: settings.arguments,
-                        navigateToMemoryForm: (arguments) async {
-                          return widget.navigateToMemoryForm(
-                              (widget.key as GlobalKey).currentContext,
-                              arguments);
-                        },
-                      );
+                      return SwipeDetector(
+                          onSwipeUp: widget.unhideBottomNavigation,
+                          child: NotificationListener<ScrollNotification>(
+                              onNotification: widget.handleScrollNotification,
+                              child: MemoryCalendarPage(
+                                arguments: settings.arguments,
+                              )));
                     default:
                       return EmptyWidget();
                   }
@@ -106,13 +113,13 @@ class _DestinationViewState extends State<DestinationView> {
 class ViewNavigatorObserver extends NavigatorObserver {
   ViewNavigatorObserver(this.onNavigation);
 
-  final VoidCallback onNavigation;
+  final Function onNavigation;
 
-  void didPop(Route<dynamic> route, Route<dynamic> previousRoute) {
-    onNavigation();
+  void didPop(Route<dynamic> route, Route<dynamic> previousRoute) async {
+    await onNavigation();
   }
 
-  void didPush(Route<dynamic> route, Route<dynamic> previousRoute) {
-    onNavigation();
+  void didPush(Route<dynamic> route, Route<dynamic> previousRoute) async {
+    await onNavigation();
   }
 }

@@ -18,7 +18,7 @@ abstract class UserProfileRemoteDataSource {
   Future<UserProfile> getCurrentUserProfile();
   Future<UserProfile> saveUserProfile(UserProfile userProfile);
   Future<MediaCollection> saveProfilePicture(
-      final Media media, final UserProfile userProfile);
+      final MediaCollection mediaCollection, final UserProfile userProfile);
 }
 
 class UserProfileParseDataSource implements UserProfileRemoteDataSource {
@@ -83,17 +83,18 @@ class UserProfileParseDataSource implements UserProfileRemoteDataSource {
   }
 
   Future<MediaCollection> saveProfilePicture(
-      final Media media, final UserProfile userProfile) async {
-    final MediaCollection mediaCollection = MediaCollectionParse(
-        collection: userProfile.profilePictureCollection,
-        media: await commonRemoteDataSource.saveMedia(media));
+      final MediaCollection media, final UserProfile userProfile) async {
+    final List<MediaCollection> mediaCollectionList =
+        await commonRemoteDataSource.saveMediaCollectionList([media]);
     ParseObject userProfileParse = ParseObject('userDtl');
     userProfileParse.set('objectId', userProfile.id);
-    userProfileParse.set(
-        'profilePicture', cast<MediaParse>(mediaCollection.media).pointer);
+    userProfileParse.set('profilePicture',
+        cast<MediaParse>(mediaCollectionList[0].media).pointer);
+    userProfileParse.set('profilePictureCollection',
+        cast<CollectionParse>(mediaCollectionList[0].collection).pointer);
     ParseResponse response = await userProfileParse.save();
     if (response.success) {
-      return await commonRemoteDataSource.saveMediaCollection(mediaCollection);
+      return mediaCollectionList[0];
     } else {
       throw ServerException();
     }

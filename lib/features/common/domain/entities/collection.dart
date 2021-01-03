@@ -14,7 +14,7 @@ class Collection extends Base {
     this.module,
     this.mediaType,
     this.mediaCount,
-    bool isActive,
+    bool isActive = true,
   }) : super(
           id: id,
           isActive: isActive,

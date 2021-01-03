@@ -26,10 +26,10 @@ class SaveUserProfileEvent extends ProfileEvent {
 }
 
 class SaveProfilePictureEvent extends ProfileEvent {
-  final Media profilePicture;
+  final MediaCollection profilePictureMediaCollection;
   final UserProfile userProfile;
-  SaveProfilePictureEvent(this.profilePicture, this.userProfile);
+  SaveProfilePictureEvent(this.profilePictureMediaCollection, this.userProfile);
 
   @override
-  List<Object> get props => [profilePicture, userProfile];
+  List<Object> get props => [profilePictureMediaCollection, userProfile];
 }

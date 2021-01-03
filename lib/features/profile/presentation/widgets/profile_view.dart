@@ -4,7 +4,9 @@ import 'package:datetime_picker_formfield/datetime_picker_formfield.dart';
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:mood_manager/core/constants/app_constants.dart';
+import 'package:mood_manager/features/common/data/models/collection_parse.dart';
 import 'package:mood_manager/features/common/data/models/media_parse.dart';
+import 'package:mood_manager/features/common/domain/entities/media_collection.dart';
 import 'package:mood_manager/features/profile/data/models/user_profile_parse.dart';
 import 'package:mood_manager/features/metadata/domain/entities/gender.dart';
 import 'package:mood_manager/features/common/domain/entities/media.dart';
@@ -25,7 +27,7 @@ import 'package:uuid/uuid.dart';
 class ProfileView extends StatelessWidget {
   final ValueChanged<UserProfile> saveCallback;
   final Function resetCallback;
-  final ValueChanged<Media> profilePictureChangeCallback;
+  final ValueChanged<MediaCollection> profilePictureChangeCallback;
   final Function onPictureTapCallback;
   final Uuid uuid = sl<Uuid>();
   ProfileView({
@@ -470,11 +472,35 @@ class ProfileView extends StatelessWidget {
             width: 200);
         final thumbnailFile = File(cacheDir.path + "/" + uuid.v1() + ".jpg");
         thumbnailFile.writeAsBytesSync(img.encodeJpg(thumbnailImage));
+        final pictureCollectionCode = uuid.v1();
+        var pictureCollection;
+        if (userProfile.profilePictureCollection != null) {
+          pictureCollection = CollectionParse(
+            code: userProfile.profilePictureCollection.code,
+            name: userProfile.profilePictureCollection.name,
+            mediaType: userProfile.profilePictureCollection.mediaType,
+            module: userProfile.profilePictureCollection.module,
+            mediaCount: userProfile.profilePictureCollection.mediaCount + 1,
+          );
+        } else {
+          pictureCollection = userProfile.profilePictureCollection ??
+              CollectionParse(
+                code: pictureCollectionCode,
+                name: pictureCollectionCode,
+                mediaType: 'PICTURE',
+                module: 'MEMORY',
+                mediaCount: 1,
+              );
+        }
         final profilePicture = MediaParse(
             mediaType: "PHOTO",
             file: ParseFile(File(croppedImage.path)),
             thumbnail: ParseFile(thumbnailFile));
-        profilePictureChangeCallback(profilePicture);
+        profilePictureChangeCallback(MediaCollection(
+          collection: pictureCollection,
+          isActive: true,
+          media: profilePicture,
+        ));
       }
     } catch (e) {
       print(e);

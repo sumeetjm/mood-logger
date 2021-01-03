@@ -19,9 +19,7 @@ class MemoryListPage extends StatefulWidget {
   final Map<dynamic, dynamic> arguments;
   DateTime calendarSelectedDate;
   List<Memory> memoryList;
-  final Function navigateToMemoryForm;
-  MemoryListPage({Key key, this.arguments, this.navigateToMemoryForm})
-      : super(key: key) {
+  MemoryListPage({Key key, this.arguments}) : super(key: key) {
     if (arguments != null) {
       this.calendarSelectedDate = this.arguments['selectedDate'];
       this.memoryList = this.arguments['memoryList'];
@@ -105,6 +103,12 @@ class _MemoryListPageState extends State<MemoryListPage> {
     return Scaffold(
         appBar: AppBar(
           title: Text("Your memories"),
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: navigateToMemoryForm,
+          child: Icon(
+            Icons.add,
+          ),
         ),
         body: Container(
             decoration: BoxDecoration(
@@ -233,7 +237,7 @@ class _MemoryListPageState extends State<MemoryListPage> {
   }
 
   void navigateToMemoryForm() async {
-    final savedMemory = await widget.navigateToMemoryForm();
+    final savedMemory = await Navigator.of(context).pushNamed('/memory/add');
     lastSaved = savedMemory;
     if (widget.calendarSelectedDate != null) {
       _memoryBloc.add(GetMemoryListByDateEvent(widget.calendarSelectedDate));

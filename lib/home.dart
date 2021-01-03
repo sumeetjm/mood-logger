@@ -34,7 +34,7 @@ class _HomeState extends State<Home> with TickerProviderStateMixin<Home> {
   List<GlobalKey<NavigatorState>> _destinationKeys;
   List<GlobalKey<NavigatorState>> _destinationViewKeys;
   List<AnimationController> _faders;
-  int _currentIndex = 1;
+  int _currentIndex = 0;
   AnimationController _hide;
 
   @override
@@ -51,13 +51,6 @@ class _HomeState extends State<Home> with TickerProviderStateMixin<Home> {
     _destinationViewKeys =
         allDestinations.map((index) => GlobalKey<NavigatorState>()).toList();
     _hide = AnimationController(vsync: this, duration: kThemeAnimationDuration);
-  }
-
-  Future<dynamic> navigateToMemoryForm(
-      BuildContext context, Map arguments) async {
-    final saved = await Navigator.of(context)
-        .pushNamed('/memory/add', arguments: arguments);
-    return saved;
   }
 
   @override
@@ -100,94 +93,91 @@ class _HomeState extends State<Home> with TickerProviderStateMixin<Home> {
                   Curves.linear, animation, secondaryAnimation, child);
             });
       },
-      home: SwipeDetector(
-        onSwipeDown: _hide.forward,
-        child: WillPopScope(
-          onWillPop: () async =>
-              !await _destinationKeys[_currentIndex].currentState.maybePop(),
-          child: NotificationListener<ScrollNotification>(
-            onNotification: _handleScrollNotification,
-            child: Scaffold(
-              body: SafeArea(
-                top: false,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: keys.map((int index) {
-                    final Widget view = FadeTransition(
-                      opacity: _faders[index]
-                          .drive(CurveTween(curve: Curves.fastOutSlowIn)),
-                      child: DestinationView(
-                        key: _destinationViewKeys[index],
-                        navigatorKey: _destinationKeys[index],
-                        currentRoute: allDestinations[index],
-                        onNavigation: () async {
-                          await _hide.reverse();
-                        },
-                        navigateToMemoryForm: navigateToMemoryForm,
-                      ),
-                    );
-                    if (index == _currentIndex) {
-                      _faders[index].forward();
-                      return view;
-                    } else {
-                      _faders[index].reverse();
-                      if (_faders[index].isAnimating) {
-                        return IgnorePointer(child: view);
-                      }
-                      return Offstage(child: view);
-                    }
-                  }).toList(),
+      home: WillPopScope(
+        onWillPop: () async =>
+            !await _destinationKeys[_currentIndex].currentState.maybePop(),
+        child: Scaffold(
+          body: SafeArea(
+            top: false,
+            child: Stack(
+              fit: StackFit.expand,
+              children: keys.map((int index) {
+                final Widget view = FadeTransition(
+                  opacity: _faders[index]
+                      .drive(CurveTween(curve: Curves.fastOutSlowIn)),
+                  child: DestinationView(
+                    key: _destinationViewKeys[index],
+                    navigatorKey: _destinationKeys[index],
+                    currentRoute: allDestinations[index],
+                    onNavigation: () async {
+                      await _hide.reverse();
+                    },
+                    unhideBottomNavigation: () async {
+                      await _hide.forward();
+                    },
+                    handleScrollNotification: _handleScrollNotification,
+                  ),
+                );
+                if (index == _currentIndex) {
+                  _faders[index].forward();
+                  return view;
+                } else {
+                  _faders[index].reverse();
+                  if (_faders[index].isAnimating) {
+                    return IgnorePointer(child: view);
+                  }
+                  return Offstage(child: view);
+                }
+              }).toList(),
+            ),
+          ),
+          bottomNavigationBar: SizeTransition(
+            sizeFactor: _hide,
+            axisAlignment: -1.25,
+            child: BottomNavigationBar(
+              backgroundColor: HexColor.fromHex('#272f63'),
+              currentIndex: _currentIndex,
+              type: BottomNavigationBarType.fixed,
+              selectedItemColor: Colors.white,
+              unselectedItemColor: Colors.white.withOpacity(0.5),
+              items: [
+                BottomNavigationBarItem(
+                  icon: Icon(
+                    Icons.perm_identity,
+                  ),
+                  label: 'Profile',
                 ),
-              ),
-              bottomNavigationBar: SizeTransition(
-                sizeFactor: _hide,
-                axisAlignment: -1.25,
-                child: BottomNavigationBar(
-                  backgroundColor: HexColor.fromHex('#272f63'),
-                  currentIndex: _currentIndex,
-                  type: BottomNavigationBarType.fixed,
-                  selectedItemColor: Colors.white,
-                  unselectedItemColor: Colors.white.withOpacity(0.5),
-                  items: [
-                    BottomNavigationBarItem(
-                      icon: Icon(
-                        Icons.perm_identity,
-                      ),
-                      label: 'Profile',
-                    ),
-                    BottomNavigationBarItem(
-                      icon: Icon(
-                        Icons.list,
-                      ),
-                      label: 'List',
-                    ),
-                    /*     BottomNavigationBarItem(
+                BottomNavigationBarItem(
+                  icon: Icon(
+                    Icons.list,
+                  ),
+                  label: 'List',
+                ),
+                /*     BottomNavigationBarItem(
                   icon: Icon(
                     Icons.add_circle,
                     size: 40,
                   ),
                   label: '',
                 ),*/
-                    BottomNavigationBarItem(
-                      icon: Icon(
-                        MdiIcons.calendarMonth,
-                      ),
-                      label: 'Calendar',
-                    ),
-                    BottomNavigationBarItem(
-                      icon: Icon(
-                        Icons.more_horiz,
-                      ),
-                      label: 'More',
-                    ),
-                  ],
-                  onTap: (int index) {
-                    setState(() {
-                      _currentIndex = index;
-                    });
-                  },
+                BottomNavigationBarItem(
+                  icon: Icon(
+                    MdiIcons.calendarMonth,
+                  ),
+                  label: 'Calendar',
                 ),
-              ),
+                BottomNavigationBarItem(
+                  icon: Icon(
+                    Icons.more_horiz,
+                  ),
+                  label: 'More',
+                ),
+              ],
+              onTap: (int index) {
+                setState(() {
+                  _currentIndex = index;
+                });
+              },
             ),
           ),
         ),

@@ -6,6 +6,7 @@ import 'package:mood_manager/core/error/failures.dart';
 import 'package:mood_manager/core/usecases/usecase.dart';
 import 'package:mood_manager/features/auth/domain/entitles/user.dart';
 import 'package:mood_manager/features/common/domain/entities/media.dart';
+import 'package:mood_manager/features/common/domain/entities/media_collection.dart';
 import 'package:mood_manager/features/profile/domain/entities/user_profile.dart';
 import 'package:mood_manager/features/profile/domain/usecases/get_current_user_profile.dart';
 import 'package:mood_manager/features/profile/domain/usecases/get_user_profile.dart';
@@ -45,9 +46,10 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       final either = await saveUserProfile(Params(event.userProfile));
       yield* _eitherUserProfileSavedOrErrorState(either);
     } else if (event is SaveProfilePictureEvent) {
-      yield ProfilePictureSaving(photo: event.profilePicture);
-      await saveProfilePicture(
-          Params(MapEntry(event.profilePicture, event.userProfile)));
+      yield ProfilePictureSaving(
+          photo: event.profilePictureMediaCollection.media);
+      await saveProfilePicture(Params(
+          MapEntry(event.profilePictureMediaCollection, event.userProfile)));
       final either = await getCurrentUserProfile(NoParams());
       yield* _eitherUserProfileSavedOrErrorState(either);
     }

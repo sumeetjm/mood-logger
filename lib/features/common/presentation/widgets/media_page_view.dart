@@ -13,14 +13,14 @@ class MediaPageView extends StatefulWidget {
   final List<MediaCollection> mediaCollectionList;
   final List<Media> mediaList;
   final List<ParseFile> fileList;
-  final Function callback;
+  final Future<List<MediaCollection>> future;
   final dynamic initialItem;
   MediaPageView({
     Key key,
     this.mediaCollectionList,
     this.mediaList,
     this.fileList,
-    this.callback,
+    this.future,
     this.initialItem,
   }) : super(key: key);
 
@@ -46,7 +46,9 @@ class _MediaPageViewState extends State<MediaPageView> {
       initialIndex = widget.fileList
           .indexWhere((element) => element == widget.initialItem);
     }
-    _controller = PageController(initialPage: initialIndex);
+    if (initialIndex != null) {
+      _controller = PageController(initialPage: initialIndex);
+    }
   }
 
   @override
@@ -59,7 +61,7 @@ class _MediaPageViewState extends State<MediaPageView> {
       backgroundColor: Colors.black,
       body: Builder(
         builder: (context) {
-          if (widget.callback != null) {
+          if (widget.future != null) {
             return _buildPagerViewSliderFromCallback();
           } else if (widget.mediaCollectionList != null) {
             return _buildPagerViewSliderFromMediaCollection(
@@ -77,12 +79,13 @@ class _MediaPageViewState extends State<MediaPageView> {
   }
 
   Widget _buildPagerViewSliderFromCallback() {
-    return StreamBuilder<List<MediaCollection>>(
-        stream: widget.callback().asStream(),
+    return FutureBuilder<List<MediaCollection>>(
+        future: widget.future,
         builder: (context, snapshot) {
           if (snapshot.hasData) {
-            _controller.jumpToPage(widget.mediaCollectionList
-                .indexWhere((element) => element == widget.initialItem));
+            _controller = PageController(
+                initialPage: snapshot.data
+                    .indexWhere((element) => element == widget.initialItem));
             return _buildPagerViewSliderFromMediaCollection(snapshot.data);
           } else {
             return EmptyWidget();

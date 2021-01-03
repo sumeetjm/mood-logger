@@ -1,3 +1,4 @@
+import 'package:mood_manager/features/common/domain/entities/media_collection.dart';
 import 'package:mood_manager/features/profile/data/datasources/user_profile_remote_data_source.dart';
 import 'package:dartz/dartz.dart';
 import 'package:meta/meta.dart';
@@ -65,11 +66,11 @@ class UserProfileRepositoryImpl implements UserProfileRepository {
 
   @override
   Future<Either<Failure, Media>> saveProfilePicture(
-      Media photo, UserProfile userProfile) async {
+      MediaCollection photoMediaCollection, UserProfile userProfile) async {
     if (await networkInfo.isConnected) {
       try {
-        final photoSaved =
-            await remoteDataSource.saveProfilePicture(photo, userProfile);
+        final photoSaved = await remoteDataSource.saveProfilePicture(
+            photoMediaCollection, userProfile);
         return Right(photoSaved.media);
       } on ServerException {
         return Left(ServerFailure());

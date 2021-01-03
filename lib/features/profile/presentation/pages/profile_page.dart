@@ -5,6 +5,7 @@ import 'package:loading_overlay/loading_overlay.dart';
 import 'package:mood_manager/features/common/data/datasources/common_remote_data_source.dart';
 import 'package:mood_manager/features/common/domain/entities/media.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection.dart';
+import 'package:mood_manager/features/common/presentation/widgets/media_page_view.dart';
 import 'package:mood_manager/features/profile/domain/entities/user_profile.dart';
 import 'package:mood_manager/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:mood_manager/features/common/presentation/widgets/loading_widget.dart';
@@ -14,9 +15,8 @@ import 'package:provider/provider.dart';
 
 class ProfilePage extends StatefulWidget {
   final Map<dynamic, dynamic> arguments;
-  final Function navigateToMemoryForm;
-  ProfilePage({this.arguments, Key key, this.navigateToMemoryForm})
-      : super(key: key);
+  final GlobalKey parentKey;
+  ProfilePage({this.arguments, Key key, this.parentKey}) : super(key: key);
   @override
   State<ProfilePage> createState() => _ProfilePageState();
 }
@@ -61,7 +61,8 @@ class _ProfilePageState extends State<ProfilePage> {
                     setState(() {});
                   },
                   profilePictureChangeCallback: (profilePicture) {
-                    profilePicChange(profilePicture: profilePicture);
+                    profilePicChange(
+                        profilePictureMediaCollection: profilePicture);
                   },
                   onPictureTapCallback: () async {
                     if (userProfile.profilePicture != null) {
@@ -70,18 +71,15 @@ class _ProfilePageState extends State<ProfilePage> {
                               .getMediaCollectionByCollection(
                                   userProfile.profilePictureCollection,
                                   priorityMedia: userProfile.profilePicture);
-
-                      Navigator.pushNamed(
-                        context,
-                        '/photo/slider',
-                        arguments: {
-                          'callback': () => mediaListByCollectionCallback,
-                          'initial': MediaCollection(
+                      Navigator.of(context)
+                          .push(MaterialPageRoute(builder: (context) {
+                        return MediaPageView(
+                          initialItem: MediaCollection(
                               collection: userProfile.profilePictureCollection,
                               media: userProfile.profilePicture),
-                          'transitionType': PageTransitionType.fadeIn,
-                        },
-                      );
+                          future: mediaListByCollectionCallback,
+                        );
+                      }));
                     }
                   },
                 ));
@@ -92,7 +90,8 @@ class _ProfilePageState extends State<ProfilePage> {
                 child: ProfileView(
                     saveCallback: save,
                     profilePictureChangeCallback: (profilePicture) {
-                      profilePicChange(profilePicture: profilePicture);
+                      profilePicChange(
+                          profilePictureMediaCollection: profilePicture);
                     })));
           }
           return LoadingWidget();
@@ -105,8 +104,9 @@ class _ProfilePageState extends State<ProfilePage> {
     _profileBloc.add(SaveUserProfileEvent(toBeSavedUserProfile));
   }
 
-  void profilePicChange({Media profilePicture}) {
-    _profileBloc.add(SaveProfilePictureEvent(profilePicture, userProfile));
+  void profilePicChange({MediaCollection profilePictureMediaCollection}) {
+    _profileBloc.add(
+        SaveProfilePictureEvent(profilePictureMediaCollection, userProfile));
   }
 
   wrapWithLoader(Widget widget) {
