@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class DateUtil {
@@ -11,4 +12,7 @@ class DateUtil {
         dateTime.month == otherDateTime.month &&
         dateTime.day == otherDateTime.day;
   }
+
+  static DateTime combine(DateTime date, TimeOfDay time) => DateTime(
+      date.year, date.month, date.day, time?.hour ?? 0, time?.minute ?? 0);
 }

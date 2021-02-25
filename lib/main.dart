@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mood_manager/auth.dart';
-import 'package:mood_manager/core/util/hex_color.dart';
 import 'package:mood_manager/features/auth/presentation/bloc/authentication_bloc.dart';
 import 'package:mood_manager/features/auth/presentation/splash_page.dart';
 import 'package:mood_manager/home.dart';
@@ -26,6 +25,10 @@ void main() async {
     debug: true,
     coreStore: await CoreStoreSharedPrefsImp.getInstance(),
   );
+  ParseInstallation installation =
+      await ParseInstallation.currentInstallation();
+  installation.set("GCMSenderId", "206555785179");
+  installation.save();
   initializeDateFormatting().then((_) => runApp(MyApp()));
 }
 

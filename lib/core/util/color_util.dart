@@ -7,19 +7,41 @@ class ColorUtil {
     if (colors.isEmpty) {
       return Colors.white;
     }
+    final colorList = colors.where((element) => element != null).toList();
     return Color.fromRGBO(
-        colors
+        colorList
                 .map((color) => color.red)
                 .reduce((value, element) => value + element) ~/
-            colors.length,
-        colors
+            colorList.length,
+        colorList
                 .map((color) => color.green)
                 .reduce((value, element) => value + element) ~/
-            colors.length,
-        colors
+            colorList.length,
+        colorList
                 .map((color) => color.blue)
                 .reduce((value, element) => value + element) ~/
-            colors.length,
+            colorList.length,
+        1);
+  }
+
+  static Color unmix(List<Color> colors) {
+    if (colors.isEmpty) {
+      return Colors.white;
+    }
+    final colorList = colors.where((element) => element != null).toList();
+    return Color.fromRGBO(
+        colorList
+                .map((color) => color.red)
+                .reduce((value, element) => value - element) ~/
+            colorList.length,
+        colorList
+                .map((color) => color.green)
+                .reduce((value, element) => value - element) ~/
+            colorList.length,
+        colorList
+                .map((color) => color.blue)
+                .reduce((value, element) => value - element) ~/
+            colorList.length,
         1);
   }
 

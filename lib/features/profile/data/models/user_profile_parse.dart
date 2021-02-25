@@ -1,10 +1,12 @@
 import 'package:dartz/dartz.dart';
-import 'package:mood_manager/features/common/data/models/collection_parse.dart';
-import 'package:mood_manager/features/metadata/data/models/gender_parse.dart';
 import 'package:mood_manager/features/common/data/models/media_collection_parse.dart';
+import 'package:mood_manager/features/memory/data/models/memory_collection_parse.dart';
+import 'package:mood_manager/features/memory/domain/entities/memory_collection.dart';
+import 'package:mood_manager/features/metadata/data/models/gender_parse.dart';
+import 'package:mood_manager/features/common/data/models/media_collection_mapping_parse.dart';
 import 'package:mood_manager/features/common/data/models/media_parse.dart';
 import 'package:mood_manager/features/common/domain/entities/base.dart';
-import 'package:mood_manager/features/common/domain/entities/collection.dart';
+import 'package:mood_manager/features/common/domain/entities/media_collection.dart';
 import 'package:mood_manager/features/metadata/domain/entities/gender.dart';
 import 'package:mood_manager/features/common/domain/entities/media.dart';
 import 'package:mood_manager/features/profile/domain/entities/user_profile.dart';
@@ -22,10 +24,11 @@ class UserProfileParse extends UserProfile with ParseMixin {
     String profession,
     ParseUser user,
     Media profilePicture,
-    bool isActive,
+    bool isActive = true,
     Gender gender,
     List<Gender> interestedIn,
-    Collection profilePictureCollection,
+    MediaCollection profilePictureCollection,
+    MemoryCollection archiveMemoryCollection,
   }) : super(
           id: id,
           firstName: firstName,
@@ -39,16 +42,23 @@ class UserProfileParse extends UserProfile with ParseMixin {
           gender: gender,
           interestedIn: interestedIn,
           profilePictureCollection: profilePictureCollection,
+          archiveMemoryCollection: archiveMemoryCollection,
         );
 
   static UserProfileParse from(ParseObject parseObject,
-      {UserProfileParse cacheData, List<String> cacheKeys = const []}) {
+      {UserProfileParse cacheData,
+      List<String> cacheKeys = const [],
+      List<String> notCacheKeys = const []}) {
     if (parseObject == null) {
       return null;
     }
     final parseOptions = {
       'cacheData': cacheData,
-      'cacheKeys': cacheKeys ?? [],
+      'cacheKeys': notCacheKeys.isEmpty
+          ? cacheKeys ?? []
+          : cacheData.map.keys
+              .where((element) => !notCacheKeys.contains(element))
+              .toList(),
       'data': parseObject,
     };
     return UserProfileParse(
@@ -63,7 +73,7 @@ class UserProfileParse extends UserProfile with ParseMixin {
           transform: MediaParse.from),
       profilePictureCollection: ParseMixin.value(
           'profilePictureCollection', parseOptions,
-          transform: CollectionParse.from),
+          transform: MediaCollectionParse.from),
       gender:
           ParseMixin.value('gender', parseOptions, transform: GenderParse.from),
       interestedIn: List<Gender>.from(ParseMixin.value(
@@ -73,6 +83,9 @@ class UserProfileParse extends UserProfile with ParseMixin {
         'isActive',
         parseOptions,
       ),
+      archiveMemoryCollection: ParseMixin.value(
+          'archiveMemoryCollection', parseOptions,
+          transform: MemoryCollectionParse.from),
     );
   }
 
@@ -88,7 +101,8 @@ class UserProfileParse extends UserProfile with ParseMixin {
       'profilePicture': profilePicture,
       'profilePictureCollection': profilePictureCollection,
       'gender': gender,
-      'interestedIn': interestedIn
+      'interestedIn': interestedIn,
+      'archiveMemoryCollection': archiveMemoryCollection,
     };
   }
 

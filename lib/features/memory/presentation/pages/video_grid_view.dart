@@ -2,46 +2,43 @@ import 'dart:io';
 
 import 'package:drag_select_grid_view/drag_select_grid_view.dart';
 import 'package:flutter/material.dart';
-import 'package:image_cropper/image_cropper.dart';
-import 'package:mood_manager/features/common/presentation/widgets/loading_widget.dart';
+import 'package:mood_manager/features/common/data/models/media_collection_parse.dart';
+import 'package:mood_manager/features/common/data/models/media_collection_mapping_parse.dart';
+import 'package:mood_manager/features/common/data/models/media_parse.dart';
+import 'package:mood_manager/features/common/domain/entities/media_collection_mapping.dart';
 import 'package:mood_manager/features/common/presentation/widgets/media_page_view.dart';
-import 'package:mood_manager/features/common/presentation/widgets/memory_image_slider.dart';
-import 'package:mood_manager/features/common/presentation/widgets/memory_video_slider.dart';
 import 'package:mood_manager/features/common/presentation/widgets/video_trim_view.dart';
 import 'package:mood_manager/injection_container.dart';
 import 'package:multi_media_picker/multi_media_picker.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
 import 'package:uuid/uuid.dart';
-import 'package:video_player/video_player.dart';
 import 'package:video_trimmer/video_trimmer.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
 import 'package:path_provider/path_provider.dart';
 
 class VideoGridView extends StatefulWidget {
-  final Map<ParseFile, ParseFile> videosMap;
-  List<ParseFile> thumbnailList;
-  final ValueChanged<Map<ParseFile, ParseFile>> onChanged;
+  final List<MediaCollectionMapping> videoMediaCollectionList;
+  final ValueChanged<List<MediaCollectionMapping>> onChanged;
   VideoGridView({
     Key key,
-    this.videosMap,
+    this.videoMediaCollectionList,
     this.onChanged,
-  }) : super(key: key) {
-    thumbnailList = videosMap.keys.toList();
-  }
+  }) : super(key: key);
   @override
   State<StatefulWidget> createState() => _VideoGridViewState();
 }
 
 class _VideoGridViewState extends State<VideoGridView> {
   final controller = DragSelectGridViewController();
-  final List<ParseFile> selectedVideos = [];
   Trimmer _trimmer = sl<Trimmer>();
   final Uuid uuid = sl<Uuid>();
+  Future<Directory> tempDirectoryFuture;
 
   @override
   void initState() {
     super.initState();
     controller.addListener(scheduleRebuild);
+    tempDirectoryFuture = getTemporaryDirectory();
   }
 
   @override
@@ -79,7 +76,8 @@ class _VideoGridViewState extends State<VideoGridView> {
                           color: Colors.black,
                         ),
                         onPressed: () {
-                          Navigator.of(context).pop();
+                          Navigator.of(context)
+                              .pop(widget.videoMediaCollectionList);
                         }),
                   ),
                   Container(
@@ -99,7 +97,7 @@ class _VideoGridViewState extends State<VideoGridView> {
                           if (controller.value.selectedIndexes.length > 0)
                             'Deselect All': deselectAll,
                           if (controller.value.selectedIndexes.length !=
-                              widget.videosMap.length)
+                              widget.videoMediaCollectionList.length)
                             'Select All': selectAll
                         };
                         return popupMap.keys.map((key) {
@@ -131,22 +129,21 @@ class _VideoGridViewState extends State<VideoGridView> {
   }
 
   void delete() {
-    for (final thumbnailFile in controller.value.selectedIndexes
-        .map((e) => widget.thumbnailList[e])
-        .toList()) {
-      widget.videosMap.remove(thumbnailFile);
-      thumbnailFile.file.deleteSync();
-      widget.thumbnailList.remove(thumbnailFile);
+    for (final index in controller.value.selectedIndexes) {
+      var removed = widget.videoMediaCollectionList.removeAt(index);
+      removed.media?.file?.file?.delete();
+      removed.media?.file?.delete();
     }
     controller.clear();
-    if (widget.videosMap.isEmpty) {
-      Navigator.of(context).pop();
+    if (widget.videoMediaCollectionList.isEmpty) {
+      Navigator.of(context).pop(widget.videoMediaCollectionList);
     }
-    widget.onChanged(widget.videosMap);
+    widget.onChanged(widget.videoMediaCollectionList);
   }
 
   void selectAll() {
-    controller.value = Selection(widget.thumbnailList.asMap().keys.toSet());
+    controller.value =
+        Selection(widget.videoMediaCollectionList.asMap().keys.toSet());
   }
 
   void deselectAll() {
@@ -155,19 +152,21 @@ class _VideoGridViewState extends State<VideoGridView> {
 
   void edit() async {
     await _trimmer.loadVideo(
-        videoFile: File(widget
-            .videosMap[
-                widget.thumbnailList[controller.value.selectedIndexes.first]]
-            .file
-            .path));
+      videoFile: (await widget
+              .videoMediaCollectionList[controller.value.selectedIndexes.first]
+              .media
+              .file
+              .download())
+          .file,
+    );
     Navigator.of(context).push(MaterialPageRoute(builder: (context) {
       return VideoTrimView(
           trimmer: _trimmer,
           saveCallback: (value) async {
-            final thumbnailFile =
-                widget.thumbnailList[controller.value.selectedIndexes.first];
-            final newThumbnailFile =
-                File(thumbnailFile.file.parent.path + "/" + uuid.v1() + ".jpg");
+            var selectedMediaCollection = widget.videoMediaCollectionList[
+                controller.value.selectedIndexes.first];
+            final newThumbnailFile = File(
+                (await tempDirectoryFuture).path + "/" + uuid.v1() + ".jpg");
             await VideoThumbnail.thumbnailFile(
               video: value.path,
               thumbnailPath: newThumbnailFile.path,
@@ -176,15 +175,19 @@ class _VideoGridViewState extends State<VideoGridView> {
                   200, // specify the height of the thumbnail, let the width auto-scaled to keep the source aspect ratio
               quality: 50,
             );
-            widget.videosMap.remove(thumbnailFile);
-            thumbnailFile.file.deleteSync();
+            selectedMediaCollection.media.file.delete();
+            selectedMediaCollection.media.file?.file?.delete();
+            selectedMediaCollection.media.file = ParseFile(value);
+            selectedMediaCollection.media.thumbnail.delete();
+            selectedMediaCollection.media.thumbnail?.file?.delete();
+            selectedMediaCollection.media.thumbnail =
+                ParseFile(newThumbnailFile);
             setState(() {
-              widget.videosMap[ParseFile(newThumbnailFile)] = ParseFile(value);
-              widget.onChanged(widget.videosMap);
+              widget.onChanged(widget.videoMediaCollectionList);
             });
           });
     }));
-    widget.onChanged(widget.videosMap);
+    widget.onChanged(widget.videoMediaCollectionList);
   }
 
   buildSelectableGrid() {
@@ -195,9 +198,9 @@ class _VideoGridViewState extends State<VideoGridView> {
         crossAxisSpacing: 4,
         mainAxisSpacing: 4,
       ),
-      itemCount: widget.videosMap.length + 1,
+      itemCount: widget.videoMediaCollectionList.length + 1,
       itemBuilder: (BuildContext context, int index, bool selected) {
-        if (index == widget.videosMap.length) {
+        if (index == widget.videoMediaCollectionList.length) {
           return GestureDetector(
             onTap: () {
               showModalBottomSheet(
@@ -220,30 +223,53 @@ class _VideoGridViewState extends State<VideoGridView> {
                             title: Text('Gallery'),
                             onTap: () async {
                               Navigator.of(context).pop();
-                              final cacheDir = await getTemporaryDirectory();
                               final pickedFileList =
                                   await _onVideoButtonPressedMultiple(
                                       ImageSource.gallery,
                                       context: context);
 
                               for (final pickedFile in pickedFileList) {
-                                final newThumbnailFile = File(
-                                    cacheDir.path + "/" + uuid.v1() + ".jpg");
+                                final thumbnailFile = File(
+                                  (await tempDirectoryFuture).path +
+                                      "/" +
+                                      uuid.v1() +
+                                      ".jpg",
+                                );
                                 await VideoThumbnail.thumbnailFile(
                                   video: pickedFile.path,
-                                  thumbnailPath: newThumbnailFile.path,
+                                  thumbnailPath: thumbnailFile.path,
                                   imageFormat: ImageFormat.JPEG,
                                   maxHeight:
                                       200, // specify the height of the thumbnail, let the width auto-scaled to keep the source aspect ratio
                                   quality: 50,
                                 );
-                                widget.videosMap[ParseFile(newThumbnailFile)] =
-                                    ParseFile(pickedFile);
-                                widget.thumbnailList =
-                                    widget.videosMap.keys.toList();
+                                final mediaCollectionParse =
+                                    MediaCollectionMappingParse(
+                                  collection:
+                                      widget.videoMediaCollectionList.isNotEmpty
+                                          ? widget.videoMediaCollectionList[0]
+                                              .collection
+                                              .incrementMediaCount()
+                                          : MediaCollectionParse(
+                                              mediaType: 'VIDEO',
+                                              module: 'MEMORY',
+                                              name: uuid.v1(),
+                                              code: uuid.v1(),
+                                              mediaCount: 1,
+                                            ),
+                                  media: MediaParse(
+                                    file: ParseFile(pickedFile),
+                                    mediaType: 'VIDEO',
+                                    thumbnail: ParseFile(thumbnailFile),
+                                  ),
+                                );
+                                widget.videoMediaCollectionList
+                                    .add(mediaCollectionParse);
                               }
-                              widget.onChanged(widget.videosMap);
-                              setState(() {});
+                              setState(() {
+                                widget
+                                    .onChanged(widget.videoMediaCollectionList);
+                              });
                             },
                           ),
                         ],
@@ -258,36 +284,36 @@ class _VideoGridViewState extends State<VideoGridView> {
             ),
           );
         }
-        final videoController = VideoPlayerController.file(
-            widget.videosMap[widget.thumbnailList[index]].file);
         if (selected || controller.value.selectedIndexes.isNotEmpty) {
           return SelectableVideoItem(
-            image: widget.thumbnailList[index],
-            value: widget.videosMap[widget.thumbnailList[index]],
+            mediaCollection: widget.videoMediaCollectionList[index],
             selected: selected,
-            controller: videoController,
           );
         }
         return GestureDetector(
           onTap: () {
             Navigator.of(context).push(MaterialPageRoute(builder: (context) {
               return MediaPageView(
-                initialItem: widget.videosMap[widget.thumbnailList[index]],
-                fileList: widget.videosMap.values.toList(),
+                initialIndex: index,
+                mediaCollectionList: widget.videoMediaCollectionList,
               );
             }));
           },
           onDoubleTap: () async {
             await _trimmer.loadVideo(
-                videoFile: File(
-                    widget.videosMap[widget.thumbnailList[index]].file.path));
+              videoFile: (await widget
+                      .videoMediaCollectionList[index].media.file
+                      .download())
+                  .file,
+            );
             Navigator.of(context).push(MaterialPageRoute(builder: (context) {
               return VideoTrimView(
                   trimmer: _trimmer,
                   saveCallback: (value) async {
-                    final thumbnailFile = widget.thumbnailList[index];
+                    final selectedMediaCollection =
+                        widget.videoMediaCollectionList[index];
                     final newThumbnailFile = File(
-                        thumbnailFile.file.parent.path +
+                        (await tempDirectoryFuture).path +
                             "/" +
                             uuid.v1() +
                             ".jpg");
@@ -299,21 +325,22 @@ class _VideoGridViewState extends State<VideoGridView> {
                           200, // specify the height of the thumbnail, let the width auto-scaled to keep the source aspect ratio
                       quality: 50,
                     );
-                    widget.videosMap.remove(thumbnailFile);
-                    thumbnailFile.file.deleteSync();
+                    selectedMediaCollection.media.file.delete();
+                    selectedMediaCollection.media.file?.file?.delete();
+                    selectedMediaCollection.media.file = ParseFile(value);
+                    selectedMediaCollection.media.thumbnail.delete();
+                    selectedMediaCollection.media.thumbnail?.file?.delete();
+                    selectedMediaCollection.media.thumbnail =
+                        ParseFile(newThumbnailFile);
                     setState(() {
-                      widget.videosMap[ParseFile(newThumbnailFile)] =
-                          ParseFile(value);
-                      widget.onChanged(widget.videosMap);
+                      widget.onChanged(widget.videoMediaCollectionList);
                     });
                   });
             }));
           },
           child: SelectableVideoItem(
-            image: widget.thumbnailList[index],
-            value: widget.videosMap[widget.thumbnailList[index]],
+            mediaCollection: widget.videoMediaCollectionList[index],
             selected: selected,
-            controller: videoController,
           ),
         );
       },
@@ -325,16 +352,12 @@ class _VideoGridViewState extends State<VideoGridView> {
 class SelectableVideoItem extends StatefulWidget {
   SelectableVideoItem({
     Key key,
-    @required this.value,
     @required this.selected,
-    @required this.image,
-    @required this.controller,
+    @required this.mediaCollection,
   }) : super(key: key);
 
-  final ParseFile value;
-  final VideoPlayerController controller;
+  final MediaCollectionMapping mediaCollection;
   bool selected;
-  final ParseFile image;
 
   @override
   _SelectableVideoItemState createState() => _SelectableVideoItemState();
@@ -365,20 +388,13 @@ class _SelectableVideoItemState extends State<SelectableVideoItem>
         color: widget.selected ? Colors.blue : Colors.black,
       )),
       child: Hero(
-          tag: widget.value.file.path,
-          child: FutureBuilder(
-              future: widget.controller.initialize(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState != ConnectionState.done) {
-                  return LoadingWidget();
-                }
-                return Container(
-                  child: Image.file(
-                    widget.image.file,
-                    fit: BoxFit.fill,
-                  ),
-                );
-              })),
+        tag: widget.mediaCollection.media.tag,
+        child: Container(
+          child: Image(
+            image: widget.mediaCollection.media.thumbnailProvider,
+          ),
+        ),
+      ),
     );
   }
 }

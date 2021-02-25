@@ -1,20 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:mood_manager/core/constants/app_constants.dart';
 import 'package:mood_manager/core/util/color_util.dart';
 import 'package:mood_manager/core/util/date_util.dart';
-import 'package:mood_manager/features/common/domain/entities/collection.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection.dart';
+import 'package:mood_manager/features/common/domain/entities/media_collection_mapping.dart';
 import 'package:mood_manager/features/common/presentation/widgets/empty_widget.dart';
+import 'package:mood_manager/features/common/presentation/widgets/media_page_view.dart';
+import 'package:mood_manager/features/memory/data/models/memory_collection_mapping_parse.dart';
+import 'package:mood_manager/features/memory/data/models/memory_collection_parse.dart';
 import 'package:mood_manager/features/memory/domain/entities/memory.dart';
+import 'package:mood_manager/features/memory/domain/entities/memory_collection.dart';
 import 'package:mood_manager/features/memory/presentation/bloc/memory_bloc.dart';
 import 'package:mood_manager/features/common/data/datasources/common_remote_data_source.dart';
 import 'package:mood_manager/features/memory/presentation/pages/memory_list_page.dart';
 import 'package:mood_manager/injection_container.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:intl/intl.dart';
+import 'package:sliding_panel/sliding_panel.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:tinycolor/tinycolor.dart';
+import 'package:uuid/uuid.dart';
+import 'package:mood_manager/features/memory/data/datasources/memory_remote_data_source.dart';
 
 class MemoryCalendarPage extends StatefulWidget {
   final Map<dynamic, dynamic> arguments;
@@ -28,51 +36,35 @@ class _MemoryCalendarPageState extends State<MemoryCalendarPage>
     with RouteAware {
   List<Memory> memoryList = [];
   Map<DateTime, List<Memory>> memoryListMapByDate = {};
-  Map<String, Future<List<MediaCollection>>> mediaCollectionListMapByMemory =
-      {};
+  Map<String, Future<List<MediaCollectionMapping>>>
+      mediaCollectionMappingListMapByMemory = {};
   MemoryBloc _memoryBloc;
   List<DateTime> dateKeys = [];
   AutoScrollController scrollController;
   DateTime selectedDate = DateTime.now();
   CalendarController _calendarController;
-  Memory lastSaved;
+  MapEntry<String, Memory> lastSavedWithActionType;
+  String uniqueKey;
+  final Uuid uuid = sl<Uuid>();
+  String moduleKey;
 
   @override
   void initState() {
-    _memoryBloc = sl<MemoryBloc>();
-    _memoryBloc.add(GetMemoryListEvent());
+    _memoryBloc = BlocProvider.of<MemoryBloc>(context);
+    //_memoryBloc.add(GetMemoryListEvent());
     scrollController = AutoScrollController(
         viewportBoundaryGetter: () =>
             Rect.fromLTRB(0, 0, 0, MediaQuery.of(context).padding.bottom),
         axis: Axis.vertical);
     _calendarController = CalendarController();
+    uniqueKey = uuid.v1();
+    moduleKey = 'LIST';
     super.initState();
   }
 
-  Map<DateTime, List<Memory>> subListMapByDate(
-    List<Memory> memoryList,
-  ) {
-    return Map.fromEntries(memoryList
-        .map((memory) => DateFormat(AppConstants.HEADER_DATE_FORMAT)
-            .format(memory.logDateTime))
-        .toList()
-        .toSet()
-        .toList()
-        .map((dateStr) => MapEntry<DateTime, List<Memory>>(
-            DateFormat(AppConstants.HEADER_DATE_FORMAT).parse(dateStr),
-            memoryList
-                .where((element) =>
-                    DateFormat(AppConstants.HEADER_DATE_FORMAT)
-                        .format(element.logDateTime) ==
-                    dateStr)
-                .toList())));
-  }
-
-  Future _scrollToIndex(int index, bool isHighlightAllowOnly) async {
-    if (!isHighlightAllowOnly) {
-      await scrollController.scrollToIndex(index,
-          preferPosition: AutoScrollPosition.middle);
-    }
+  Future _scrollToIndex(int index) async {
+    await scrollController.scrollToIndex(index,
+        preferPosition: AutoScrollPosition.middle);
     scrollController.highlight(index, highlightDuration: Duration(seconds: 2));
   }
 
@@ -81,14 +73,122 @@ class _MemoryCalendarPageState extends State<MemoryCalendarPage>
     return Future.value();
   }
 
-  Widget _wrapScrollTag({int index, Widget child, Color highlightColor}) =>
-      AutoScrollTag(
-        key: ValueKey(index),
-        controller: scrollController,
-        index: index,
-        child: child,
-        highlightColor: highlightColor.withOpacity(0.3),
+  deleteMemory(memory) async {
+    memory.isActive = false;
+    _memoryBloc.add(SaveMemoryEvent(
+      memory: memory,
+      mediaCollectionMappingList:
+          await mediaCollectionMappingListMapByMemory[memory.id],
+    ));
+  }
+
+  archiveMemory(memory) async {
+    memory.isArchived = true;
+    _memoryBloc.add(ArchiveMemoryEvent(
+        memory: memory,
+        mediaCollectionMappingList:
+            await mediaCollectionMappingListMapByMemory[memory.id]));
+  }
+
+  addToCollection(Memory memory) async {
+    MemoryCollection result;
+    sl<MemoryRemoteDataSource>().getMemoryCollectionList().then((value) async {
+      result = await showModalSlidingPanel(
+        context: context,
+        panel: (context) {
+          final pc = PanelController();
+          return SlidingPanel(
+            panelController: pc,
+            safeAreaConfig: SafeAreaConfig.all(removePaddingFromContent: true),
+            backdropConfig: BackdropConfig(enabled: true),
+            isTwoStatePanel: true,
+            snapping: PanelSnapping.forced,
+            size: PanelSize(closedHeight: 0.00, expandedHeight: 0.8),
+            autoSizing: PanelAutoSizing(
+                autoSizeExpanded: true, headerSizeIsClosed: true),
+            duration: Duration(milliseconds: 500),
+            initialState: InitialPanelState.expanded,
+            content: PanelContent(
+              panelContent: panelContentCollectionOptions(context, value),
+              headerWidget: PanelHeaderWidget(
+                headerContent: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Add to collection',
+                        style: Theme.of(context).textTheme.headline6,
+                      ),
+                      CloseButton(),
+                    ]),
+                options: PanelHeaderOptions(
+                  centerTitle: true,
+                  elevation: 4,
+                  forceElevated: true,
+                  primary: false,
+                ),
+                decoration: PanelDecoration(padding: EdgeInsets.all(16)),
+              ),
+            ),
+          );
+        },
       );
+      if (result != null) {
+        _memoryBloc.add(AddMemoryToCollectionEvent(MemoryCollectionMappingParse(
+            memory: memory,
+            memoryCollection:
+                result.incrementMemoryCount().addColor(memory.mMood?.color))));
+      }
+    });
+  }
+
+  List<Widget> panelContentCollectionOptions(
+      BuildContext context, List<MemoryCollection> value) {
+    return [
+      ListTile(
+        leading: CircleAvatar(
+          backgroundColor: Theme.of(context).primaryColor,
+          child: Icon(
+            MdiIcons.bookPlus,
+            color: Colors.white,
+          ),
+        ),
+        title: Text('Create new collection'),
+        onTap: () async {
+          var newMemoryCollection = MemoryCollectionParse();
+          var collectionName = await showNewMemoryCollectionDialog(context);
+
+          newMemoryCollection.name = collectionName;
+          Navigator.of(context).pop(newMemoryCollection);
+        },
+      ),
+      Divider(
+        thickness: 1,
+        height: 1,
+      ),
+      ...value
+          .map((e) => [
+                ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: e.averageMemoryMoodColor,
+                    child: Icon(
+                      MdiIcons.book,
+                      color: Colors.white,
+                    ),
+                  ),
+                  title: Text(e.name),
+                  onTap: () {
+                    Navigator.of(context).pop(e);
+                  },
+                ),
+                Divider(
+                  thickness: 1,
+                  height: 3,
+                ),
+              ])
+          .expand((element) => element)
+          .toList()
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -103,37 +203,42 @@ class _MemoryCalendarPageState extends State<MemoryCalendarPage>
             : 0.0,
         duration: Duration(milliseconds: 500),
         child: FloatingActionButton(
+          heroTag: uniqueKey,
           onPressed: navigateToMemoryForm,
           child: Icon(
             Icons.add,
           ),
         ),
       ),
-      body: BlocConsumer(
+      body: BlocConsumer<MemoryBloc, MemoryState>(
         cubit: _memoryBloc,
         listener: (context, state) {
           if (state is MemoryListLoaded) {
             memoryList = state.memoryList;
             memoryListMapByDate = subListMapByDate(memoryList);
             dateKeys = memoryListMapByDate.keys.toList();
-            final Map<String, Future<List<MediaCollection>>>
-                mediaCollectionMap = {};
+            final Map<String, Future<List<MediaCollectionMapping>>>
+                mediaCollectionMappingMap = {};
             for (final memory in memoryList) {
-              mediaCollectionMap[memory.id] = sl<CommonRemoteDataSource>()
-                  .getMediaCollectionByCollectionList(memory.collectionList);
+              mediaCollectionMappingMap[memory.id] =
+                  sl<CommonRemoteDataSource>()
+                      .getMediaCollectionMappingByCollectionList(
+                          memory.mediaCollectionList);
             }
-            mediaCollectionListMapByMemory = mediaCollectionMap;
-            if (lastSaved != null) {
-              final scrollIndex = (memoryList ?? [])
-                  .indexWhere((element) => element.id == lastSaved.id);
-              _scrollToIndex(scrollIndex, false);
+            mediaCollectionMappingListMapByMemory = mediaCollectionMappingMap;
+            if (lastSavedWithActionType != null) {
+              final scrollIndex = (memoryList ?? []).indexWhere(
+                  (element) => element.id == lastSavedWithActionType.value.id);
+              _scrollToIndex(scrollIndex);
               _onDaySelected(
-                  lastSaved.logDateTime,
-                  memoryListMapByDate[
-                      DateUtil.getDateOnly(lastSaved.logDateTime)]);
-              lastSaved = null;
+                  lastSavedWithActionType.value.logDateTime,
+                  memoryListMapByDate[DateUtil.getDateOnly(
+                      lastSavedWithActionType.value.logDateTime)]);
+              lastSavedWithActionType = null;
             }
-          }
+          } else if (state is MemorySaved) {
+            _memoryBloc.add(GetMemoryListEvent());
+          } else if (state is AddedToMemoryCollection) {}
         },
         builder: (context, state) {
           final addWidgetButton = Container(
@@ -309,8 +414,9 @@ class _MemoryCalendarPageState extends State<MemoryCalendarPage>
         selectedDate = date;
       }
       //widget.selectDate(widget.selectedDate);
-      if (events.any((element) => List<Collection>.from(element.collectionList)
-          .any((element) => element.mediaCount > 0))) {
+      if (events.any((element) =>
+          List<MediaCollection>.from(element.mediaCollectionList)
+              .any((element) => element.mediaCount > 0))) {
         _calendarController.setCalendarFormat(CalendarFormat.week);
       }
     });
@@ -350,7 +456,8 @@ class _MemoryCalendarPageState extends State<MemoryCalendarPage>
   List<Widget> _buildEventList(List<Memory> eventMemoryList) {
     return eventMemoryList
         .map(
-          (e) => _wrapScrollTag(
+          (e) => wrapScrollTag(
+            controller: scrollController,
             highlightColor: e.mMood?.color ?? Colors.grey,
             index: memoryList.indexWhere((element) => element == e),
             child: Container(
@@ -366,13 +473,16 @@ class _MemoryCalendarPageState extends State<MemoryCalendarPage>
                   )),
                   MemoryActivityAndMood(
                     memory: e,
-                    tagSuffix: 'CALENDAR',
+                    navigateToMemoryForm: navigateToMemoryForm,
+                    archiveMemory: archiveMemory,
+                    deleteMemory: deleteMemory,
+                    addToCollection: addToCollection,
                   ),
-                  FutureBuilder<List<MediaCollection>>(
-                    future: mediaCollectionListMapByMemory[e.id],
+                  FutureBuilder<List<MediaCollectionMapping>>(
+                    future: mediaCollectionMappingListMapByMemory[e.id],
                     builder: (context, snapshot) {
                       final memory = e;
-                      int mediaCount = memory.collectionList.fold(
+                      int mediaCount = memory.mediaCollectionList.fold(
                           0,
                           (previousValue, element) =>
                               element.mediaCount + previousValue);
@@ -384,6 +494,15 @@ class _MemoryCalendarPageState extends State<MemoryCalendarPage>
                       }
                       return MemoryMediaGrid(
                         mediaCollectionList: snapshot.data,
+                        navigateToMediaPageView: (index) {
+                          Navigator.of(context)
+                              .push(MaterialPageRoute(builder: (context) {
+                            return MediaPageView(
+                              mediaCollectionList: snapshot.data,
+                              initialIndex: index,
+                            );
+                          }));
+                        },
                       );
                     },
                   ),
@@ -402,15 +521,11 @@ class _MemoryCalendarPageState extends State<MemoryCalendarPage>
         .toList();
   }
 
-  void navigateToMemoryForm() async {
-    final savedMemory = await Navigator.of(context)
-        .pushNamed('/memory/add', arguments: {'selectedDate': selectedDate});
-    if (savedMemory != null) {
-      print(savedMemory.toString());
-    }
-    if (savedMemory is Memory) {
-      lastSaved = savedMemory;
-    }
+  void navigateToMemoryForm({Memory memory}) async {
+    final savedMemoryWithActionType = await Navigator.of(context).pushNamed(
+        '/memory/add',
+        arguments: {'memory': memory, 'selectedDate': selectedDate});
+    lastSavedWithActionType = savedMemoryWithActionType;
     _memoryBloc.add(GetMemoryListEvent());
   }
 

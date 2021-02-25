@@ -32,32 +32,13 @@ class _ChoiceChipGroupSelectionPage<T> extends State<ChoiceChipGroupSelection> {
       choiceChipOptionsGrouped;
   List<dynamic> choiceChipOptionsGroupedKeys = [];
   Map<dynamic, List<T>> selectedOptionsGrouped;
-  TextEditingController _textFieldController = TextEditingController();
-  dynamic addActivityGroup;
-
-  addActivity() {
-    if (addActivityGroup != null && _textFieldController.text.isNotEmpty) {
-      final value =
-          widget.labelToValue(_textFieldController.text, addActivityGroup);
-      final ChoiceChipGroupSelectionOption<T> choiceChipGroupSelectionOption =
-          ChoiceChipGroupSelectionOption<T>(
-        group: addActivityGroup,
-        label: _textFieldController.text,
-        value: value,
-      );
-      setState(() {
-        widget.choiceChipOptions.add(choiceChipGroupSelectionOption);
-      });
-      Navigator.of(context).pop();
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
-      itemCount: choiceChipOptionsGroupedKeys.length,
+      itemCount: widget.groupList.length,
       itemBuilder: (context, index) {
-        final groupKey = choiceChipOptionsGroupedKeys[index];
+        final groupKey = widget.groupList[index];
         return Column(
           children: [
             ExpansionTile(
@@ -138,7 +119,6 @@ class _ChoiceChipGroupSelectionPage<T> extends State<ChoiceChipGroupSelection> {
                     widget.initialValue.contains(element.value))
                 .map((e) => e.value)
                 .toList())));
-    _textFieldController.text = "";
     choiceChipOptionsGroupedKeys = choiceChipOptionsGrouped.keys.toList();
   }
 }

@@ -1,13 +1,13 @@
 import 'package:dartz/dartz.dart' show cast;
 import 'package:mood_manager/features/common/data/datasources/common_remote_data_source.dart';
 import 'package:mood_manager/features/common/data/models/parse_mixin.dart';
-import 'package:mood_manager/features/common/data/models/collection_parse.dart';
 import 'package:mood_manager/features/common/data/models/media_collection_parse.dart';
+import 'package:mood_manager/features/common/data/models/media_collection_mapping_parse.dart';
 import 'package:mood_manager/features/common/data/models/media_parse.dart';
 import 'package:mood_manager/features/profile/data/models/user_profile_parse.dart';
-import 'package:mood_manager/features/common/domain/entities/collection.dart';
-import 'package:mood_manager/features/common/domain/entities/media.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection.dart';
+import 'package:mood_manager/features/common/domain/entities/media.dart';
+import 'package:mood_manager/features/common/domain/entities/media_collection_mapping.dart';
 import 'package:mood_manager/features/profile/domain/entities/user_profile.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
 
@@ -17,8 +17,9 @@ abstract class UserProfileRemoteDataSource {
   Future<UserProfile> getUserProfile(ParseUser user);
   Future<UserProfile> getCurrentUserProfile();
   Future<UserProfile> saveUserProfile(UserProfile userProfile);
-  Future<MediaCollection> saveProfilePicture(
-      final MediaCollection mediaCollection, final UserProfile userProfile);
+  Future<MediaCollectionMapping> saveProfilePicture(
+      final MediaCollectionMapping mediaCollectionMapping,
+      final UserProfile userProfile);
 }
 
 class UserProfileParseDataSource implements UserProfileRemoteDataSource {
@@ -54,6 +55,7 @@ class UserProfileParseDataSource implements UserProfileRemoteDataSource {
             'interestedIn',
             'profilePicture',
             'profilePictureCollection',
+            'archiveMemoryCollection',
           ]);
 
     final ParseResponse response = await queryBuilder.query();
@@ -82,19 +84,23 @@ class UserProfileParseDataSource implements UserProfileRemoteDataSource {
     }
   }
 
-  Future<MediaCollection> saveProfilePicture(
-      final MediaCollection media, final UserProfile userProfile) async {
-    final List<MediaCollection> mediaCollectionList =
-        await commonRemoteDataSource.saveMediaCollectionList([media]);
+  Future<MediaCollectionMapping> saveProfilePicture(
+      final MediaCollectionMapping mediaCollectionMapping,
+      final UserProfile userProfile) async {
+    final List<MediaCollectionMapping> mediaCollectionMappingList =
+        await commonRemoteDataSource
+            .saveMediaCollectionMappingList([mediaCollectionMapping]);
     ParseObject userProfileParse = ParseObject('userDtl');
     userProfileParse.set('objectId', userProfile.id);
     userProfileParse.set('profilePicture',
-        cast<MediaParse>(mediaCollectionList[0].media).pointer);
-    userProfileParse.set('profilePictureCollection',
-        cast<CollectionParse>(mediaCollectionList[0].collection).pointer);
+        cast<MediaParse>(mediaCollectionMappingList[0].media).pointer);
+    userProfileParse.set(
+        'profilePictureCollection',
+        cast<MediaCollectionParse>(mediaCollectionMappingList[0].collection)
+            .pointer);
     ParseResponse response = await userProfileParse.save();
     if (response.success) {
-      return mediaCollectionList[0];
+      return mediaCollectionMappingList[0];
     } else {
       throw ServerException();
     }

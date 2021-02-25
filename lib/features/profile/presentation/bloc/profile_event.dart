@@ -26,7 +26,7 @@ class SaveUserProfileEvent extends ProfileEvent {
 }
 
 class SaveProfilePictureEvent extends ProfileEvent {
-  final MediaCollection profilePictureMediaCollection;
+  final MediaCollectionMapping profilePictureMediaCollection;
   final UserProfile userProfile;
   SaveProfilePictureEvent(this.profilePictureMediaCollection, this.userProfile);
 

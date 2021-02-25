@@ -2,9 +2,9 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:meta/meta.dart';
 
-abstract class Base extends Equatable {
+abstract class Base with EquatableMixin {
   final String id;
-  final bool isActive;
+  bool isActive;
   final String className;
 
   Base({

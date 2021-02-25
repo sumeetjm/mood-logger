@@ -3,26 +3,112 @@ import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:mood_manager/core/constants/app_constants.dart';
 import 'package:mood_manager/features/common/data/datasources/common_remote_data_source.dart';
-import 'package:mood_manager/features/common/domain/entities/media_collection.dart';
+import 'package:mood_manager/features/common/domain/entities/media_collection_mapping.dart';
 import 'package:mood_manager/features/common/presentation/widgets/empty_widget.dart';
 import 'package:mood_manager/features/common/presentation/widgets/media_page_view.dart';
+import 'package:mood_manager/features/memory/data/datasources/memory_remote_data_source.dart';
+import 'package:mood_manager/features/memory/data/models/memory_collection_mapping_parse.dart';
+import 'package:mood_manager/features/memory/data/models/memory_collection_parse.dart';
 import 'package:mood_manager/features/memory/domain/entities/memory.dart';
+import 'package:mood_manager/features/memory/domain/entities/memory_collection.dart';
 import 'package:mood_manager/features/memory/presentation/bloc/memory_bloc.dart';
 import 'package:mood_manager/injection_container.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
+import 'package:sliding_panel/sliding_panel.dart';
 import 'package:sticky_headers/sticky_headers.dart';
 import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
 
+Map<DateTime, List<Memory>> subListMapByDate(
+  List<Memory> memoryList,
+) =>
+    Map.fromEntries(memoryList
+        .map((memory) => DateFormat(AppConstants.HEADER_DATE_FORMAT)
+            .format(memory.logDateTime))
+        .toList()
+        .toSet()
+        .toList()
+        .map((dateStr) => MapEntry<DateTime, List<Memory>>(
+            DateFormat(AppConstants.HEADER_DATE_FORMAT).parse(dateStr),
+            memoryList
+                .where((element) =>
+                    DateFormat(AppConstants.HEADER_DATE_FORMAT)
+                        .format(element.logDateTime) ==
+                    dateStr)
+                .toList())));
+
+Widget wrapScrollTag({
+  int index,
+  Widget child,
+  Color highlightColor,
+  ScrollController controller,
+}) =>
+    AutoScrollTag(
+      key: ValueKey(index),
+      controller: controller,
+      index: index,
+      child: child,
+      highlightColor: highlightColor.withOpacity(0.3),
+    );
+
+Future showNewMemoryCollectionDialog(BuildContext context) async {
+  final TextEditingController _textFieldController = TextEditingController();
+  return showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text('Add Activity'),
+              content: Container(
+                height: 160,
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _textFieldController,
+                      decoration: InputDecoration(
+                        hintText: "eg.family",
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: <Widget>[
+                new FlatButton(
+                  child: new Text('SUBMIT'),
+                  onPressed: () {
+                    if (_textFieldController.text.isNotEmpty) {
+                      Navigator.of(context).pop(_textFieldController.text);
+                      _textFieldController.dispose();
+                    }
+                  },
+                )
+              ],
+            );
+          },
+        );
+      });
+}
+
+// ignore: must_be_immutable
 class MemoryListPage extends StatefulWidget {
   final Map<dynamic, dynamic> arguments;
   DateTime calendarSelectedDate;
   List<Memory> memoryList;
+  String listType;
+  String title;
+  String uniqueKey;
+  MemoryCollection memoryCollection;
   MemoryListPage({Key key, this.arguments}) : super(key: key) {
     if (arguments != null) {
       this.calendarSelectedDate = this.arguments['selectedDate'];
       this.memoryList = this.arguments['memoryList'];
+      this.listType = this.arguments['listType'];
+      this.title = this.arguments['title'];
+      this.memoryCollection = this.arguments['collection'];
     }
   }
 
@@ -33,81 +119,216 @@ class MemoryListPage extends StatefulWidget {
 class _MemoryListPageState extends State<MemoryListPage> {
   List<Memory> memoryList = [];
   Map<DateTime, List<Memory>> memoryListMapByDate = {};
-  Map<String, Future<List<MediaCollection>>> mediaCollectionListMapByMemory =
-      {};
+  Map<String, Future<List<MediaCollectionMapping>>>
+      mediaCollectionListMapByMemory = {};
   MemoryBloc _memoryBloc;
   List<DateTime> dateKeys = [];
-  AutoScrollController scrollController;
-  Memory lastSaved;
+  AutoScrollController autoScrollController;
+  MapEntry<String, Memory> lastSavedWithActionType;
+  //ProgressDialog pr;
+  final Uuid uuid = sl<Uuid>();
+  String uniqueKey;
+  bool _isFabVisible = true;
+  CommonRemoteDataSource commonRemoteDataSource;
+  MemoryRemoteDataSource memoryRemoteDataSource;
 
   @override
   void initState() {
     super.initState();
-    _memoryBloc = sl<MemoryBloc>();
-    if (widget.calendarSelectedDate != null) {
-      memoryList = widget.memoryList;
-      memoryListMapByDate = subListMapByDate(memoryList);
-      dateKeys = memoryListMapByDate.keys.toList();
-      final Map<String, Future<List<MediaCollection>>> mediaCollectionMap = {};
-      for (final memory in memoryList) {
-        mediaCollectionMap[memory.id] = sl<CommonRemoteDataSource>()
-            .getMediaCollectionByCollectionList(memory.collectionList);
-      }
-      mediaCollectionListMapByMemory = mediaCollectionMap;
-    } else {
-      _memoryBloc.add(GetMemoryListEvent());
-    }
-    scrollController = AutoScrollController(
+    /*pr = ProgressDialog(context,
+        type: ProgressDialogType.Normal, isDismissible: false);*/
+    autoScrollController = AutoScrollController(
         viewportBoundaryGetter: () =>
             Rect.fromLTRB(0, 0, 0, MediaQuery.of(context).padding.bottom),
         axis: Axis.vertical);
+    uniqueKey = uuid.v1();
+    commonRemoteDataSource = sl<CommonRemoteDataSource>();
+    memoryRemoteDataSource = sl<MemoryRemoteDataSource>();
+    initializeList();
+    //_memoryBloc.listen(progressDialogListener);
   }
 
-  Map<DateTime, List<Memory>> subListMapByDate(
-    List<Memory> memoryList,
-  ) =>
-      Map.fromEntries(memoryList
-          .map((memory) => DateFormat(AppConstants.HEADER_DATE_FORMAT)
-              .format(memory.logDateTime))
-          .toList()
-          .toSet()
-          .toList()
-          .map((dateStr) => MapEntry<DateTime, List<Memory>>(
-              DateFormat(AppConstants.HEADER_DATE_FORMAT).parse(dateStr),
-              memoryList
-                  .where((element) =>
-                      DateFormat(AppConstants.HEADER_DATE_FORMAT)
-                          .format(element.logDateTime) ==
-                      dateStr)
-                  .toList())));
-
-  Future _scrollToIndex(int index, bool isHighlightAllowOnly) async {
-    if (!isHighlightAllowOnly) {
-      await scrollController.scrollToIndex(index,
-          preferPosition: AutoScrollPosition.middle);
+  /*progressDialogListener(state) async {
+    if (state is MemoryProcessing) {
+      await pr.show();
+    } else if (state is MemoryCompleted) {
+      await pr.hide();
     }
-    scrollController.highlight(index, highlightDuration: Duration(seconds: 2));
+  }*/
+
+  void initializeList() async {
+    if (widget.listType == 'ARCHIVE') {
+      _memoryBloc = _memoryBloc ?? sl<MemoryBloc>();
+      _memoryBloc.add(GetArchiveMemoryListEvent());
+      _isFabVisible = false;
+    } else if (widget.listType == 'COLLECTION') {
+      _memoryBloc = _memoryBloc ?? sl<MemoryBloc>();
+      _memoryBloc.add(GetMemoryListByCollectionEvent(widget.memoryCollection));
+      _isFabVisible = false;
+    } else if (widget.calendarSelectedDate != null) {
+      memoryList = widget.memoryList;
+      memoryListMapByDate = subListMapByDate(memoryList);
+      dateKeys = memoryListMapByDate.keys.toList();
+      mediaCollectionListMapByMemory = getMediaCollectionMap();
+    } else {
+      _memoryBloc = _memoryBloc ?? BlocProvider.of<MemoryBloc>(context);
+      //_memoryBloc.add(GetMemoryListEvent());
+    }
   }
 
-  Widget _wrapScrollTag({int index, Widget child, Color highlightColor}) =>
-      AutoScrollTag(
-        key: ValueKey(index),
-        controller: scrollController,
-        index: index,
-        child: child,
-        highlightColor: highlightColor.withOpacity(0.3),
+  _scrollToIndex(int index) {
+    autoScrollController.scrollToIndex(index,
+        preferPosition: AutoScrollPosition.middle);
+    autoScrollController.highlight(index,
+        highlightDuration: Duration(seconds: 2));
+  }
+
+  Future<void> deleteMemory(memory) async {
+    memory.isActive = false;
+    _memoryBloc.add(SaveMemoryEvent(
+      memory: memory,
+      mediaCollectionMappingList:
+          await mediaCollectionListMapByMemory[memory.id],
+    ));
+  }
+
+  Future<void> archiveMemory(memory) async {
+    memory.isArchived = true;
+    _memoryBloc.add(ArchiveMemoryEvent(
+        memory: memory,
+        mediaCollectionMappingList:
+            await mediaCollectionListMapByMemory[memory.id]));
+  }
+
+  Future<void> addToCollection(Memory memory) async {
+    MemoryCollection result;
+    memoryRemoteDataSource.getMemoryCollectionList().then((value) async {
+      result = await showModalSlidingPanel(
+        context: context,
+        panel: (context) {
+          final pc = PanelController();
+          return SlidingPanel(
+            panelController: pc,
+            safeAreaConfig: SafeAreaConfig.all(removePaddingFromContent: true),
+            backdropConfig: BackdropConfig(enabled: true),
+            isTwoStatePanel: true,
+            snapping: PanelSnapping.forced,
+            size: PanelSize(closedHeight: 0.00, expandedHeight: 0.8),
+            autoSizing: PanelAutoSizing(
+                autoSizeExpanded: true, headerSizeIsClosed: true),
+            duration: Duration(milliseconds: 500),
+            initialState: InitialPanelState.expanded,
+            content: PanelContent(
+              panelContent: panelContentCollectionOptions(context, value),
+              headerWidget: PanelHeaderWidget(
+                headerContent: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Add to collection',
+                        style: Theme.of(context).textTheme.headline6,
+                      ),
+                      CloseButton(),
+                    ]),
+                options: PanelHeaderOptions(
+                  centerTitle: true,
+                  elevation: 4,
+                  forceElevated: true,
+                  primary: false,
+                ),
+                decoration: PanelDecoration(padding: EdgeInsets.all(16)),
+              ),
+            ),
+          );
+        },
       );
+      if (result != null) {
+        _memoryBloc.add(AddMemoryToCollectionEvent(MemoryCollectionMappingParse(
+            memory: memory,
+            memoryCollection:
+                result.incrementMemoryCount().addColor(memory.mMood?.color))));
+      }
+    });
+  }
+
+  removeFromCollection(memory) async {
+    _memoryBloc.add(
+      AddMemoryToCollectionEvent(
+        MemoryCollectionMappingParse(
+          memory: memory,
+          memoryCollection: widget.memoryCollection,
+          isActive: false,
+        ),
+      ),
+    );
+  }
+
+  List<Widget> panelContentCollectionOptions(
+      BuildContext context, List<MemoryCollection> value) {
+    return [
+      ListTile(
+        leading: CircleAvatar(
+          backgroundColor: Theme.of(context).primaryColor,
+          child: Icon(
+            MdiIcons.bookPlus,
+            color: Colors.white,
+          ),
+        ),
+        title: Text('Create new collection'),
+        onTap: () async {
+          var newMemoryCollection = MemoryCollectionParse();
+          var collectionName = await showNewMemoryCollectionDialog(context);
+
+          newMemoryCollection.name = collectionName;
+          Navigator.of(context).pop(newMemoryCollection);
+        },
+      ),
+      Divider(
+        thickness: 1,
+        height: 1,
+      ),
+      ...value
+          .where((element) =>
+              widget.listType != 'COLLECTION' ||
+              widget.memoryCollection != element)
+          .map((e) => [
+                ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: e.averageMemoryMoodColor,
+                    child: Icon(
+                      MdiIcons.book,
+                      color: Colors.white,
+                    ),
+                  ),
+                  title: Text(e.name),
+                  onTap: () {
+                    Navigator.of(context).pop(e);
+                  },
+                ),
+                Divider(
+                  thickness: 1,
+                  height: 3,
+                ),
+              ])
+          .expand((element) => element)
+          .toList()
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          title: Text("Your memories"),
+          title: Text(widget.title ?? "Your memories"),
         ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: navigateToMemoryForm,
-          child: Icon(
-            Icons.add,
+        floatingActionButton: Visibility(
+          visible: _isFabVisible,
+          child: FloatingActionButton(
+            onPressed: navigateToMemoryForm,
+            child: Icon(
+              Icons.add,
+            ),
+            heroTag: uniqueKey,
           ),
         ),
         body: Container(
@@ -123,29 +344,38 @@ class _MemoryListPageState extends State<MemoryListPage> {
                 listener: (context, state) {
                   if (state is MemoryListLoaded) {
                     memoryList = state.memoryList;
+                    widget.memoryCollection =
+                        widget.memoryCollection ?? state.memoryCollection;
                     memoryListMapByDate = subListMapByDate(memoryList);
                     dateKeys = memoryListMapByDate.keys.toList();
-                    final Map<String, Future<List<MediaCollection>>>
-                        mediaCollectionMap = {};
-                    for (final memory in memoryList) {
-                      mediaCollectionMap[memory.id] =
-                          sl<CommonRemoteDataSource>()
-                              .getMediaCollectionByCollectionList(
-                                  memory.collectionList);
+                    mediaCollectionListMapByMemory = getMediaCollectionMap();
+                  } else if (state is AddedToMemoryCollection) {
+                    if (state.memoryCollectionMapping.memoryCollection.id ==
+                        widget.memoryCollection?.id) {
+                      initializeList();
                     }
-                    mediaCollectionListMapByMemory = mediaCollectionMap;
-                    if (lastSaved != null) {
-                      final scrollIndex = (memoryList ?? [])
-                          .indexWhere((element) => element.id == lastSaved.id);
-                      _scrollToIndex(scrollIndex, false);
-                    }
+                  } else if (state is MemorySaved) {
+                    initializeList();
                   }
                 },
                 builder: (context, state) {
+                  /*if (state is MemoryProcessing) {
+                    return EmptyWidget();
+                  }*/
+                  if (lastSavedWithActionType != null) {
+                    final scrollIndex = (memoryList ?? []).indexWhere(
+                        (element) =>
+                            element.id == lastSavedWithActionType.value.id);
+                    _scrollToIndex(scrollIndex);
+                    //_scrollToIndex(scrollIndex);
+                    /*WidgetsBinding.instance.addPostFrameCallback(
+                        (_) => _scrollToIndex(scrollIndex));*/
+                    lastSavedWithActionType = null;
+                  }
                   return RefreshIndicator(
                     onRefresh: _refresh,
                     child: ListView.builder(
-                      controller: scrollController,
+                      controller: autoScrollController,
                       physics: BouncingScrollPhysics(),
                       itemCount: (memoryListMapByDate ?? {}).length,
                       itemBuilder: (context, index) {
@@ -175,11 +405,13 @@ class _MemoryListPageState extends State<MemoryListPage> {
                               shrinkWrap: true,
                               itemBuilder: (context, index) {
                                 final memory = memoryListDateWise[index];
-                                final mediaCount = memory.collectionList.fold(
-                                    0,
-                                    (previousValue, element) =>
-                                        element.mediaCount + previousValue);
-                                return _wrapScrollTag(
+                                final mediaCount = memory.mediaCollectionList
+                                    .fold(
+                                        0,
+                                        (previousValue, element) =>
+                                            element.mediaCount + previousValue);
+                                return wrapScrollTag(
+                                    controller: autoScrollController,
                                     index: memoryList.indexWhere(
                                         (element) => element.id == memory.id),
                                     highlightColor:
@@ -190,12 +422,18 @@ class _MemoryListPageState extends State<MemoryListPage> {
                                         children: [
                                           MemoryTime(memory: memory),
                                           MemoryActivityAndMood(
-                                            memory: memory,
-                                            tagSuffix: 'LIST',
-                                          ),
+                                              listType: widget.listType,
+                                              memory: memory,
+                                              navigateToMemoryForm:
+                                                  navigateToMemoryForm,
+                                              deleteMemory: deleteMemory,
+                                              archiveMemory: archiveMemory,
+                                              addToCollection: addToCollection,
+                                              removeFromCollection:
+                                                  removeFromCollection),
                                           if (mediaCount > 0)
                                             FutureBuilder<
-                                                List<MediaCollection>>(
+                                                List<MediaCollectionMapping>>(
                                               future:
                                                   mediaCollectionListMapByMemory[
                                                       memory.id],
@@ -211,6 +449,18 @@ class _MemoryListPageState extends State<MemoryListPage> {
                                                 return MemoryMediaGrid(
                                                   mediaCollectionList:
                                                       snapshot.data,
+                                                  navigateToMediaPageView:
+                                                      (index) {
+                                                    Navigator.of(context).push(
+                                                        MaterialPageRoute(
+                                                            builder: (context) {
+                                                      return MediaPageView(
+                                                        mediaCollectionList:
+                                                            snapshot.data,
+                                                        initialIndex: index,
+                                                      );
+                                                    }));
+                                                  },
                                                 );
                                               },
                                             ),
@@ -227,23 +477,26 @@ class _MemoryListPageState extends State<MemoryListPage> {
                 })));
   }
 
+  Map<String, Future<List<MediaCollectionMapping>>> getMediaCollectionMap() {
+    return Map.fromEntries(memoryList.map((e) => MapEntry(
+        e.id,
+        sl<CommonRemoteDataSource>().getMediaCollectionMappingByCollectionList(
+            e.mediaCollectionList))));
+  }
+
   Future<void> _refresh() {
-    if (widget.calendarSelectedDate != null) {
-      _memoryBloc.add(GetMemoryListByDateEvent(widget.calendarSelectedDate));
-    } else {
-      _memoryBloc.add(GetMemoryListEvent());
-    }
+    initializeList();
     return Future.value();
   }
 
-  void navigateToMemoryForm() async {
-    final savedMemory = await Navigator.of(context).pushNamed('/memory/add');
-    lastSaved = savedMemory;
-    if (widget.calendarSelectedDate != null) {
-      _memoryBloc.add(GetMemoryListByDateEvent(widget.calendarSelectedDate));
-    } else {
-      _memoryBloc.add(GetMemoryListEvent());
+  void navigateToMemoryForm({Memory memory}) async {
+    final result = await Navigator.of(context)
+        .pushNamed('/memory/add', arguments: {'memory': memory});
+    if (result != null) {
+      // initializeList();
     }
+    lastSavedWithActionType = result;
+    //initializeList();
   }
 
   @override
@@ -273,8 +526,11 @@ class MemoryNote extends StatelessWidget {
 }
 
 class MemoryMediaGrid extends StatelessWidget {
-  final List<MediaCollection> mediaCollectionList;
-  const MemoryMediaGrid({Key key, this.mediaCollectionList}) : super(key: key);
+  final List<MediaCollectionMapping> mediaCollectionList;
+  final Function navigateToMediaPageView;
+  const MemoryMediaGrid(
+      {Key key, this.mediaCollectionList, this.navigateToMediaPageView})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -306,16 +562,10 @@ class MemoryMediaGrid extends StatelessWidget {
                 padding: const EdgeInsets.all(8.0),
                 child: GestureDetector(
                   onTap: () {
-                    Navigator.of(context)
-                        .push(MaterialPageRoute(builder: (context) {
-                      return MediaPageView(
-                        mediaCollectionList: mediaCollectionList,
-                        initialItem: mediaCollectionList[index],
-                      );
-                    }));
+                    navigateToMediaPageView?.call(index);
                   },
                   child: Hero(
-                    tag: mediaCollectionList[index].media.id,
+                    tag: mediaCollectionList[index].media.tag,
                     child: Container(
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.grey, width: 1),
@@ -323,10 +573,12 @@ class MemoryMediaGrid extends StatelessWidget {
                       child: CachedNetworkImage(
                         fit: BoxFit.cover,
                         imageUrl: mediaCollectionList.length == 1
-                            ? mediaCollectionList[index].media.file.url
+                            ? mediaCollectionList[index].media.mediaType ==
+                                    'VIDEO'
+                                ? mediaCollectionList[index].media.thumbnail.url
+                                : mediaCollectionList[index].media.file.url
                             : mediaCollectionList[index].media.thumbnail.url,
-                        errorWidget: (context, url, error) =>
-                            new Icon(Icons.error),
+                        errorWidget: (context, url, error) => Icon(Icons.error),
                       ),
                     ),
                   ),
@@ -351,7 +603,7 @@ class MemoryMiniGrid extends StatelessWidget {
     @required this.index,
   }) : super(key: key);
 
-  final List<MediaCollection> mediaCollectionList;
+  final List<MediaCollectionMapping> mediaCollectionList;
 
   @override
   Widget build(BuildContext context) {
@@ -370,7 +622,7 @@ class MemoryMiniGrid extends StatelessWidget {
                       .push(MaterialPageRoute(builder: (context) {
                     return MediaPageView(
                       mediaCollectionList: mediaCollectionList,
-                      initialItem: mediaCollectionList[index],
+                      initialIndex: index,
                     );
                   }));
                 },
@@ -495,11 +747,21 @@ class MemoryActivityAndMood extends StatelessWidget {
   const MemoryActivityAndMood({
     Key key,
     @required this.memory,
-    @required this.tagSuffix,
+    @required this.navigateToMemoryForm,
+    @required this.deleteMemory,
+    @required this.archiveMemory,
+    @required this.addToCollection,
+    this.removeFromCollection,
+    this.listType,
   }) : super(key: key);
 
   final Memory memory;
-  final String tagSuffix;
+  final Function navigateToMemoryForm;
+  final Function deleteMemory;
+  final Function archiveMemory;
+  final Function addToCollection;
+  final Function removeFromCollection;
+  final String listType;
 
   @override
   Widget build(BuildContext context) {
@@ -526,16 +788,82 @@ class MemoryActivityAndMood extends StatelessWidget {
             color: (memory.mMood?.color ?? Colors.grey).withOpacity(0.2),
             height: 50,
             width: (MediaQuery.of(context).size.width / 2) - 4,
-            child: Row(children: [
-              CircleAvatar(
-                backgroundColor: (memory.mMood?.color ?? Colors.grey),
-                radius: 15,
-              ),
-              SizedBox(
-                width: 20,
-              ),
-              Text(memory.mMood?.moodName ?? 'No Mood'.toUpperCase())
-            ]),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(children: [
+                  CircleAvatar(
+                    backgroundColor: (memory.mMood?.color ?? Colors.grey),
+                    radius: 15,
+                  ),
+                  SizedBox(
+                    width: 20,
+                  ),
+                  Text(memory.mMood?.moodName ?? 'No Mood'.toUpperCase()),
+                ]),
+                Container(
+                  child: PopupMenuButton(
+                    elevation: 3.2,
+                    onCanceled: () {
+                      print('You have not chossed anything');
+                    },
+                    tooltip: 'This is tooltip',
+                    onSelected: (fn) => fn(),
+                    itemBuilder: (BuildContext context) {
+                      return [
+                        PopupMenuItem(
+                          child: Text('Edit'),
+                          value: () {
+                            navigateToMemoryForm(memory: memory);
+                          },
+                        ),
+                        if (listType == null)
+                          PopupMenuItem(
+                              child: Text('Delete'),
+                              value: () {
+                                deleteMemory(memory);
+                              }),
+                        if (listType != 'ARCHIVE')
+                          PopupMenuItem(
+                            child: Text('Archive'),
+                            value: () {
+                              archiveMemory(memory);
+                            },
+                          ),
+                        if (listType != 'COLLECTION')
+                          PopupMenuItem(
+                            child: Text('Add to collection'),
+                            value: () {
+                              addToCollection(memory);
+                            },
+                          ),
+                        if (listType == 'COLLECTION')
+                          PopupMenuItem(
+                            child: Text('Add to other collection'),
+                            value: () {
+                              addToCollection(memory);
+                            },
+                          ),
+                        if (listType == 'ARCHIVE')
+                          PopupMenuItem(
+                            child: Text('Remove from archive'),
+                            value: () {
+                              removeFromCollection(memory);
+                            },
+                          ),
+                        if (listType == 'COLLECTION')
+                          PopupMenuItem(
+                            child: Text('Remove from collection'),
+                            value: () {
+                              removeFromCollection(memory);
+                            },
+                          )
+                      ];
+                    },
+                  ),
+                )
+              ],
+            ),
           ),
         ],
       ),

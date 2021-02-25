@@ -1,20 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:loading_overlay/loading_overlay.dart';
-import 'package:mood_manager/features/common/domain/entities/media_collection.dart';
+import 'package:mood_manager/core/util/date_util.dart';
+import 'package:mood_manager/features/common/domain/entities/media_collection_mapping.dart';
 import 'package:mood_manager/features/memory/domain/entities/memory.dart';
 import 'package:mood_manager/features/memory/presentation/bloc/memory_bloc.dart';
 import 'package:mood_manager/features/memory/presentation/widgets/memory_form_view.dart';
-import 'package:mood_manager/injection_container.dart';
 
+// ignore: must_be_immutable
 class MemoryFormPage extends StatefulWidget {
   final Map<dynamic, dynamic> arguments;
   DateTime selectedDate;
   final GlobalKey<NavigatorState> navigatorKey;
-  MemoryFormPage({this.arguments, Key key, this.navigatorKey})
+  Memory memory;
+  MemoryFormPage({this.arguments = const {}, Key key, this.navigatorKey})
       : super(key: key) {
-    if (arguments != null) {
-      this.selectedDate = arguments['selectedDate'];
+    if (arguments['memory'] != null) {
+      memory = arguments['memory'];
+      selectedDate = DateUtil.getDateOnly(memory.logDateTime);
+    } else {
+      this.selectedDate = arguments['selectedDate'] ?? DateTime.now();
     }
   }
   @override
@@ -24,56 +28,56 @@ class MemoryFormPage extends StatefulWidget {
 class _MemoryFormPageState extends State<MemoryFormPage> {
   MemoryBloc _memoryBloc;
   Memory memory;
-  Widget memoryFormViewWidget;
 
   @override
   void initState() {
     super.initState();
-    this._memoryBloc = sl<MemoryBloc>();
+    _memoryBloc = BlocProvider.of<MemoryBloc>(context);
   }
 
   @override
   Widget build(BuildContext context) {
-    final memoryFormViewWidget = MemoryFormView(
-      saveCallback: save,
-      date: widget.selectedDate,
-    );
     return Scaffold(
       body: BlocConsumer<MemoryBloc, MemoryState>(
         cubit: _memoryBloc,
         listener: (context, state) {
           if (state is MemorySaved) {
             memory = state.memory;
-            Navigator.of(context).pop(memory);
-          } else if (state is MemorySaving) {
-            memory = state.memory;
+            //pr.hide();
+            Navigator.of(context)
+                .pop(MapEntry(widget.memory != null ? 'U' : 'I', memory));
           }
         },
         builder: (context, state) {
-          if (state is MemorySaving) {
-            return wrapWithLoader(memoryFormViewWidget);
-          }
-          return memoryFormViewWidget;
+          return MemoryFormView(
+            saveCallback: save,
+            date: widget.selectedDate,
+            memory: widget.memory,
+          );
         },
       ),
     );
   }
 
-  void save(Memory toBeSavedMemory, List<MediaCollection> mediaCollectionList) {
+  void save(Memory toBeSavedMemory,
+      List<MediaCollectionMapping> mediaCollectionList) {
+    /*Navigator.of(context).pop(SaveMemoryEvent(
+        memory: toBeSavedMemory,
+        mediaCollectionMappingList: mediaCollectionList));*/
     _memoryBloc.add(SaveMemoryEvent(
-        memory: toBeSavedMemory, mediaCollectionList: mediaCollectionList));
+        memory: toBeSavedMemory,
+        mediaCollectionMappingList: mediaCollectionList));
+    //pr.show();
     setState(() {
       widget.selectedDate = toBeSavedMemory.logDateTime;
     });
   }
 
-  wrapWithLoader(Widget widget) {
-    return LoadingOverlay(
-      color: Theme.of(context).primaryColor,
-      isLoading: true,
-      child: widget,
-      opacity: 0.2,
-      progressIndicator: CircularProgressIndicator(),
-    );
-  }
+  /*progressDialogListener(state) async {
+    if (state is MemoryProcessing) {
+      await pr.show();
+    } else if (state is MemoryCompleted) {
+      await pr.hide();
+    }
+  }*/
 }

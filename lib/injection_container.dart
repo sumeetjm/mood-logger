@@ -17,7 +17,13 @@ import 'package:mood_manager/features/common/data/datasources/common_remote_data
 import 'package:mood_manager/features/memory/data/datasources/memory_remote_data_source.dart';
 import 'package:mood_manager/features/memory/data/repositories/memory_repository.dart';
 import 'package:mood_manager/features/memory/domain/repositories/memory_repository_impl.dart';
+import 'package:mood_manager/features/memory/domain/usecases/add_memory_to_collection.dart';
+import 'package:mood_manager/features/memory/domain/usecases/archive_memory.dart';
+import 'package:mood_manager/features/memory/domain/usecases/get_archive_memory_list.dart';
+import 'package:mood_manager/features/memory/domain/usecases/get_media_collection_list.dart';
+import 'package:mood_manager/features/memory/domain/usecases/get_memory_collection_list.dart';
 import 'package:mood_manager/features/memory/domain/usecases/get_memory_list.dart';
+import 'package:mood_manager/features/memory/domain/usecases/get_memory_list_by_collection.dart';
 import 'package:mood_manager/features/memory/domain/usecases/get_memory_list_by_date.dart';
 import 'package:mood_manager/features/metadata/domain/usecases/add_activity.dart';
 import 'package:mood_manager/features/memory/domain/usecases/save_memory.dart';
@@ -87,6 +93,12 @@ Future<void> init() async {
         addActivity: sl(),
         getMemoryList: sl(),
         getMemoryListByDate: sl(),
+        getArchiveMemoryList: sl(),
+        archiveMemory: sl(),
+        getMemoryCollectionList: sl(),
+        addMemoryToCollection: sl(),
+        getMemoryListByCollection: sl(),
+        getMediaCollectionList: sl(),
       ));
 
   sl.registerFactory(() => ActivityBloc(
@@ -120,6 +132,12 @@ Future<void> init() async {
   sl.registerLazySingleton(() => AddActivity(sl()));
   sl.registerLazySingleton(() => GetMemoryList(sl()));
   sl.registerLazySingleton(() => GetMemoryListByDate(sl()));
+  sl.registerLazySingleton(() => GetArchiveMemoryList(sl()));
+  sl.registerLazySingleton(() => ArchiveMemory(sl()));
+  sl.registerLazySingleton(() => GetMemoryCollectionList(sl()));
+  sl.registerLazySingleton(() => AddMemoryToCollection(sl()));
+  sl.registerLazySingleton(() => GetMemoryListByCollection(sl()));
+  sl.registerLazySingleton(() => GetMediaCollectionList(sl()));
   // Repository
   sl.registerLazySingleton<MMoodRepository>(
     () => MMoodRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()),
@@ -157,7 +175,10 @@ Future<void> init() async {
     () => UserProfileParseDataSource(commonRemoteDataSource: sl()),
   );
   sl.registerLazySingleton<MemoryRemoteDataSource>(
-    () => MemoryParseDataSource(commonParseDataSource: sl()),
+    () => MemoryParseDataSource(
+      commonParseDataSource: sl(),
+      userProfileRemoteDataSource: sl(),
+    ),
   );
   sl.registerLazySingleton<CommonRemoteDataSource>(
     () => CommonParseDataSource(),

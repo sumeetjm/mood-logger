@@ -1,67 +1,71 @@
 import 'package:dartz/dartz.dart';
 import 'package:mood_manager/core/error/exceptions.dart';
-import 'package:mood_manager/features/common/data/models/collection_parse.dart';
 import 'package:mood_manager/features/common/data/models/media_collection_parse.dart';
+import 'package:mood_manager/features/common/data/models/media_collection_mapping_parse.dart';
 import 'package:mood_manager/features/common/data/models/media_parse.dart';
 import 'package:mood_manager/features/common/data/models/parse_mixin.dart';
-import 'package:mood_manager/features/common/domain/entities/collection.dart';
-import 'package:mood_manager/features/common/domain/entities/media.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection.dart';
+import 'package:mood_manager/features/common/domain/entities/media.dart';
+import 'package:mood_manager/features/common/domain/entities/media_collection_mapping.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
 
 abstract class CommonRemoteDataSource {
-  Future<Collection> saveCollection(Collection collection);
+  Future<MediaCollection> saveMediaCollection(MediaCollection mediaCollection);
   Future<Media> saveMedia(Media media);
-  Future<MediaCollection> saveMediaCollection(
-      final MediaCollection mediaCollection);
-  Future<List<MediaCollection>> getMediaCollectionByMedia(
+  Future<MediaCollectionMapping> saveMediaCollectionMapping(
+      final MediaCollectionMapping mediaCollectionMapping);
+  Future<List<MediaCollectionMapping>> getMediaCollectionMappingByMedia(
       Media media, String module, ParseUser user);
-  Future<List<MediaCollection>> getMediaCollectionByCollection(
-      Collection collection,
-      {Media priorityMedia});
-  Future<List<MediaCollection>> getMediaCollectionByCollectionList(
-      List<Collection> collectionList);
-  Future<List<MediaCollection>> saveMediaCollectionList(
-      List<MediaCollection> mediaCollectionList);
+  Future<List<MediaCollectionMapping>> getMediaCollectionMappingByCollection(
+      MediaCollection mediaCollection,
+      {Media priorityMedia,
+      int limit});
+  Future<List<MediaCollectionMapping>>
+      getMediaCollectionMappingByCollectionList(
+          List<MediaCollection> collectionList);
+  Future<List<MediaCollectionMapping>> saveMediaCollectionMappingList(
+      List<MediaCollectionMapping> mediaCollectionList);
 }
 
 class CommonParseDataSource extends CommonRemoteDataSource {
   @override
-  Future<MediaCollection> saveMediaCollection(
-      MediaCollection mediaCollection) async {
-    ParseResponse response = await cast<MediaCollectionParse>(mediaCollection)
-        .toParse(pointerKeys: ['collection', 'media']).save();
+  Future<MediaCollectionMapping> saveMediaCollectionMapping(
+      MediaCollectionMapping mediaCollectionMapping) async {
+    ParseResponse response =
+        await cast<MediaCollectionMappingParse>(mediaCollectionMapping)
+            .toParse(pointerKeys: ['collection', 'media']).save();
 
     if (response.success) {
-      return MediaCollectionParse.from(response.results.first,
-          cacheData: mediaCollection, cacheKeys: ['collection', 'media']);
+      return MediaCollectionMappingParse.from(response.results.first,
+          cacheData: mediaCollectionMapping,
+          cacheKeys: ['collection', 'media']);
     } else {
       throw ServerException();
     }
   }
 
   @override
-  Future<List<MediaCollection>> saveMediaCollectionList(
-      List<MediaCollection> mediaCollectionList) async {
-    Set<Collection> collectionList =
-        mediaCollectionList.map((e) => e.collection).toSet();
-    List<Collection> collectionListSaved = [];
-    for (final collection in collectionList) {
-      collectionListSaved.add(await saveCollection(collection));
+  Future<List<MediaCollectionMapping>> saveMediaCollectionMappingList(
+      List<MediaCollectionMapping> mediaCollectionMappingList) async {
+    Set<MediaCollection> mediaCollectionList =
+        mediaCollectionMappingList.map((e) => e.collection).toSet();
+    List<MediaCollection> collectionListSaved = [];
+    for (final collection in mediaCollectionList) {
+      collectionListSaved.add(await saveMediaCollection(collection));
     }
-    List<MediaCollection> mediaCollectionListSaved = [];
-    for (final mediaCollection in mediaCollectionList) {
-      mediaCollectionListSaved.add(await saveMediaCollection(
-        MediaCollectionParse(
-            collection: collectionListSaved.firstWhere(
-                (element) => element.code == mediaCollection.collection.code),
-            id: mediaCollection.id,
-            isActive: mediaCollection.isActive,
-            media: await saveMedia(mediaCollection.media)),
+    List<MediaCollectionMapping> mediaCollectionMappingListSaved = [];
+    for (final mediaCollectionMapping in mediaCollectionMappingList) {
+      mediaCollectionMappingListSaved.add(await saveMediaCollectionMapping(
+        MediaCollectionMappingParse(
+            collection: collectionListSaved.firstWhere((element) =>
+                element.code == mediaCollectionMapping.collection.code),
+            id: mediaCollectionMapping.id,
+            isActive: mediaCollectionMapping.isActive,
+            media: await saveMedia(mediaCollectionMapping.media)),
       ));
     }
 
-    return mediaCollectionListSaved;
+    return mediaCollectionMappingListSaved;
   }
 
   @override
@@ -76,18 +80,19 @@ class CommonParseDataSource extends CommonRemoteDataSource {
   }
 
   @override
-  Future<Collection> saveCollection(Collection collection) async {
+  Future<MediaCollection> saveMediaCollection(
+      MediaCollection collection) async {
     final ParseResponse response =
-        await cast<CollectionParse>(collection).toParse().save();
+        await cast<MediaCollectionParse>(collection).toParse().save();
     if (response.success) {
-      return CollectionParse.from(response.results.first);
+      return MediaCollectionParse.from(response.results.first);
     } else {
       throw ServerException();
     }
   }
 
   @override
-  Future<List<MediaCollection>> getMediaCollectionByMedia(
+  Future<List<MediaCollectionMapping>> getMediaCollectionMappingByMedia(
       Media media, String module, ParseUser user) async {
     QueryBuilder<ParseObject> queryBuilder =
         QueryBuilder<ParseObject>(ParseObject('collection'))
@@ -98,29 +103,38 @@ class CommonParseDataSource extends CommonRemoteDataSource {
     final ParseResponse response = await queryBuilder.query();
 
     if (response.success) {
-      Collection collection = CollectionParse.from(response.results.first);
-      return getMediaCollectionByCollection(collection);
+      MediaCollection collection =
+          MediaCollectionParse.from(response.results.first);
+      return getMediaCollectionMappingByCollection(collection);
     }
     throw ServerException();
   }
 
   @override
-  Future<List<MediaCollection>> getMediaCollectionByCollection(
-      Collection collection,
-      {Media priorityMedia}) async {
-    QueryBuilder<ParseObject> queryBuilder = QueryBuilder<ParseObject>(
-        ParseObject('mediaCollection'))
-      ..whereEqualTo('collection', cast<CollectionParse>(collection).pointer)
-      ..whereEqualTo('isActive', true)
-      ..includeObject(['media, collection'])
-      ..orderByDescending('createdAt');
+  Future<List<MediaCollectionMapping>> getMediaCollectionMappingByCollection(
+      MediaCollection mediaCollection,
+      {Media priorityMedia,
+      int limit}) async {
+    QueryBuilder<ParseObject> queryBuilder =
+        QueryBuilder<ParseObject>(ParseObject('mediaCollection'))
+          ..whereEqualTo('isActive', true)
+          ..includeObject(['media, collection'])
+          ..orderByDescending('createdAt');
+    if (mediaCollection.code != 'ALL') {
+      queryBuilder
+        ..whereEqualTo(
+            'collection', cast<MediaCollectionParse>(mediaCollection).pointer);
+    }
+    if (limit != null) {
+      queryBuilder..setLimit(limit);
+    }
 
     final ParseResponse response = await queryBuilder.query();
 
     if (response.success) {
-      final List<MediaCollection> mediaCollectionList =
-          ParseMixin.listFrom<MediaCollection>(
-              response.results, MediaCollectionParse.from);
+      final List<MediaCollectionMapping> mediaCollectionList =
+          ParseMixin.listFrom<MediaCollectionMapping>(
+              response.results, MediaCollectionMappingParse.from);
       if (priorityMedia != null) {
         final priorityMediaCollection = mediaCollectionList
             .firstWhere((element) => element.media == priorityMedia);
@@ -135,25 +149,27 @@ class CommonParseDataSource extends CommonRemoteDataSource {
   }
 
   @override
-  Future<List<MediaCollection>> getMediaCollectionByCollectionList(
-      List<Collection> collectionList) async {
-    QueryBuilder<ParseObject> queryBuilder = QueryBuilder<ParseObject>(
-        ParseObject('mediaCollection'))
-      ..whereContainedIn(
-          'collection',
-          collectionList
-              .map((collection) => cast<CollectionParse>(collection).pointer)
-              .toList())
-      ..whereEqualTo('isActive', true)
-      ..includeObject(['media, collection'])
-      ..orderByDescending('createdAt');
+  Future<List<MediaCollectionMapping>>
+      getMediaCollectionMappingByCollectionList(
+          List<MediaCollection> collectionList) async {
+    QueryBuilder<ParseObject> queryBuilder =
+        QueryBuilder<ParseObject>(ParseObject('mediaCollection'))
+          ..whereContainedIn(
+              'collection',
+              collectionList
+                  .map((collection) =>
+                      cast<MediaCollectionParse>(collection).pointer)
+                  .toList())
+          ..whereEqualTo('isActive', true)
+          ..includeObject(['media', 'collection'])
+          ..orderByDescending('createdAt');
 
     final ParseResponse response = await queryBuilder.query();
 
     if (response.success) {
-      final List<MediaCollection> mediaCollectionList =
-          ParseMixin.listFrom<MediaCollection>(
-              response.results, MediaCollectionParse.from);
+      final List<MediaCollectionMapping> mediaCollectionList =
+          ParseMixin.listFrom<MediaCollectionMapping>(
+              response.results, MediaCollectionMappingParse.from);
       return mediaCollectionList;
     } else {
       throw ServerException();

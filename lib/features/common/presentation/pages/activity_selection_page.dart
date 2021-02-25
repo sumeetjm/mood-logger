@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:loading_overlay/loading_overlay.dart';
 import 'package:mood_manager/features/common/presentation/widgets/choice_chip_group_selection.dart';
+import 'package:mood_manager/features/common/presentation/widgets/empty_widget.dart';
 import 'package:mood_manager/features/metadata/data/models/m_activity_parse.dart';
 import 'package:mood_manager/features/metadata/data/models/m_activity_type_parse.dart';
 import 'package:mood_manager/features/metadata/domain/entities/m_activity.dart';
@@ -99,45 +99,48 @@ class _ActivitySelectionPageState extends State<ActivitySelectionPage> {
           } else if (state is ActivityAdded) {
             lastActivityAdded = state.activity;
             activityList.add(lastActivityAdded);
-            activityTypeList.add(lastActivityAdded.mActivityType);
+            if (!activityTypeList
+                .any((element) => element == lastActivityAdded.mActivityType)) {
+              activityTypeList.add(lastActivityAdded.mActivityType);
+            }
           } else if (state is ActivityTypeListLoaded) {
             activityTypeList = state.activityTypeList;
-          }
+          } else if (state is ActivityListLoading ||
+              state is ActivityLoading) {}
         },
+        buildWhen: (previous, current) => previous != current,
         builder: (context, state) {
-          final choiceChipGroupSelection = ChoiceChipGroupSelection(
-            maxSelection: 3,
-            choiceChipOptions:
-                ChoiceChipGroupSelectionOption.listFrom<MActivity, MActivity>(
-                    source: activityList,
-                    value: (index, item) => item,
-                    label: (index, item) => item.activityName,
-                    group: (index, item) => item.mActivityType),
-            groupLabel: (group) => group.activityTypeName,
-            initialValue: widget.selectedActivityList,
-            onChange: (activityList) {
-              setState(() {
-                widget.selectedActivityList = List.from(activityList);
-              });
-            },
-            groupList: activityTypeList,
-          );
-          if (state is ActivityLoading) {
-            return wrapWithLoader(choiceChipGroupSelection);
+          if (activityList.isEmpty || activityTypeList.isEmpty) {
+            return EmptyWidget();
+          } else {
+            if (state is ActivityLoading) {
+              return EmptyWidget();
+            } else {
+              return buildChoiceChipGroupSelection();
+            }
           }
-          return choiceChipGroupSelection;
         },
       ),
     );
   }
 
-  wrapWithLoader(Widget widget) {
-    return LoadingOverlay(
-      color: Theme.of(context).primaryColor,
-      isLoading: true,
-      child: widget,
-      opacity: 0.2,
-      progressIndicator: CircularProgressIndicator(),
+  buildChoiceChipGroupSelection() {
+    return ChoiceChipGroupSelection(
+      maxSelection: 3,
+      choiceChipOptions:
+          ChoiceChipGroupSelectionOption.listFrom<MActivity, MActivity>(
+              source: activityList,
+              value: (index, item) => item,
+              label: (index, item) => item.activityName,
+              group: (index, item) => item.mActivityType),
+      groupLabel: (group) => group.activityTypeName,
+      initialValue: widget.selectedActivityList,
+      onChange: (activityList) {
+        setState(() {
+          widget.selectedActivityList = List.from(activityList);
+        });
+      },
+      groupList: activityTypeList,
     );
   }
 

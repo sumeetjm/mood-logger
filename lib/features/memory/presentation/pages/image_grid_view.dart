@@ -3,6 +3,10 @@ import 'dart:io';
 import 'package:drag_select_grid_view/drag_select_grid_view.dart';
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
+import 'package:mood_manager/features/common/data/models/media_collection_parse.dart';
+import 'package:mood_manager/features/common/data/models/media_collection_mapping_parse.dart';
+import 'package:mood_manager/features/common/data/models/media_parse.dart';
+import 'package:mood_manager/features/common/domain/entities/media_collection_mapping.dart';
 import 'package:mood_manager/features/common/presentation/widgets/media_page_view.dart';
 import 'package:mood_manager/injection_container.dart';
 import 'package:multi_media_picker/multi_media_picker.dart';
@@ -12,16 +16,11 @@ import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
 
 class ImageGridView extends StatefulWidget {
-  final Map<ParseFile, ParseFile> imagesMap;
-  List<ParseFile> thumbnailList;
-  final ValueChanged<Map<ParseFile, ParseFile>> onChanged;
+  final List<MediaCollectionMapping> imageMediaCollectionList;
   ImageGridView({
     Key key,
-    this.imagesMap,
-    this.onChanged,
-  }) : super(key: key) {
-    this.thumbnailList = imagesMap.keys.toList();
-  }
+    this.imageMediaCollectionList,
+  }) : super(key: key);
   @override
   State<StatefulWidget> createState() => _ImageGridViewState();
 }
@@ -30,11 +29,13 @@ class _ImageGridViewState extends State<ImageGridView> {
   final controller = DragSelectGridViewController();
   final List<ParseFile> selectedImages = [];
   final Uuid uuid = sl<Uuid>();
+  Future<Directory> tempDirectoryFuture;
 
   @override
   void initState() {
     super.initState();
     controller.addListener(scheduleRebuild);
+    tempDirectoryFuture = getTemporaryDirectory();
   }
 
   @override
@@ -46,22 +47,22 @@ class _ImageGridViewState extends State<ImageGridView> {
   void scheduleRebuild() => setState(() {});
 
   void delete() {
-    for (final thumbnailFile in controller.value.selectedIndexes
-        .map((e) => widget.thumbnailList[e])
-        .toList()) {
-      widget.imagesMap.remove(thumbnailFile);
-      thumbnailFile.file.deleteSync();
-      widget.thumbnailList.remove(thumbnailFile);
+    for (final index in controller.value.selectedIndexes) {
+      var removed = widget.imageMediaCollectionList.removeAt(index);
+      removed.media.file.file?.delete();
+      removed.media.file.delete();
+      removed.media.thumbnail.file?.delete();
+      removed.media.thumbnail.delete();
     }
     controller.clear();
-    widget.onChanged(widget.imagesMap);
-    if (widget.imagesMap.isEmpty) {
-      Navigator.of(context).pop();
+    if (widget.imageMediaCollectionList.isEmpty) {
+      Navigator.of(context).pop(widget.imageMediaCollectionList);
     }
   }
 
   void selectAll() {
-    controller.value = Selection(widget.thumbnailList.asMap().keys.toSet());
+    controller.value =
+        Selection(widget.imageMediaCollectionList.asMap().keys.toSet());
   }
 
   void deselectAll() {
@@ -69,23 +70,20 @@ class _ImageGridViewState extends State<ImageGridView> {
   }
 
   void edit() async {
-    final selectedThumbnailPath =
-        widget.thumbnailList[controller.value.selectedIndexes.first];
-    final file = await cropImage(widget.imagesMap[selectedThumbnailPath].file);
-    setState(() {
-      final thumbnailFile = selectedThumbnailPath;
-      final newThumbnailFile =
-          File(thumbnailFile.file.parent.path + "/" + uuid.v1() + ".jpg");
-      newThumbnailFile.writeAsBytesSync(img.encodeJpg(
-          img.copyResize(img.decodeImage(file.readAsBytesSync()), width: 200)));
-      widget.imagesMap.remove(thumbnailFile);
-      thumbnailFile.file.deleteSync();
-      final newThumbnailParseFile = ParseFile(newThumbnailFile);
-      widget.thumbnailList[controller.value.selectedIndexes.first] =
-          newThumbnailParseFile;
-      widget.imagesMap[newThumbnailParseFile] = ParseFile(file);
-    });
-    widget.onChanged(widget.imagesMap);
+    final selectedMediaCollection =
+        widget.imageMediaCollectionList[controller.value.selectedIndexes.first];
+    final newFile = await cropImage(selectedMediaCollection.media.file.file);
+    final newThumbnailFile =
+        File((await tempDirectoryFuture).path + "/" + uuid.v1() + ".jpg");
+    newThumbnailFile.writeAsBytesSync(img.encodeJpg(img
+        .copyResize(img.decodeImage(newFile.readAsBytesSync()), width: 200)));
+    selectedMediaCollection.media.file.delete();
+    selectedMediaCollection.media.file?.file?.delete();
+    selectedMediaCollection.media.file = ParseFile(newFile);
+    selectedMediaCollection.media.thumbnail.delete();
+    selectedMediaCollection.media.thumbnail?.file?.delete();
+    selectedMediaCollection.media.thumbnail = ParseFile(newThumbnailFile);
+    setState(() {});
   }
 
   @override
@@ -106,7 +104,12 @@ class _ImageGridViewState extends State<ImageGridView> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(child: BackButton()),
+                  Container(child: BackButton(
+                    onPressed: () {
+                      Navigator.of(context)
+                          .pop(widget.imageMediaCollectionList);
+                    },
+                  )),
                   Container(child: Text("Selected images")),
                   Container(
                     child: IconButton(
@@ -115,7 +118,8 @@ class _ImageGridViewState extends State<ImageGridView> {
                           color: Colors.black,
                         ),
                         onPressed: () {
-                          Navigator.of(context).pop();
+                          Navigator.of(context)
+                              .pop(widget.imageMediaCollectionList);
                         }),
                   ),
                   Container(
@@ -135,7 +139,7 @@ class _ImageGridViewState extends State<ImageGridView> {
                           if (controller.value.selectedIndexes.length > 0)
                             'Deselect All': deselectAll,
                           if (controller.value.selectedIndexes.length !=
-                              widget.imagesMap.length)
+                              widget.imageMediaCollectionList.length)
                             'Select All': selectAll
                         };
                         return popupMap.keys.map((key) {
@@ -182,9 +186,9 @@ class _ImageGridViewState extends State<ImageGridView> {
         crossAxisSpacing: 4,
         mainAxisSpacing: 4,
       ),
-      itemCount: widget.imagesMap.length + 1,
+      itemCount: widget.imageMediaCollectionList.length + 1,
       itemBuilder: (BuildContext context, int index, bool selected) {
-        if (index == widget.imagesMap.length) {
+        if (index == widget.imageMediaCollectionList.length) {
           return GestureDetector(
             onTap: () {
               showModalBottomSheet(
@@ -211,22 +215,41 @@ class _ImageGridViewState extends State<ImageGridView> {
                                   await _onImageButtonPressedMultiple(
                                       ImageSource.gallery,
                                       context: context);
-                              final cacheDir = await getTemporaryDirectory();
                               for (final pickedFile in pickedFileList) {
                                 final thumbnailImage = img.copyResize(
                                     img.decodeImage(
                                         pickedFile.readAsBytesSync()),
                                     width: 200);
                                 final thumbnailFile = File(
-                                    cacheDir.path + "/" + uuid.v1() + ".jpg");
+                                    (await tempDirectoryFuture).path +
+                                        "/" +
+                                        uuid.v1() +
+                                        ".jpg");
                                 thumbnailFile.writeAsBytesSync(
                                     img.encodeJpg(thumbnailImage));
-                                widget.imagesMap[ParseFile(thumbnailFile)] =
-                                    ParseFile(pickedFile);
-                                widget.thumbnailList =
-                                    widget.imagesMap.keys.toList();
+                                final mediaCollectionParse =
+                                    MediaCollectionMappingParse(
+                                  collection:
+                                      widget.imageMediaCollectionList.isNotEmpty
+                                          ? widget.imageMediaCollectionList[0]
+                                              .collection
+                                              .incrementMediaCount()
+                                          : MediaCollectionParse(
+                                              mediaType: 'PHOTO',
+                                              module: 'MEMORY',
+                                              name: uuid.v1(),
+                                              code: uuid.v1(),
+                                              mediaCount: 1,
+                                            ),
+                                  media: MediaParse(
+                                    file: ParseFile(pickedFile),
+                                    mediaType: 'PHOTO',
+                                    thumbnail: ParseFile(thumbnailFile),
+                                  ),
+                                );
+                                widget.imageMediaCollectionList
+                                    .add(mediaCollectionParse);
                               }
-                              widget.onChanged(widget.imagesMap);
                               setState(() {});
                             },
                           ),
@@ -244,8 +267,7 @@ class _ImageGridViewState extends State<ImageGridView> {
         }
         if (selected || controller.value.selectedIndexes.isNotEmpty) {
           return SelectableImageItem(
-            image: widget.thumbnailList[index],
-            value: widget.imagesMap[widget.thumbnailList[index]],
+            mediaCollection: widget.imageMediaCollectionList[index],
             selected: selected,
           );
         }
@@ -253,35 +275,36 @@ class _ImageGridViewState extends State<ImageGridView> {
           onTap: () {
             Navigator.of(context).push(MaterialPageRoute(builder: (context) {
               return MediaPageView(
-                initialItem: widget.imagesMap[widget.thumbnailList[index]],
-                fileList: widget.imagesMap.values.toList(),
+                initialIndex: index,
+                mediaCollectionList: widget.imageMediaCollectionList,
               );
             }));
           },
           onDoubleTap: () async {
-            final croppedImage = await cropImage(
-                widget.imagesMap[widget.thumbnailList[index]].file);
-            if (croppedImage != null) {
-              setState(() {
-                final thumbnailFile = widget.thumbnailList[index];
-                final newThumbnailFile = File(
-                    thumbnailFile.file.parent.path + "/" + uuid.v1() + ".jpg");
-                newThumbnailFile.writeAsBytesSync(img.encodeJpg(img.copyResize(
-                    img.decodeImage(croppedImage.readAsBytesSync()),
-                    width: 200)));
-                widget.imagesMap.remove(thumbnailFile);
-                thumbnailFile.file.deleteSync();
-                var newThumbnailParseFile = ParseFile(newThumbnailFile);
-                widget.thumbnailList[index] = newThumbnailParseFile;
-                widget.imagesMap[newThumbnailParseFile] =
-                    ParseFile(croppedImage);
-                widget.onChanged(widget.imagesMap);
-              });
+            final selectedMediaCollection =
+                widget.imageMediaCollectionList[index];
+            final newFile = await cropImage((await widget
+                    .imageMediaCollectionList[index].media.file
+                    .download())
+                .file);
+            if (newFile != null) {
+              final newThumbnailFile = File(
+                  (await tempDirectoryFuture).path + "/" + uuid.v1() + ".jpg");
+              newThumbnailFile.writeAsBytesSync(img.encodeJpg(img.copyResize(
+                  img.decodeImage(newFile.readAsBytesSync()),
+                  width: 200)));
+              selectedMediaCollection.media.file.delete();
+              selectedMediaCollection.media.file?.file?.delete();
+              selectedMediaCollection.media.file = ParseFile(newFile);
+              selectedMediaCollection.media.thumbnail.delete();
+              selectedMediaCollection.media.thumbnail?.file?.delete();
+              selectedMediaCollection.media.thumbnail =
+                  ParseFile(newThumbnailFile);
+              setState(() {});
             }
           },
           child: SelectableImageItem(
-            image: widget.thumbnailList[index],
-            value: widget.imagesMap[widget.thumbnailList[index]],
+            mediaCollection: widget.imageMediaCollectionList[index],
             selected: selected,
           ),
         );
@@ -307,14 +330,12 @@ class _ImageGridViewState extends State<ImageGridView> {
 class SelectableImageItem extends StatefulWidget {
   SelectableImageItem({
     Key key,
-    @required this.value,
+    @required this.mediaCollection,
     @required this.selected,
-    @required this.image,
   }) : super(key: key);
 
-  final ParseFile value;
   bool selected;
-  final ParseFile image;
+  final MediaCollectionMapping mediaCollection;
 
   @override
   _SelectableImageItemState createState() => _SelectableImageItemState();
@@ -339,14 +360,17 @@ class _SelectableImageItemState extends State<SelectableImageItem>
 
   Widget buildGridItem(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-          border: Border.all(
-        width: widget.selected ? 2 : 1,
-        color: widget.selected ? Colors.blue : Colors.black,
-      )),
-      child: Hero(
-          tag: widget.value.file.path, child: Image.file(widget.image.file)),
-    );
+        decoration: BoxDecoration(
+            border: Border.all(
+          width: widget.selected ? 2 : 1,
+          color: widget.selected ? Colors.blue : Colors.black,
+        )),
+        child: Hero(
+          tag: widget.mediaCollection.media.tag,
+          child: Image(
+            image: widget.mediaCollection.media.thumbnailProvider,
+          ),
+        ));
   }
 
   Future<File> cropImage(File image) async {

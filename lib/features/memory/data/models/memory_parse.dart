@@ -1,9 +1,9 @@
 import 'package:mood_manager/features/common/data/models/parse_mixin.dart';
-import 'package:mood_manager/features/common/data/models/collection_parse.dart';
+import 'package:mood_manager/features/common/data/models/media_collection_parse.dart';
 import 'package:mood_manager/features/metadata/data/models/m_activity_parse.dart';
 import 'package:mood_manager/features/metadata/data/models/m_mood_parse.dart';
 import 'package:mood_manager/features/common/domain/entities/base.dart';
-import 'package:mood_manager/features/common/domain/entities/collection.dart';
+import 'package:mood_manager/features/common/domain/entities/media_collection.dart';
 import 'package:mood_manager/features/metadata/domain/entities/m_activity.dart';
 import 'package:mood_manager/features/metadata/domain/entities/m_mood.dart';
 import 'package:mood_manager/features/memory/domain/entities/memory.dart';
@@ -14,18 +14,20 @@ class MemoryParse extends Memory with ParseMixin {
     String id,
     String note,
     MMood mMood,
-    List<Collection> collectionList,
+    List<MediaCollection> collectionList,
     List<MActivity> mActivityList,
     bool isActive = true,
     DateTime logDateTime,
+    bool isArchived = false,
   }) : super(
           id: id,
           note: note,
           mMood: mMood,
           mActivityList: mActivityList,
-          collectionList: collectionList,
+          mediaCollectionList: collectionList,
           isActive: isActive,
           logDateTime: logDateTime,
+          isArchived: isArchived,
         );
 
   @override
@@ -37,9 +39,10 @@ class MemoryParse extends Memory with ParseMixin {
         'note': note,
         'mMood': mMood,
         'mActivity': mActivityList,
-        'collection': collectionList,
+        'collection': mediaCollectionList,
         'isActive': isActive,
-        'logDateTime': logDateTime?.toUtc()
+        'logDateTime': logDateTime?.toUtc(),
+        'isArchived': isArchived
       };
 
   static MemoryParse from(ParseObject parseObject,
@@ -58,14 +61,15 @@ class MemoryParse extends Memory with ParseMixin {
       logDateTime: ParseMixin.value('logDateTime', parseOptions)?.toLocal(),
       mMood:
           ParseMixin.value('mMood', parseOptions, transform: MMoodParse.from),
-      collectionList: List<Collection>.from(ParseMixin.value(
+      collectionList: List<MediaCollection>.from(ParseMixin.value(
               'collection', parseOptions,
-              transform: CollectionParse.from) ??
+              transform: MediaCollectionParse.from) ??
           []),
       mActivityList: List<MActivity>.from(ParseMixin.value(
           'mActivity', parseOptions,
           transform: MActivityParse.from)),
       isActive: ParseMixin.value('isActive', parseOptions),
+      isArchived: ParseMixin.value('isArchived', parseOptions),
     );
   }
 }

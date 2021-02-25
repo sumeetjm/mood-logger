@@ -49,4 +49,151 @@ class AppConstants {
 
   static final Map dataConstants = {'gender': genderList};
   //static final String thumbnailFolderPath = "/storage/emulated/0/Android/"
+
+  static final List<Map> wallLayoutStoneMap = [
+    {
+      'height': 1,
+      'width': 1,
+    },
+    {
+      'height': 2,
+      'width': 1,
+    },
+    {
+      'height': 1,
+      'width': 1,
+    },
+    {
+      'height': 2,
+      'width': 1,
+    },
+    {
+      'height': 1,
+      'width': 1,
+    },
+    {
+      'height': 2,
+      'width': 2,
+    },
+    {
+      'height': 2,
+      'width': 1,
+    },
+    {
+      'height': 2,
+      'width': 1,
+    },
+    {
+      'height': 1,
+      'width': 1,
+    },
+    {
+      'height': 1,
+      'width': 1,
+    },
+    {
+      'height': 2,
+      'width': 1,
+    },
+    {
+      'height': 1,
+      'width': 2,
+    },
+    {
+      'height': 1,
+      'width': 1,
+    },
+    {
+      'height': 1,
+      'width': 1,
+    },
+    {
+      'height': 2,
+      'width': 1,
+    },
+    {
+      'height': 1,
+      'width': 2,
+    },
+    {
+      'height': 2,
+      'width': 1,
+    },
+    {
+      'height': 2,
+      'width': 2,
+    },
+    {
+      'height': 1,
+      'width': 1,
+    },
+    {
+      'height': 2,
+      'width': 1,
+    },
+    {
+      'height': 1,
+      'width': 1,
+    },
+    {
+      'height': 2,
+      'width': 1,
+    },
+    {
+      'height': 1,
+      'width': 1,
+    },
+    {
+      'height': 2,
+      'width': 2,
+    },
+    {
+      'height': 2,
+      'width': 1,
+    },
+    {
+      'height': 2,
+      'width': 1,
+    },
+    {
+      'height': 1,
+      'width': 1,
+    },
+    {
+      'height': 1,
+      'width': 1,
+    },
+    {
+      'height': 2,
+      'width': 1,
+    },
+    {
+      'height': 1,
+      'width': 2,
+    },
+    {
+      'height': 1,
+      'width': 1,
+    },
+    {
+      'height': 1,
+      'width': 1,
+    },
+    {
+      'height': 2,
+      'width': 1,
+    },
+    {
+      'height': 1,
+      'width': 2,
+    },
+    {
+      'height': 2,
+      'width': 1,
+    },
+    {
+      'height': 2,
+      'width': 2,
+    },
+  ];
 }

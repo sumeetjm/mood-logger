@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_page_transition/flutter_page_transition.dart';
-import 'package:loading_overlay/loading_overlay.dart';
 import 'package:mood_manager/features/common/data/datasources/common_remote_data_source.dart';
 import 'package:mood_manager/features/common/domain/entities/media.dart';
-import 'package:mood_manager/features/common/domain/entities/media_collection.dart';
+import 'package:mood_manager/features/common/domain/entities/media_collection_mapping.dart';
+import 'package:mood_manager/features/common/presentation/widgets/empty_widget.dart';
 import 'package:mood_manager/features/common/presentation/widgets/media_page_view.dart';
 import 'package:mood_manager/features/profile/domain/entities/user_profile.dart';
 import 'package:mood_manager/features/profile/presentation/bloc/profile_bloc.dart';
-import 'package:mood_manager/features/common/presentation/widgets/loading_widget.dart';
 import 'package:mood_manager/features/profile/presentation/widgets/profile_view.dart';
 import 'package:mood_manager/injection_container.dart';
 import 'package:provider/provider.dart';
@@ -30,7 +28,7 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
-    this._profileBloc = sl<ProfileBloc>();
+    this._profileBloc = BlocProvider.of<ProfileBloc>(context);
     this._commonRemoteDataSource = sl<CommonRemoteDataSource>();
     _profileBloc.add(GetCurrentUserProfileEvent());
   }
@@ -47,12 +45,12 @@ class _ProfilePageState extends State<ProfilePage> {
             userProfile = state.userProfile;
           } else if (state is UserProfileSaving) {
             userProfile = state.userProfile;
-          }
+          } else if (state is UserProfileLoading) {}
         },
         builder: (context, state) {
-          if (state is ProfileInitial || state is UserProfileLoading) {
-            return LoadingWidget();
-          } else if (state is UserProfileLoaded || state is UserProfileSaved) {
+          if (userProfile == null) {
+            return EmptyWidget();
+          } else {
             return Provider<UserProfile>(
                 create: (_) => userProfile,
                 child: ProfileView(
@@ -68,13 +66,13 @@ class _ProfilePageState extends State<ProfilePage> {
                     if (userProfile.profilePicture != null) {
                       final mediaListByCollectionCallback =
                           _commonRemoteDataSource
-                              .getMediaCollectionByCollection(
+                              .getMediaCollectionMappingByCollection(
                                   userProfile.profilePictureCollection,
                                   priorityMedia: userProfile.profilePicture);
                       Navigator.of(context)
                           .push(MaterialPageRoute(builder: (context) {
                         return MediaPageView(
-                          initialItem: MediaCollection(
+                          initialItem: MediaCollectionMapping(
                               collection: userProfile.profilePictureCollection,
                               media: userProfile.profilePicture),
                           future: mediaListByCollectionCallback,
@@ -83,39 +81,19 @@ class _ProfilePageState extends State<ProfilePage> {
                     }
                   },
                 ));
-          } else if (state is UserProfileSaving ||
-              state is ProfilePictureSaving) {
-            return wrapWithLoader(Provider<UserProfile>(
-                create: (_) => userProfile,
-                child: ProfileView(
-                    saveCallback: save,
-                    profilePictureChangeCallback: (profilePicture) {
-                      profilePicChange(
-                          profilePictureMediaCollection: profilePicture);
-                    })));
           }
-          return LoadingWidget();
         },
       ),
     );
   }
 
-  void save(UserProfile toBeSavedUserProfile) {
+  void save(UserProfile toBeSavedUserProfile) async {
     _profileBloc.add(SaveUserProfileEvent(toBeSavedUserProfile));
   }
 
-  void profilePicChange({MediaCollection profilePictureMediaCollection}) {
+  void profilePicChange(
+      {MediaCollectionMapping profilePictureMediaCollection}) async {
     _profileBloc.add(
         SaveProfilePictureEvent(profilePictureMediaCollection, userProfile));
-  }
-
-  wrapWithLoader(Widget widget) {
-    return LoadingOverlay(
-      color: Theme.of(context).primaryColor,
-      isLoading: true,
-      child: widget,
-      opacity: 0.2,
-      progressIndicator: CircularProgressIndicator(),
-    );
   }
 }

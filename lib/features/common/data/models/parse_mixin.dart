@@ -22,10 +22,13 @@ mixin ParseMixin {
   }
 
   ParseObject toParse(
-      {List<String> skipKeys = const [], List<String> pointerKeys = const []}) {
+      {List<String> skipKeys = const [],
+      List<String> pointerKeys = const [],
+      List<String> selectKeys = const []}) {
     final ParseObject parseObject = parse;
     map.forEach((key, value) {
-      if (!skipKeys.contains(key)) {
+      if ((selectKeys.isNotEmpty && selectKeys.contains(key)) ||
+          (!skipKeys.contains(key) && selectKeys.isEmpty)) {
         final valueParse = parseValue(value, pointerKeys.contains(key));
         parseObject.set(key, valueParse);
       }

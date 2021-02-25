@@ -1,57 +1,126 @@
 part of 'memory_bloc.dart';
 
 abstract class MemoryState extends Equatable {
-  const MemoryState();
-
   @override
   List<Object> get props => [];
 }
 
+abstract class MemoryProcessing extends MemoryState {}
+
+abstract class MemoryCompleted extends MemoryState {}
+
 class MemoryInitial extends MemoryState {}
 
-class MemorySaved extends MemoryState {
+class MemorySaved extends MemoryCompleted {
   final Memory memory;
 
   MemorySaved({this.memory});
 
   @override
-  List<Object> get props => [memory];
+  List<Object> get props => [memory, ...super.props];
 }
 
-class MemorySaving extends MemoryState {
+class MemorySaving extends MemoryProcessing {
   final Memory memory;
 
   MemorySaving({this.memory});
 
   @override
-  List<Object> get props => [memory];
+  List<Object> get props => [memory, ...super.props];
 }
 
-class MemorySaveError extends MemoryState {
+class MemorySaveError extends MemoryCompleted {
   final String message;
 
   MemorySaveError({this.message});
 
   @override
-  List<Object> get props => [message];
+  List<Object> get props => [message, ...super.props];
 }
 
-class MemoryListError extends MemoryState {
+class MemoryListError extends MemoryCompleted {
   final String message;
 
-  MemoryListError({this.message});
+  MemoryListError({this.message, String srcKey});
 
   @override
-  List<Object> get props => [message];
+  List<Object> get props => [message, ...super.props];
 }
 
-class MemoryListLoading extends MemoryState {}
+class MemoryListLoading extends MemoryProcessing {}
 
-class MemoryListLoaded extends MemoryState {
+// ignore: must_be_immutable
+class MemoryListLoaded extends MemoryCompleted {
   final List<Memory> memoryList;
+  MemoryCollection memoryCollection;
 
-  MemoryListLoaded({this.memoryList});
+  MemoryListLoaded({this.memoryList, this.memoryCollection});
 
   @override
-  List<Object> get props => [memoryList];
+  List<Object> get props => [memoryList, ...super.props];
+}
+
+class MemoryCollectionListLoaded extends MemoryCompleted {
+  final List<MemoryCollection> memoryCollectionList;
+
+  MemoryCollectionListLoaded({this.memoryCollectionList});
+
+  @override
+  List<Object> get props => [memoryCollectionList];
+}
+
+class AddedToMemoryCollection extends MemoryCompleted {
+  final MemoryCollectionMapping memoryCollectionMapping;
+
+  AddedToMemoryCollection({this.memoryCollectionMapping});
+
+  @override
+  List<Object> get props => [memoryCollectionMapping, ...super.props];
+}
+
+class MediaCollectionListLoaded extends MemoryCompleted {
+  final List<MediaCollection> mediaCollectionList;
+
+  MediaCollectionListLoaded({this.mediaCollectionList});
+
+  @override
+  List<Object> get props => [mediaCollectionList, ...super.props];
+}
+
+// ignore: must_be_immutable
+class MemoryStoreState extends MemoryState {
+  bool isSaving;
+  bool isListLoading;
+  bool isError;
+  String message;
+  List<Memory> memoryList;
+  MemoryCollection memoryCollection;
+  List<MemoryCollection> memoryCollectionList;
+  List<MediaCollection> mediaCollectionList;
+  MemoryCollectionMapping memoryCollectionMappingAdded;
+
+  MemoryStoreState({
+    this.isSaving,
+    this.isListLoading,
+    this.isError,
+    this.message,
+    this.memoryList,
+    this.memoryCollection,
+    this.memoryCollectionList,
+    this.mediaCollectionList,
+    this.memoryCollectionMappingAdded,
+  });
+
+  @override
+  List<Object> get props => [
+        isSaving,
+        isListLoading,
+        isError,
+        message,
+        memoryList,
+        memoryCollection,
+        memoryCollectionList,
+        mediaCollectionList,
+        memoryCollectionMappingAdded
+      ];
 }

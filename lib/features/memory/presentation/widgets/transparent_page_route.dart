@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-class TransparentRoute extends PageRoute<void> {
+class TransparentRoute extends PageRoute<Object> {
   TransparentRoute({
     @required this.builder,
     RouteSettings settings,

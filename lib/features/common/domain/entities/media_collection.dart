@@ -1,23 +1,37 @@
 import 'package:mood_manager/features/common/domain/entities/base.dart';
-import 'package:mood_manager/features/common/domain/entities/collection.dart';
-import 'package:mood_manager/features/common/domain/entities/media.dart';
 
 class MediaCollection extends Base {
-  final Media media;
-  final Collection collection;
+  final String mediaType;
+  final String name;
+  final String code;
+  final String module;
+  int mediaCount;
 
   MediaCollection({
     String id,
-    this.media,
-    this.collection,
+    this.name,
+    this.code,
+    this.module,
+    this.mediaType,
+    this.mediaCount = 0,
     bool isActive = true,
   }) : super(
           id: id,
           isActive: isActive,
-          className: 'mediaCollection',
+          className: 'collection',
         );
 
+  MediaCollection incrementMediaCount() {
+    mediaCount++;
+    return this;
+  }
+
+  MediaCollection decrementMediaCount() {
+    mediaCount--;
+    return this;
+  }
+
   @override
-  // TODO: implement props
-  List<Object> get props => [...super.props, media, collection];
+  List<Object> get props =>
+      [...super.props, mediaType, name, code, module, mediaCount];
 }

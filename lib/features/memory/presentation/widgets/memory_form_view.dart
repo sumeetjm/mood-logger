@@ -1,20 +1,22 @@
 import 'dart:io';
 import 'dart:ui';
-import 'package:datetime_picker_formfield/datetime_picker_formfield.dart';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_cropper/image_cropper.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:mood_manager/core/util/color_util.dart';
+import 'package:mood_manager/core/util/date_util.dart';
+import 'package:mood_manager/features/common/data/datasources/common_remote_data_source.dart';
+import 'package:mood_manager/features/common/data/models/media_collection_mapping_parse.dart';
 import 'package:mood_manager/features/common/data/models/media_parse.dart';
-import 'package:mood_manager/features/common/domain/entities/media_collection.dart';
+import 'package:mood_manager/features/common/domain/entities/media_collection_mapping.dart';
 import 'package:mood_manager/features/common/presentation/pages/activity_selection_page.dart';
 import 'package:mood_manager/features/memory/domain/entities/memory.dart';
 import 'package:mood_manager/features/memory/presentation/pages/image_grid_view.dart';
 import 'package:mood_manager/features/memory/presentation/pages/video_grid_view.dart';
 import 'package:mood_manager/features/memory/presentation/widgets/transparent_page_route.dart';
 import 'package:mood_manager/features/metadata/data/datasources/m_mood_remote_data_source.dart';
-import 'package:mood_manager/features/common/data/models/collection_parse.dart';
+import 'package:mood_manager/features/common/data/models/media_collection_parse.dart';
 import 'package:mood_manager/features/memory/data/models/memory_parse.dart';
 import 'package:mood_manager/features/metadata/domain/entities/m_activity.dart';
 import 'package:mood_manager/features/metadata/domain/entities/m_mood.dart';
@@ -31,14 +33,17 @@ import 'package:uuid/uuid.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
 import 'package:palette_generator/palette_generator.dart';
 
+// ignore: must_be_immutable
 class MemoryFormView extends StatefulWidget {
   final Function saveCallback;
+  final Memory memory;
   DateTime date;
 
-  MemoryFormView({Key key, this.saveCallback, this.date}) : super(key: key);
+  MemoryFormView({Key key, this.saveCallback, this.date, this.memory})
+      : super(key: key);
 
   @override
-  State<StatefulWidget> createState() => _MemoryFormViewState();
+  State<StatefulWidget> createState() => _MemoryFormViewState(memory: memory);
 }
 
 class _MemoryFormViewState extends State<MemoryFormView> {
@@ -48,9 +53,29 @@ class _MemoryFormViewState extends State<MemoryFormView> {
   final TextEditingController noteController = TextEditingController();
   MMood mMood;
   Uuid uuid;
-  Memory memory;
-  Map<ParseFile, ParseFile> imageFileMapByThumbnail = {};
-  Map<ParseFile, ParseFile> videoFileMapByThumbnail = {};
+  List<MediaCollectionMapping> imageMediaCollectionList = [];
+  List<MediaCollectionMapping> videoMediaCollectionList = [];
+
+  _MemoryFormViewState({Memory memory}) {
+    if (memory != null) {
+      time = TimeOfDay.fromDateTime(memory.logDateTime);
+      activityList = memory.mActivityList;
+      noteController.text = memory.note;
+      mMood = memory.mMood;
+      final mediaCollectionFutureList = sl<CommonRemoteDataSource>()
+          .getMediaCollectionMappingByCollectionList(
+              memory.mediaCollectionList);
+      mediaCollectionFutureList.then((mediaCollectionList) {
+        imageMediaCollectionList = mediaCollectionList
+            .where((element) => element.media.mediaType == "PHOTO")
+            .toList();
+        videoMediaCollectionList = mediaCollectionList
+            .where((element) => element.media.mediaType == "VIDEO")
+            .toList();
+        setState(() {});
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -124,7 +149,7 @@ class _MemoryFormViewState extends State<MemoryFormView> {
               child: RaisedButton(
                 onPressed: save,
                 child: Text(
-                  'Add to Memories',
+                  '${(widget.memory?.id ?? '').isNotEmpty ? 'Save' : 'Add'} to Memories',
                   style: TextStyle(color: Colors.white),
                 ),
                 color: Theme.of(context).primaryColor,
@@ -396,61 +421,21 @@ class _MemoryFormViewState extends State<MemoryFormView> {
   }
 
   void save() async {
-    var logDateTime = DateTimeField.combine(widget.date, time);
-    final pictureCollectionCode = uuid.v1();
-    final videoCollectionCode = uuid.v1();
-    final pictureCollection = CollectionParse(
-      code: pictureCollectionCode,
-      name: pictureCollectionCode,
-      mediaType: 'PICTURE',
-      module: 'MEMORY',
-      mediaCount: imageFileMapByThumbnail.length,
-    );
-    final videoCollection = CollectionParse(
-      code: videoCollectionCode,
-      name: videoCollectionCode,
-      mediaType: 'VIDEO',
-      module: 'MEMORY',
-      mediaCount: videoFileMapByThumbnail.length,
-    );
-    final List<Future<MediaCollection>> mediaCollectionList = [
-      ...(imageFileMapByThumbnail ?? {})
-          .keys
-          .map(
-            (key) async => MediaCollection(
-              collection: pictureCollection,
-              isActive: true,
-              media: MediaParse(
-                mediaType: "PHOTO",
-                file: imageFileMapByThumbnail[key],
-                thumbnail: key,
-              ),
-            ),
-          )
-          .toList(),
-      ...(videoFileMapByThumbnail ?? {})
-          .keys
-          .map(
-            (key) async => MediaCollection(
-              collection: videoCollection,
-              isActive: true,
-              media: MediaParse(
-                mediaType: "VIDEO",
-                file: videoFileMapByThumbnail[key],
-                thumbnail: key,
-              ),
-            ),
-          )
-          .toList()
-    ];
+    var logDateTime = DateUtil.combine(widget.date, time);
     final memory = MemoryParse(
-        note: noteController.text,
-        logDateTime: logDateTime,
-        mMood: mMood,
-        mActivityList: activityList,
-        collectionList: [pictureCollection, videoCollection]);
+      id: widget.memory?.id,
+      note: noteController.text,
+      logDateTime: logDateTime,
+      mMood: mMood,
+      mActivityList: activityList,
+      collectionList: [...imageMediaCollectionList, ...videoMediaCollectionList]
+          .toSet()
+          .map((e) => e.collection)
+          .toList(),
+    );
     // return;
-    widget.saveCallback(memory, await Future.wait(mediaCollectionList));
+    widget.saveCallback(
+        memory, [...imageMediaCollectionList, ...videoMediaCollectionList]);
   }
 
   /*Future<void> loadAssets() async {
@@ -513,7 +498,6 @@ class _MemoryFormViewState extends State<MemoryFormView> {
       final pickedFileList = await MultiMediaPicker.pickImages(
         source: source,
       );
-
       if (pickedFileList != null && pickedFileList.isNotEmpty) {
         setState(() {
           for (final pickedFile in pickedFileList) {
@@ -523,8 +507,34 @@ class _MemoryFormViewState extends State<MemoryFormView> {
             final thumbnailFile =
                 File(cacheDir.path + "/" + uuid.v1() + ".jpg");
             thumbnailFile.writeAsBytesSync(img.encodeJpg(thumbnailImage));
-            imageFileMapByThumbnail[ParseFile(thumbnailFile)] =
-                ParseFile(pickedFile);
+            var photoCollection;
+            if (widget.memory?.mediaCollectionList != null &&
+                (widget.memory?.mediaCollectionList ?? [])
+                    .any((element) => element.mediaType == 'PHOTO')) {
+              photoCollection = widget.memory.mediaCollectionList
+                  .firstWhere((element) => element.mediaType == 'PHOTO')
+                  .incrementMediaCount();
+            } else {
+              photoCollection = MediaCollectionParse(
+                code: uuid.v1(),
+                mediaCount: 1,
+                mediaType: 'PHOTO',
+                module: 'MEMORY',
+                name: uuid.v1(),
+              );
+            }
+            imageMediaCollectionList.add(
+              MediaCollectionMappingParse(
+                collection: photoCollection,
+                media: MediaParse(
+                  file: ParseFile(pickedFile),
+                  thumbnail: ParseFile(thumbnailFile),
+                  mediaType: 'PHOTO',
+                ),
+              ),
+            );
+            /*imageFileMapByThumbnail[ParseFile(thumbnailFile)] =
+                ParseFile(pickedFile);*/
           }
         });
         navigateToImageGrid();
@@ -540,7 +550,6 @@ class _MemoryFormViewState extends State<MemoryFormView> {
     final pickedFile = await MultiMediaPicker.pickVideo(source: source);
     if (pickedFile != null) {
       final thumbnailFile = File(cacheDir.path + "/" + uuid.v1() + ".jpg");
-
       await VideoThumbnail.thumbnailFile(
         video: pickedFile.path,
         thumbnailPath: thumbnailFile.path,
@@ -549,60 +558,107 @@ class _MemoryFormViewState extends State<MemoryFormView> {
             200, // specify the height of the thumbnail, let the width auto-scaled to keep the source aspect ratio
         quality: 50,
       );
-      setState(() {
-        videoFileMapByThumbnail[ParseFile(thumbnailFile)] =
-            ParseFile(pickedFile);
-      });
+      var videoCollection;
+
+      if (widget.memory?.mediaCollectionList != null &&
+          (widget.memory?.mediaCollectionList ?? [])
+              .any((element) => element.mediaType == 'VIDEO')) {
+        videoCollection = widget.memory.mediaCollectionList
+            .firstWhere((element) => element.mediaType == 'VIDEO')
+            .incrementMediaCount();
+      } else {
+        videoCollection = MediaCollectionParse(
+          code: uuid.v1(),
+          mediaCount: 1,
+          mediaType: 'VIDEO',
+          module: 'MEMORY',
+          name: uuid.v1(),
+        );
+      }
+
+      videoMediaCollectionList.add(
+        MediaCollectionMappingParse(
+          collection: videoCollection,
+          media: MediaParse(
+            file: ParseFile(pickedFile),
+            thumbnail: ParseFile(thumbnailFile),
+            mediaType: 'VIDEO',
+          ),
+        ),
+      );
+      setState(() {});
       navigateToVideoGrid();
     }
   }
 
   get image {
-    if (imageFileMapByThumbnail.isNotEmpty)
+    if (imageMediaCollectionList.where((e) => e.isActive).isNotEmpty)
       return BlurImageGridItem(
           context: context,
           child: buildAddImageIconButtonItem(context),
-          imageList: imageFileMapByThumbnail.keys.toList(),
+          imageList: imageMediaCollectionList
+              .where((e) => e.isActive)
+              .map((e) => e.media.thumbnail)
+              .toList(),
           viewCallback: navigateToImageGrid);
     return buildAddImageIconButtonItem(context);
   }
 
-  navigateToImageGrid() {
-    Navigator.of(_scaffoldKey.currentContext)
-        .push(TransparentRoute(builder: (context) {
-      return ImageGridView(
-        imagesMap: imageFileMapByThumbnail,
-        onChanged: (value) {
-          setState(() {
-            imageFileMapByThumbnail = value;
-          });
-        },
-      );
-    }));
+  navigateToImageGrid() async {
+    var mediaCollectionList = (await Navigator.of(_scaffoldKey.currentContext)
+            .push(TransparentRoute(builder: (context) {
+          return ImageGridView(
+              imageMediaCollectionList: imageMediaCollectionList
+                  .where((element) => element.isActive)
+                  .toList());
+        })) as List<MediaCollectionMapping>) ??
+        [];
+    setState(() {
+      final removedImageMediaCollectionList = imageMediaCollectionList
+          .where((element) => !mediaCollectionList.contains(element))
+          .toList();
+      removedImageMediaCollectionList.forEach((element) {
+        element.isActive = false;
+      });
+      imageMediaCollectionList = [
+        ...mediaCollectionList,
+        ...removedImageMediaCollectionList
+      ];
+    });
   }
 
   get video {
-    if (videoFileMapByThumbnail.isNotEmpty)
+    if (videoMediaCollectionList.isNotEmpty)
       return BlurImageGridItem(
           context: context,
           child: buildAddVideoIconButtonItem(context),
-          imageList: videoFileMapByThumbnail.keys.toList(),
+          imageList:
+              videoMediaCollectionList.map((e) => e.media.thumbnail).toList(),
           viewCallback: navigateToVideoGrid);
     return buildAddVideoIconButtonItem(context);
   }
 
-  navigateToVideoGrid() {
-    Navigator.of(_scaffoldKey.currentContext)
-        .push(TransparentRoute(builder: (context) {
-      return VideoGridView(
-        videosMap: videoFileMapByThumbnail,
-        onChanged: (value) {
-          setState(() {
-            videoFileMapByThumbnail = value;
-          });
-        },
-      );
-    }));
+  navigateToVideoGrid() async {
+    var mediaCollectionList = (await Navigator.of(_scaffoldKey.currentContext)
+            .push(TransparentRoute(builder: (context) {
+          return VideoGridView(
+              videoMediaCollectionList: videoMediaCollectionList
+                  .where((element) => element.isActive)
+                  .toList());
+        })) as List<MediaCollectionMapping>) ??
+        [];
+    setState(() {
+      final removedVideoMediaCollectionList = videoMediaCollectionList
+          .where((element) => !mediaCollectionList.contains(element))
+          .toList();
+      removedVideoMediaCollectionList.forEach((element) {
+        element.isActive = false;
+      });
+      videoMediaCollectionList = [
+        ...mediaCollectionList,
+        ...removedVideoMediaCollectionList
+      ];
+    });
   }
 
   get activity {
@@ -672,7 +728,10 @@ class BlurImageGridItem extends StatelessWidget {
                   .map((e) => Container(
                       decoration: BoxDecoration(
                           image: DecorationImage(
-                              fit: BoxFit.cover, image: FileImage(e.file)))))
+                              fit: BoxFit.cover,
+                              image: e.file != null
+                                  ? FileImage(e.file)
+                                  : NetworkImage(e.url)))))
                   .toList(),
             ),
           ),
