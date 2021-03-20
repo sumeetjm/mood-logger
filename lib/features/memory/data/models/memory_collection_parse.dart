@@ -14,6 +14,7 @@ class MemoryCollectionParse extends MemoryCollection with ParseMixin {
     bool isActive = true,
     Color averageMemoryMoodColor,
     int memoryCount = 0,
+    ParseUser user,
   }) : super(
           id: id,
           name: name,
@@ -21,6 +22,7 @@ class MemoryCollectionParse extends MemoryCollection with ParseMixin {
           isActive: isActive,
           averageMemoryMoodColor: averageMemoryMoodColor,
           memoryCount: memoryCount,
+          user: user,
         );
 
   @override
@@ -32,8 +34,9 @@ class MemoryCollectionParse extends MemoryCollection with ParseMixin {
         'name': name,
         'code': code,
         'isActive': isActive,
-        'averageMemoryMoodHexColor': averageMemoryMoodColor.toHex(),
+        'averageMemoryMoodHexColor': averageMemoryMoodColor?.toHex(),
         'memoryCount': memoryCount,
+        'user': user,
       };
 
   static MemoryCollectionParse from(ParseObject parseObject,
@@ -55,6 +58,7 @@ class MemoryCollectionParse extends MemoryCollection with ParseMixin {
           'averageMemoryMoodHexColor', parseOptions,
           transform: HexColor.fromHex),
       memoryCount: ParseMixin.value('memoryCount', parseOptions),
+      user: ParseMixin.value('user', parseOptions),
     );
   }
 }

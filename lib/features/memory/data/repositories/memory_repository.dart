@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:mood_manager/core/error/failures.dart';
+import 'package:mood_manager/features/common/domain/entities/media.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection_mapping.dart';
 import 'package:mood_manager/features/memory/data/models/memory_collection_mapping_parse.dart';
@@ -23,4 +24,5 @@ abstract class MemoryRepository {
       MemoryCollectionMapping memoryCollectionMapping);
   Future<Either<Failure, List<MediaCollection>>> getMediaCollectionList(
       {bool includeAll});
+  Future<Either<Failure, List<Memory>>> getMemoryListByMedia(Media media);
 }

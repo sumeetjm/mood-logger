@@ -10,6 +10,7 @@ import 'package:mood_manager/features/common/domain/entities/media_collection_ma
 import 'package:mood_manager/features/profile/domain/entities/user_profile.dart';
 import 'package:mood_manager/features/profile/domain/usecases/get_current_user_profile.dart';
 import 'package:mood_manager/features/profile/domain/usecases/get_user_profile.dart';
+import 'package:mood_manager/features/profile/domain/usecases/link_with_social.dart';
 import 'package:mood_manager/features/profile/domain/usecases/save_profile_picture.dart';
 import 'package:mood_manager/features/profile/domain/usecases/save_user_profile.dart';
 import 'package:mood_manager/features/mood_manager/presentation/bloc/activity_list_bloc.dart';
@@ -22,12 +23,14 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   final GetUserProfile getUserProfile;
   final SaveUserProfile saveUserProfile;
   final SaveProfilePicture saveProfilePicture;
+  final LinkWithSocial linkWithSocial;
 
   ProfileBloc({
     this.getCurrentUserProfile,
     this.getUserProfile,
     this.saveUserProfile,
     this.saveProfilePicture,
+    this.linkWithSocial,
   }) : super(ProfileInitial());
 
   @override
@@ -53,6 +56,10 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
           MapEntry(event.profilePictureMediaCollection, event.userProfile)));
       final either = await getCurrentUserProfile(NoParams());
       yield* _eitherUserProfileSavedOrErrorState(either);
+    } else if (event is LinkWithSocialEvent) {
+      yield UserProfileLoading();
+      final either = await linkWithSocial(Params(event.social));
+      yield* _eitherSocialLinkedOrErrorState(either);
     }
   }
 
@@ -71,6 +78,15 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     yield failureOrMoodList.fold(
       (failure) => UserProfileError(message: _mapFailureToMessage(failure)),
       (userProfile) => UserProfileSaved(userProfile: userProfile),
+    );
+  }
+
+  Stream<ProfileState> _eitherSocialLinkedOrErrorState(
+    Either<Failure, String> failureOrMoodList,
+  ) async* {
+    yield failureOrMoodList.fold(
+      (failure) => UserProfileError(message: _mapFailureToMessage(failure)),
+      (userProfile) => LinkedWithSocial(userProfile),
     );
   }
 

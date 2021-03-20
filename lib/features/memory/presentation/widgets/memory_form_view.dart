@@ -432,6 +432,7 @@ class _MemoryFormViewState extends State<MemoryFormView> {
           .toSet()
           .map((e) => e.collection)
           .toList(),
+      user: await ParseUser.currentUser() as ParseUser,
     );
     // return;
     widget.saveCallback(
@@ -499,44 +500,43 @@ class _MemoryFormViewState extends State<MemoryFormView> {
         source: source,
       );
       if (pickedFileList != null && pickedFileList.isNotEmpty) {
-        setState(() {
-          for (final pickedFile in pickedFileList) {
-            final thumbnailImage = img.copyResize(
-                img.decodeImage(pickedFile.readAsBytesSync()),
-                width: 200);
-            final thumbnailFile =
-                File(cacheDir.path + "/" + uuid.v1() + ".jpg");
-            thumbnailFile.writeAsBytesSync(img.encodeJpg(thumbnailImage));
-            var photoCollection;
-            if (widget.memory?.mediaCollectionList != null &&
-                (widget.memory?.mediaCollectionList ?? [])
-                    .any((element) => element.mediaType == 'PHOTO')) {
-              photoCollection = widget.memory.mediaCollectionList
-                  .firstWhere((element) => element.mediaType == 'PHOTO')
-                  .incrementMediaCount();
-            } else {
-              photoCollection = MediaCollectionParse(
-                code: uuid.v1(),
-                mediaCount: 1,
-                mediaType: 'PHOTO',
-                module: 'MEMORY',
-                name: uuid.v1(),
-              );
-            }
-            imageMediaCollectionList.add(
-              MediaCollectionMappingParse(
-                collection: photoCollection,
-                media: MediaParse(
-                  file: ParseFile(pickedFile),
-                  thumbnail: ParseFile(thumbnailFile),
-                  mediaType: 'PHOTO',
-                ),
-              ),
+        for (final pickedFile in pickedFileList) {
+          final thumbnailImage = img.copyResize(
+              img.decodeImage(pickedFile.readAsBytesSync()),
+              width: 200);
+          final thumbnailFile = File(cacheDir.path + "/" + uuid.v1() + ".jpg");
+          thumbnailFile.writeAsBytesSync(img.encodeJpg(thumbnailImage));
+          var photoCollection;
+          if (widget.memory?.mediaCollectionList != null &&
+              (widget.memory?.mediaCollectionList ?? [])
+                  .any((element) => element.mediaType == 'PHOTO')) {
+            photoCollection = widget.memory.mediaCollectionList
+                .firstWhere((element) => element.mediaType == 'PHOTO')
+                .incrementMediaCount();
+          } else {
+            photoCollection = MediaCollectionParse(
+              code: uuid.v1(),
+              mediaCount: 1,
+              mediaType: 'PHOTO',
+              module: 'MEMORY',
+              name: uuid.v1(),
+              user: (await ParseUser.currentUser()) as ParseUser,
             );
-            /*imageFileMapByThumbnail[ParseFile(thumbnailFile)] =
-                ParseFile(pickedFile);*/
           }
-        });
+          imageMediaCollectionList.add(
+            MediaCollectionMappingParse(
+              collection: photoCollection,
+              media: MediaParse(
+                file: ParseFile(pickedFile),
+                thumbnail: ParseFile(thumbnailFile),
+                mediaType: 'PHOTO',
+              ),
+            ),
+          );
+          /*imageFileMapByThumbnail[ParseFile(thumbnailFile)] =
+                ParseFile(pickedFile);*/
+        }
+        setState(() {});
         navigateToImageGrid();
       }
     } catch (e) {
@@ -573,6 +573,7 @@ class _MemoryFormViewState extends State<MemoryFormView> {
           mediaType: 'VIDEO',
           module: 'MEMORY',
           name: uuid.v1(),
+          user: (await ParseUser.currentUser()) as ParseUser,
         );
       }
 

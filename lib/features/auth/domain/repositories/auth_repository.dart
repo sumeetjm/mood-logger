@@ -9,4 +9,7 @@ abstract class AuthRepository {
   Future<Either<Failure, void>> signOut();
   Future<Either<Failure, bool>> isSignedIn();
   Future<Either<Failure, User>> getUser();
+  Future<Either<Failure, User>> signInWithFacebook();
+  Future<Either<Failure, bool>> isUserExist(User user);
+  Future<Either<Failure, bool>> isUsernameExist(User user);
 }

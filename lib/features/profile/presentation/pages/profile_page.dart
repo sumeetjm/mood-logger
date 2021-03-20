@@ -80,6 +80,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       }));
                     }
                   },
+                  linkWithSocialCallback: linkWithSocial,
                 ));
           }
         },
@@ -95,5 +96,9 @@ class _ProfilePageState extends State<ProfilePage> {
       {MediaCollectionMapping profilePictureMediaCollection}) async {
     _profileBloc.add(
         SaveProfilePictureEvent(profilePictureMediaCollection, userProfile));
+  }
+
+  void linkWithSocial(String social) {
+    _profileBloc.add(LinkWithSocialEvent(social));
   }
 }

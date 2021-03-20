@@ -9,3 +9,8 @@ abstract class Failure extends Equatable {
 class ServerFailure extends Failure {}
 
 class CacheFailure extends Failure {}
+
+class ValidationFailure extends Failure {
+  String message;
+  ValidationFailure(this.message);
+}

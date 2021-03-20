@@ -1,9 +1,9 @@
 import 'package:dartz/dartz.dart';
 import 'package:mood_manager/core/error/exceptions.dart';
 import 'package:mood_manager/features/common/data/datasources/common_remote_data_source.dart';
-import 'package:mood_manager/features/common/data/models/media_collection_mapping_parse.dart';
 import 'package:mood_manager/features/common/data/models/media_collection_parse.dart';
 import 'package:mood_manager/features/common/data/models/parse_mixin.dart';
+import 'package:mood_manager/features/common/domain/entities/media.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection_mapping.dart';
 import 'package:mood_manager/features/memory/data/models/memory_collection_mapping_parse.dart';
@@ -36,6 +36,7 @@ abstract class MemoryRemoteDataSource {
   Future<List<MemoryCollection>> getMemoryCollectionList();
   Future<List<MediaCollection>> getMediaCollectionListByModuleList(
       List<String> moduleList);
+  Future<List<Memory>> getMemoryListByMedia(Media media);
 }
 
 class MemoryParseDataSource extends MemoryRemoteDataSource {
@@ -48,15 +49,20 @@ class MemoryParseDataSource extends MemoryRemoteDataSource {
       Memory memory, List<MediaCollectionMapping> mediaCollectionList) async {
     mediaCollectionList = await commonParseDataSource
         .saveMediaCollectionMappingList(mediaCollectionList);
-    ParseResponse response = await cast<MemoryParse>(memory).toParse(
-        skipKeys: ['collection'], pointerKeys: ['mMood', 'mActivity']).save();
+    final memoryParse = cast<MemoryParse>(memory).toParse(
+        skipKeys: ['collection'],
+        pointerKeys: ['mMood', 'mActivity'],
+        user: await ParseUser.currentUser());
+    ParseResponse response = await memoryParse.save();
     if (response.success) {
       memory = MemoryParse.from(response.results.first,
           cacheData: MemoryParse(
-              collectionList:
-                  mediaCollectionList.map((e) => e.collection).toSet().toList(),
-              mMood: memory.mMood,
-              mActivityList: memory.mActivityList),
+            collectionList:
+                mediaCollectionList.map((e) => e.collection).toSet().toList(),
+            mMood: memory.mMood,
+            mActivityList: memory.mActivityList,
+            user: memory.user,
+          ),
           cacheKeys: ['collection', 'mMood', 'mActivity']);
       response = await cast<MemoryParse>(memory).toParse(
           pointerKeys: ['collection'], skipKeys: ['mMood', 'mActivity']).save();
@@ -85,6 +91,8 @@ class MemoryParseDataSource extends MemoryRemoteDataSource {
           ])
           ..whereEqualTo('isActive', true)
           ..whereEqualTo('isArchived', false)
+          ..whereEqualTo('user',
+              ((await ParseUser.currentUser()) as ParseUser).toPointer())
           ..orderByDescending('logDateTime');
     final ParseResponse response = await queryBuilder.query();
     if (response.success) {
@@ -111,6 +119,8 @@ class MemoryParseDataSource extends MemoryRemoteDataSource {
       ..whereEqualTo('isArchived', false)
       ..whereGreaterThanOrEqualsTo('logDateTime', utcDate)
       ..whereLessThanOrEqualTo('logDateTime', utcDate.add(Duration(days: 1)))
+      ..whereEqualTo(
+          'user', ((await ParseUser.currentUser()) as ParseUser).toPointer())
       ..orderByDescending('logDateTime');
     final ParseResponse response = await queryBuilder.query();
     if (response.success) {
@@ -137,7 +147,8 @@ class MemoryParseDataSource extends MemoryRemoteDataSource {
           ])
           ..whereEqualTo('isActive', true)
           ..whereEqualTo('memoryCollection',
-              cast<MemoryCollectionParse>(memoryCollection).pointer);
+              cast<MemoryCollectionParse>(memoryCollection).pointer)
+          ..orderByDescending('logDateTime');
     final ParseResponse response = await queryBuilder.query();
     if (response.success) {
       List<Memory> memoryList = ParseMixin.listFrom<Memory>(
@@ -199,28 +210,6 @@ class MemoryParseDataSource extends MemoryRemoteDataSource {
       archiveMemoryCollection = userProfile.archiveMemoryCollection
           .incrementMemoryCount()
           .addColor(memory.mMood?.color);
-    } else {
-      userProfile.archiveMemoryCollection = MemoryCollectionParse(
-        name: 'ARCHIVE',
-        averageMemoryMoodColor: memory.mMood?.color,
-        memoryCount: 1,
-      );
-      ParseResponse response =
-          await cast<UserProfileParse>(userProfile).toParse(selectKeys: [
-        'objectId',
-        'archiveMemoryCollection',
-      ]).save();
-      if (response.success) {
-        userProfile = UserProfileParse.from(response.results.first,
-            cacheData: userProfile,
-            notCacheKeys: [
-              'objectId',
-              'archiveMemoryCollection',
-            ]);
-        archiveMemoryCollection = userProfile.archiveMemoryCollection;
-      } else {
-        throw ServerException();
-      }
     }
     await saveMemoryCollectionMapping(
       MemoryCollectionMappingParse(
@@ -234,15 +223,15 @@ class MemoryParseDataSource extends MemoryRemoteDataSource {
   @override
   Future<MemoryCollectionMapping> saveMemoryCollectionMapping(
       MemoryCollectionMapping memoryCollectionMapping) async {
-    QueryBuilder<ParseObject> queryBuilder = QueryBuilder<ParseObject>(
-        ParseObject('memoryCollectionMapping'))
-      ..whereEqualTo('isActive', true)
-      ..whereEqualTo(
-          'memory', cast<MemoryParse>(memoryCollectionMapping.memory)?.pointer)
-      ..whereEqualTo(
-          'memoryCollection',
-          cast<MemoryCollectionParse>(memoryCollectionMapping.memoryCollection)
-              .toParse());
+    final memoryCollectionParse =
+        cast<MemoryCollectionParse>(memoryCollectionMapping.memoryCollection)
+            .toParse(user: await ParseUser.currentUser());
+    QueryBuilder<ParseObject> queryBuilder =
+        QueryBuilder<ParseObject>(ParseObject('memoryCollectionMapping'))
+          ..whereEqualTo('isActive', true)
+          ..whereEqualTo('memory',
+              cast<MemoryParse>(memoryCollectionMapping.memory)?.pointer)
+          ..whereEqualTo('memoryCollection', memoryCollectionParse);
 
     ParseResponse response = await queryBuilder.query();
     if (response.success) {
@@ -278,7 +267,9 @@ class MemoryParseDataSource extends MemoryRemoteDataSource {
     QueryBuilder<ParseObject> queryBuilder =
         QueryBuilder<ParseObject>(ParseObject('memoryCollection'))
           ..whereEqualTo('isActive', true)
-          ..whereNotEqualTo('name', 'ARCHIVE');
+          ..whereNotEqualTo('name', 'ARCHIVE')
+          ..whereEqualTo('user',
+              ((await ParseUser.currentUser()) as ParseUser).toPointer());
     final ParseResponse response = await queryBuilder.query();
     if (response.success) {
       List<MemoryCollection> memoryCollectionList =
@@ -340,13 +331,47 @@ class MemoryParseDataSource extends MemoryRemoteDataSource {
     QueryBuilder<ParseObject> queryBuilder =
         QueryBuilder<ParseObject>(ParseObject('collection'))
           ..whereEqualTo('isActive', true)
-          ..whereContainedIn('module', (moduleList ?? []));
+          ..whereContainedIn('module', (moduleList ?? []))
+          ..whereEqualTo('user',
+              ((await ParseUser.currentUser()) as ParseUser).toPointer());
     final ParseResponse response = await queryBuilder.query();
     if (response.success) {
       List<MediaCollection> mediaCollectionList =
           ParseMixin.listFrom<MediaCollection>(
               response.results, MediaCollectionParse.from);
       return mediaCollectionList;
+    } else {
+      throw ServerException();
+    }
+  }
+
+  @override
+  Future<List<Memory>> getMemoryListByMedia(Media media) async {
+    var user = await ParseUser.currentUser();
+    final mediaCollectionMappingByMedia = (await commonParseDataSource
+        .getMediaCollectionMappingByMedia(media, 'MEMORY', user));
+
+    QueryBuilder<ParseObject> queryBuilder =
+        QueryBuilder<ParseObject>(ParseObject('memory'))
+          ..includeObject([
+            'mMood',
+            'mMood.subMood',
+            'mActivity',
+            'collection',
+          ])
+          ..whereArrayContainsAll(
+              'collection',
+              mediaCollectionMappingByMedia
+                  .map((e) => (e.collection as MediaCollectionParse).pointer)
+                  .toList())
+          ..whereEqualTo('isActive', true)
+          ..whereEqualTo('user', (user as ParseUser).toPointer())
+          ..orderByDescending('logDateTime');
+    final ParseResponse response = await queryBuilder.query();
+    if (response.success) {
+      List<MemoryParse> memoryList =
+          ParseMixin.listFrom<MemoryParse>(response.results, MemoryParse.from);
+      return memoryList;
     } else {
       throw ServerException();
     }

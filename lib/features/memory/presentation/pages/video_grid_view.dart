@@ -245,18 +245,20 @@ class _VideoGridViewState extends State<VideoGridView> {
                                 );
                                 final mediaCollectionParse =
                                     MediaCollectionMappingParse(
-                                  collection:
-                                      widget.videoMediaCollectionList.isNotEmpty
-                                          ? widget.videoMediaCollectionList[0]
-                                              .collection
-                                              .incrementMediaCount()
-                                          : MediaCollectionParse(
-                                              mediaType: 'VIDEO',
-                                              module: 'MEMORY',
-                                              name: uuid.v1(),
-                                              code: uuid.v1(),
-                                              mediaCount: 1,
-                                            ),
+                                  collection: widget
+                                          .videoMediaCollectionList.isNotEmpty
+                                      ? widget.videoMediaCollectionList[0]
+                                          .collection
+                                          .incrementMediaCount()
+                                      : MediaCollectionParse(
+                                          mediaType: 'VIDEO',
+                                          module: 'MEMORY',
+                                          name: uuid.v1(),
+                                          code: uuid.v1(),
+                                          mediaCount: 1,
+                                          user: (await ParseUser.currentUser())
+                                              as ParseUser,
+                                        ),
                                   media: MediaParse(
                                     file: ParseFile(pickedFile),
                                     mediaType: 'VIDEO',

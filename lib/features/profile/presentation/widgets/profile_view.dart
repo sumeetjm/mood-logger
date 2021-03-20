@@ -1,8 +1,9 @@
-import 'dart:math';
 import 'dart:ui';
 
 import 'package:datetime_picker_formfield/datetime_picker_formfield.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_signin_button/button_list.dart';
+import 'package:flutter_signin_button/button_view.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:mood_manager/core/constants/app_constants.dart';
 import 'package:mood_manager/features/common/data/models/media_collection_parse.dart';
@@ -30,6 +31,7 @@ class ProfileView extends StatelessWidget {
   final Function resetCallback;
   final ValueChanged<MediaCollectionMapping> profilePictureChangeCallback;
   final Function onPictureTapCallback;
+  final ValueChanged<String> linkWithSocialCallback;
   final Uuid uuid = sl<Uuid>();
   ProfileView({
     Key key,
@@ -37,6 +39,7 @@ class ProfileView extends StatelessWidget {
     this.resetCallback,
     this.profilePictureChangeCallback,
     this.onPictureTapCallback,
+    this.linkWithSocialCallback,
   }) : super(key: key);
 
   String about;
@@ -472,6 +475,25 @@ class ProfileView extends StatelessWidget {
                       ],
                     ),
                   ),
+                  ExpansionTile(
+                    title: Text("Connect with social"),
+                    children: [
+                      SignInButton(
+                        Buttons.Google,
+                        onPressed: () {
+                          linkWithSocialCallback('google');
+                        },
+                        text: 'Link with Google',
+                      ),
+                      SignInButton(
+                        Buttons.Facebook,
+                        onPressed: () {
+                          linkWithSocialCallback('facebook');
+                        },
+                        text: 'Link with Facebook',
+                      )
+                    ],
+                  )
                 ],
               ),
             ),
@@ -913,6 +935,7 @@ class ProfileView extends StatelessWidget {
                   mediaType: 'PHOTO',
                   module: 'PROFILE_PICTURE',
                   mediaCount: 1,
+                  user: (await ParseUser.currentUser()) as ParseUser,
                 );
         final profilePicture = MediaParse(
           mediaType: "PHOTO",

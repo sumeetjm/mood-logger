@@ -33,3 +33,11 @@ class SaveProfilePictureEvent extends ProfileEvent {
   @override
   List<Object> get props => [profilePictureMediaCollection, userProfile];
 }
+
+class LinkWithSocialEvent extends ProfileEvent {
+  final String social;
+  LinkWithSocialEvent(this.social);
+
+  @override
+  List<Object> get props => [social];
+}

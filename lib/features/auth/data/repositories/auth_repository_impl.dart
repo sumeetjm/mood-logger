@@ -31,6 +31,8 @@ class AuthRepositoryImpl implements AuthRepository {
       final loggedInUser = await dataSource.signInWithCredentials(
           email: user.email, password: user.password, username: user.userId);
       return Right(loggedInUser);
+    } on ValidationException catch (e) {
+      return Left(ValidationFailure(e.message));
     } on ServerException {
       return Left(ServerFailure());
     }
@@ -38,8 +40,10 @@ class AuthRepositoryImpl implements AuthRepository {
 
   Future<Either<Failure, void>> signUp(User user) async {
     try {
-      return Right(
-          await dataSource.signUp(email: user.email, password: user.password));
+      return Right(await dataSource.signUp(
+          email: user.email, password: user.password, username: user.userId));
+    } on ValidationException catch (e) {
+      return Left(ValidationFailure(e.message));
     } on ServerException {
       return Left(ServerFailure());
     }
@@ -66,6 +70,34 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       final user = await dataSource.getUser();
       return Right(user);
+    } on ServerException {
+      return Left(ServerFailure());
+    }
+  }
+
+  Future<Either<Failure, User>> signInWithFacebook() async {
+    try {
+      final user = await dataSource.signInWithFacebook();
+      return Right(user);
+    } on ServerException {
+      return Left(ServerFailure());
+    }
+  }
+
+  Future<Either<Failure, bool>> isUserExist(User user) async {
+    try {
+      final mayBeUserExist = await dataSource.isUserExist(email: user.email);
+      return Right(mayBeUserExist);
+    } on ServerException {
+      return Left(ServerFailure());
+    }
+  }
+
+  Future<Either<Failure, bool>> isUsernameExist(User user) async {
+    try {
+      final mayBeUserNameExist =
+          await dataSource.isUsernameExist(username: user.userId);
+      return Right(mayBeUserNameExist);
     } on ServerException {
       return Left(ServerFailure());
     }

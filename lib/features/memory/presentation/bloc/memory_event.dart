@@ -59,3 +59,12 @@ class GetMemoryListByCollectionEvent extends MemoryEvent {
 }
 
 class GetMediaCollectionListEvent extends MemoryEvent {}
+
+class GetMemoryListByMediaEvent extends MemoryEvent {
+  final Media media;
+
+  GetMemoryListByMediaEvent(this.media);
+
+  @override
+  List<Object> get props => [this.media, ...super.props];
+}

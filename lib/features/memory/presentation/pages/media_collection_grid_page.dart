@@ -139,10 +139,23 @@ class _MediaCollectionGridPageState extends State<MediaCollectionGridPage> {
                                                     MaterialPageRoute(
                                                         builder: (context) {
                                                   return MediaPageView(
-                                                    mediaCollectionList:
-                                                        mediaCollectionMappingList,
-                                                    initialIndex: index,
-                                                  );
+                                                      mediaCollectionList:
+                                                          mediaCollectionMappingList,
+                                                      initialIndex: index,
+                                                      goToMemoryCallback:
+                                                          (media) {
+                                                        Navigator.of(context)
+                                                            .push(
+                                                                MaterialPageRoute(
+                                                          builder: (context) {
+                                                            return MemoryListPage(
+                                                              arguments: {
+                                                                'media': media
+                                                              },
+                                                            );
+                                                          },
+                                                        ));
+                                                      });
                                                 }));
                                               },
                                             ),

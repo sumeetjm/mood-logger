@@ -229,18 +229,20 @@ class _ImageGridViewState extends State<ImageGridView> {
                                     img.encodeJpg(thumbnailImage));
                                 final mediaCollectionParse =
                                     MediaCollectionMappingParse(
-                                  collection:
-                                      widget.imageMediaCollectionList.isNotEmpty
-                                          ? widget.imageMediaCollectionList[0]
-                                              .collection
-                                              .incrementMediaCount()
-                                          : MediaCollectionParse(
-                                              mediaType: 'PHOTO',
-                                              module: 'MEMORY',
-                                              name: uuid.v1(),
-                                              code: uuid.v1(),
-                                              mediaCount: 1,
-                                            ),
+                                  collection: widget
+                                          .imageMediaCollectionList.isNotEmpty
+                                      ? widget.imageMediaCollectionList[0]
+                                          .collection
+                                          .incrementMediaCount()
+                                      : MediaCollectionParse(
+                                          mediaType: 'PHOTO',
+                                          module: 'MEMORY',
+                                          name: uuid.v1(),
+                                          code: uuid.v1(),
+                                          mediaCount: 1,
+                                          user: (await ParseUser.currentUser())
+                                              as ParseUser,
+                                        ),
                                   media: MediaParse(
                                     file: ParseFile(pickedFile),
                                     mediaType: 'PHOTO',

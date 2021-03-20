@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mood_manager/core/util/color_util.dart';
 import 'package:mood_manager/features/common/domain/entities/base.dart';
+import 'package:parse_server_sdk/parse_server_sdk.dart';
 
 // ignore: must_be_immutable
 class MemoryCollection extends Base {
@@ -8,6 +9,7 @@ class MemoryCollection extends Base {
   final String code;
   Color averageMemoryMoodColor;
   int memoryCount;
+  ParseUser user;
   MemoryCollection({
     String id,
     this.name,
@@ -15,6 +17,7 @@ class MemoryCollection extends Base {
     bool isActive = true,
     this.averageMemoryMoodColor,
     this.memoryCount,
+    this.user,
   }) : super(
           id: id,
           isActive: isActive,

@@ -5,6 +5,7 @@ import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 import 'package:mood_manager/core/error/failures.dart';
 import 'package:mood_manager/core/usecases/usecase.dart';
+import 'package:mood_manager/features/common/domain/entities/media.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection_mapping.dart';
 import 'package:mood_manager/features/memory/domain/entities/memory.dart';
@@ -18,6 +19,7 @@ import 'package:mood_manager/features/memory/domain/usecases/get_memory_collecti
 import 'package:mood_manager/features/memory/domain/usecases/get_memory_list.dart';
 import 'package:mood_manager/features/memory/domain/usecases/get_memory_list_by_collection.dart';
 import 'package:mood_manager/features/memory/domain/usecases/get_memory_list_by_date.dart';
+import 'package:mood_manager/features/memory/domain/usecases/get_memory_list_by_media.dart';
 import 'package:mood_manager/features/metadata/domain/usecases/add_activity.dart';
 import 'package:mood_manager/features/memory/domain/usecases/save_memory.dart';
 import 'package:mood_manager/features/mood_manager/presentation/bloc/activity_list_bloc.dart';
@@ -36,6 +38,7 @@ class MemoryBloc extends Bloc<MemoryEvent, MemoryState> {
   final AddMemoryToCollection addMemoryToCollection;
   final GetMemoryListByCollection getMemoryListByCollection;
   final GetMediaCollectionList getMediaCollectionList;
+  final GetMemoryListByMedia getMemoryListByMedia;
   MemoryBloc({
     this.getArchiveMemoryList,
     this.getMemoryListByDate,
@@ -47,6 +50,7 @@ class MemoryBloc extends Bloc<MemoryEvent, MemoryState> {
     this.addMemoryToCollection,
     this.getMemoryListByCollection,
     this.getMediaCollectionList,
+    this.getMemoryListByMedia,
   }) : super(MemoryInitial());
 
   @override
@@ -100,6 +104,10 @@ class MemoryBloc extends Bloc<MemoryEvent, MemoryState> {
       final mayBeMediaCollectionList = await getMediaCollectionList(NoParams());
       yield* _eitherMediaCollectionListLoadedOrErrorState(
           mayBeMediaCollectionList, event);
+    } else if (event is GetMemoryListByMediaEvent) {
+      yield MemoryListLoading();
+      final mayBeMemoryList = await getMemoryListByMedia(Params(event.media));
+      yield* _eitherListLoadedOrErrorState(mayBeMemoryList, event);
     }
   }
 

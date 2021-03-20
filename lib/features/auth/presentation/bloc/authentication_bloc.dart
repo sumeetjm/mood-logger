@@ -59,8 +59,8 @@ class AuthenticationBloc
   }
 
   Stream<AuthenticationState> _mapLoggedInToState() async* {
-    final user = await getCurrentUser(NoParams());
-    yield user.fold(
+    final mayBeUser = await getCurrentUser(NoParams());
+    yield mayBeUser.fold(
         (failure) => Unauthenticated(), (user) => Authenticated(user.email));
   }
 

@@ -90,6 +90,12 @@ dependencies:
   url_launcher: ^5.7.10
   flutter_app_lock: ^1.4.0
   flutter_wall_layout: ^1.0.0
+  flutter_facebook_login: ^3.0.0
+  invert_colors: ^0.0.2
+  #firebase_messaging: ^7.0.3
+  flutter_material_color_picker: ^1.0.5
+  #flutter_picker: ^2.0.0
+  #numberpicker: ^2.0.1
   flutter_test:
     sdk: flutter
 
@@ -111,6 +117,48 @@ flutter:
     - assets/gray_circles_pattern.jpg
     - assets/gray_geometric_triangles_pattern.jpg
     - assets/honeycomb_pattern.jpg
+    - assets/critical.png
+    - assets/angry.png
+    - assets/sad.png
+    - assets/peaceful.png
+    - assets/powerful.png
+    - assets/scared.png
+    - assets/joyful.png
+    - assets/hurt.png
+    - assets/hostile.png
+    - assets/mad.png
+    - assets/selfish.png
+    - assets/hateful.png
+    - assets/confused.png
+    - assets/rejected.png
+    - assets/helpless.png
+    - assets/submissive.png
+    - assets/insecure.png
+    - assets/anxious.png
+    - assets/excited.png
+    - assets/energetic.png
+    - assets/creative.png
+    - assets/hopeful.png
+    - assets/aware.png
+    - assets/proud.png
+    - assets/respected.png
+    - assets/appreciated.png
+    - assets/important.png
+    - assets/faithful.png
+    - assets/nurturing.png
+    - assets/trusting.png
+    - assets/loving.png
+    - assets/intimate.png
+    - assets/thoughtful.png
+    - assets/content.png
+    - assets/tired.png
+    - assets/bored.png
+    - assets/lonely.png
+    - assets/depressed.png
+    - assets/ashamed.png
+    - assets/guilty.png
+
+
   # To add assets to your application, add an assets section, like this:
   # To add assets to your application, add an assets section, like this:
   # assets:

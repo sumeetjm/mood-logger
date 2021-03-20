@@ -24,7 +24,8 @@ mixin ParseMixin {
   ParseObject toParse(
       {List<String> skipKeys = const [],
       List<String> pointerKeys = const [],
-      List<String> selectKeys = const []}) {
+      List<String> selectKeys = const [],
+      ParseUser user}) {
     final ParseObject parseObject = parse;
     map.forEach((key, value) {
       if ((selectKeys.isNotEmpty && selectKeys.contains(key)) ||
@@ -33,6 +34,10 @@ mixin ParseMixin {
         parseObject.set(key, valueParse);
       }
     });
+
+    if (user != null) {
+      parseObject.set('user', user);
+    }
     return parseObject;
   }
 

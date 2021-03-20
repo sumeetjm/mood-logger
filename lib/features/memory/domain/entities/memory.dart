@@ -2,6 +2,7 @@ import 'package:mood_manager/features/common/domain/entities/base.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection.dart';
 import 'package:mood_manager/features/metadata/domain/entities/m_activity.dart';
 import 'package:mood_manager/features/metadata/domain/entities/m_mood.dart';
+import 'package:parse_server_sdk/parse_server_sdk.dart';
 
 class Memory extends Base {
   final String note;
@@ -10,6 +11,7 @@ class Memory extends Base {
   final List<MActivity> mActivityList;
   final DateTime logDateTime;
   bool isArchived;
+  ParseUser user;
 
   Memory({
     String id,
@@ -20,6 +22,7 @@ class Memory extends Base {
     bool isActive = true,
     this.logDateTime,
     this.isArchived,
+    this.user,
   }) : super(
           id: id,
           isActive: isActive,

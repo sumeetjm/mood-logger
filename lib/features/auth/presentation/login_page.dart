@@ -48,7 +48,15 @@ class _LoginPageState extends State<LoginPage> {
               end: Alignment.bottomLeft,
               colors: [Colors.blueGrey, Colors.lightBlueAccent]),
         ),
-        child: BlocBuilder<LoginBloc, LoginState>(
+        child: BlocConsumer<LoginBloc, LoginState>(
+          listener: (context, state) {
+            if (state is LoginFailure) {
+              Scaffold.of(context).showSnackBar(SnackBar(
+                content: Text(state.message),
+                duration: Duration(seconds: 2),
+              ));
+            }
+          },
           cubit: _loginBloc,
           builder: (BuildContext context, LoginState state) {
             return ListView(
@@ -95,7 +103,9 @@ class _LoginPageState extends State<LoginPage> {
                     EmailField(emailController: _emailController),
                     PasswordField(passwordController: _passwordController),
                     AuthSubmitButton(
-                      onPressed: _onFormSubmitted,
+                      onPressed: () {
+                        _onFormSubmitted(context);
+                      },
                     ),
                     Padding(
                         padding: const EdgeInsets.only(top: 30, left: 30),
@@ -111,7 +121,7 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                               SignInButton(
                                 Buttons.Facebook,
-                                onPressed: () {},
+                                onPressed: _loginWithFacebook,
                               )
                             ],
                           )),
@@ -132,9 +142,12 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  void _onFormSubmitted() {
+  void _onFormSubmitted(context) {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      print('Email and password cannot be empty');
+      Scaffold.of(context).showSnackBar(SnackBar(
+        content: Text('Email and password cannot be empty'),
+        duration: Duration(seconds: 2),
+      ));
       return;
     }
     _loginBloc.add(
@@ -149,5 +162,9 @@ class _LoginPageState extends State<LoginPage> {
 
   void _loginWithGoogle() {
     _loginBloc.add(LoginWithGoogleRequest());
+  }
+
+  void _loginWithFacebook() {
+    _loginBloc.add(LoginWithFacebookRequest());
   }
 }

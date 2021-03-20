@@ -55,3 +55,11 @@ class ProfilePictureSaving extends ProfileState {
   @override
   List<Object> get props => [photo];
 }
+
+class LinkedWithSocial extends ProfileState {
+  final String social;
+  LinkedWithSocial(this.social);
+
+  @override
+  List<Object> get props => [social];
+}

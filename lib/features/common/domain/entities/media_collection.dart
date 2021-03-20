@@ -1,4 +1,5 @@
 import 'package:mood_manager/features/common/domain/entities/base.dart';
+import 'package:parse_server_sdk/parse_server_sdk.dart';
 
 class MediaCollection extends Base {
   final String mediaType;
@@ -6,6 +7,7 @@ class MediaCollection extends Base {
   final String code;
   final String module;
   int mediaCount;
+  ParseUser user;
 
   MediaCollection({
     String id,
@@ -15,6 +17,7 @@ class MediaCollection extends Base {
     this.mediaType,
     this.mediaCount = 0,
     bool isActive = true,
+    this.user,
   }) : super(
           id: id,
           isActive: isActive,
@@ -33,5 +36,5 @@ class MediaCollection extends Base {
 
   @override
   List<Object> get props =>
-      [...super.props, mediaType, name, code, module, mediaCount];
+      [...super.props, mediaType, name, code, module, mediaCount, user];
 }

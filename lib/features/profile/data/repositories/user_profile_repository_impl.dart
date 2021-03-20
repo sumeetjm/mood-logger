@@ -1,3 +1,4 @@
+import 'package:mood_manager/features/auth/data/datasources/auth_data_source.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection_mapping.dart';
 import 'package:mood_manager/features/profile/data/datasources/user_profile_remote_data_source.dart';
 import 'package:dartz/dartz.dart';
@@ -13,11 +14,13 @@ import '../../../../core/network/network_info.dart';
 
 class UserProfileRepositoryImpl implements UserProfileRepository {
   final UserProfileRemoteDataSource remoteDataSource;
+  final AuthDataSource authRemoteDataSource;
   final NetworkInfo networkInfo;
 
   UserProfileRepositoryImpl({
     @required this.remoteDataSource,
     @required this.networkInfo,
+    @required this.authRemoteDataSource,
   });
 
   @override
@@ -73,6 +76,24 @@ class UserProfileRepositoryImpl implements UserProfileRepository {
         final photoSaved = await remoteDataSource.saveProfilePicture(
             photoMediaCollection, userProfile);
         return Right(photoSaved.media);
+      } on ServerException {
+        return Left(ServerFailure());
+      }
+    } else {
+      return Left(ServerFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, String>> linkWithSocial(String social) async {
+    if (await networkInfo.isConnected) {
+      try {
+        if (social == 'google') {
+          await authRemoteDataSource.linkWithGoogle();
+        } else if (social == 'facebook') {
+          await authRemoteDataSource.linkWithFacebook();
+        }
+        return Right(social);
       } on ServerException {
         return Left(ServerFailure());
       }

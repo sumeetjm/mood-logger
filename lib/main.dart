@@ -16,6 +16,7 @@ const String LIVE_QUERY_URL = 'https://moodmanager.back4app.io';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await di.init();
+
   await Parse().initialize(
     PARSE_APP_ID,
     PARSE_APP_URL,
@@ -28,7 +29,7 @@ void main() async {
   ParseInstallation installation =
       await ParseInstallation.currentInstallation();
   installation.set("GCMSenderId", "206555785179");
-  installation.save();
+  await installation.save();
   initializeDateFormatting().then((_) => runApp(MyApp()));
 }
 

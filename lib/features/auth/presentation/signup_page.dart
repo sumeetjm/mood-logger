@@ -25,10 +25,12 @@ class _SignupPageState extends State<SignupPage> {
     super.initState();
     _signupBloc = sl<SignupBloc>();
     _emailController = TextEditingController(text: '');
+    _usernameController = TextEditingController(text: '');
     _passwordController = TextEditingController(text: '');
   }
 
   TextEditingController _emailController;
+  TextEditingController _usernameController;
   TextEditingController _passwordController;
   @override
   Widget build(BuildContext context) {
@@ -47,7 +49,15 @@ class _SignupPageState extends State<SignupPage> {
               end: Alignment.bottomLeft,
               colors: [Colors.blueGrey, Colors.lightBlueAccent]),
         ),
-        child: BlocBuilder<SignupBloc, SignupState>(
+        child: BlocConsumer<SignupBloc, SignupState>(
+          listener: (context, state) {
+            if (state is SignupFailure) {
+              return Scaffold.of(context).showSnackBar(SnackBar(
+                content: Text(state.message),
+                duration: Duration(seconds: 2),
+              ));
+            }
+          },
           cubit: _signupBloc,
           builder: (BuildContext context, SignupState state) {
             return ListView(
@@ -72,11 +82,20 @@ class _SignupPageState extends State<SignupPage> {
                             )),
                       ),
                     ]),
-                    EmailField(emailController: _emailController),
-                    PasswordField(passwordController: _passwordController),
-                    AuthSubmitButton(
-                      onPressed: _onFormSubmitted,
+                    SizedBox(
+                      height: 30,
                     ),
+                    EmailField(
+                      emailController: _emailController,
+                      label: 'Email',
+                    ),
+                    EmailField(
+                        emailController: _usernameController,
+                        label: 'Username'),
+                    PasswordField(passwordController: _passwordController),
+                    AuthSubmitButton(onPressed: () {
+                      _onFormSubmitted(context);
+                    }),
                     AuthPageLinkButton(
                       text: 'Already signed up? Login',
                       onPressed: () {
@@ -93,15 +112,33 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
-  void _onFormSubmitted() {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      print('Email and password cannot be empty');
+  void _onFormSubmitted(context) {
+    if (_emailController.text.isEmpty) {
+      Scaffold.of(context).showSnackBar(SnackBar(
+        content: Text('Email cannot be empty'),
+        duration: Duration(seconds: 2),
+      ));
+      return;
+    }
+    if (_usernameController.text.isEmpty) {
+      Scaffold.of(context).showSnackBar(SnackBar(
+        content: Text('Username cannot be empty'),
+        duration: Duration(seconds: 2),
+      ));
+      return;
+    }
+    if (_passwordController.text.isEmpty) {
+      Scaffold.of(context).showSnackBar(SnackBar(
+        content: Text('Password cannot be empty'),
+        duration: Duration(seconds: 2),
+      ));
       return;
     }
     _signupBloc.add(
       SignupRequest(
         user: User(
           email: _emailController.text.trim(),
+          userId: _usernameController.text.trim(),
           password: _passwordController.text.trim(),
         ),
       ),

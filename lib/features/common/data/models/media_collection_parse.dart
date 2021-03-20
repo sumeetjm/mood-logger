@@ -15,6 +15,7 @@ class MediaCollectionParse extends MediaCollection with ParseMixin {
     String mediaType,
     String module,
     int mediaCount,
+    ParseUser user,
   }) : super(
           id: id,
           isActive: isActive,
@@ -23,6 +24,7 @@ class MediaCollectionParse extends MediaCollection with ParseMixin {
           mediaType: mediaType,
           module: module,
           mediaCount: mediaCount,
+          user: user,
         );
 
   @override
@@ -34,6 +36,7 @@ class MediaCollectionParse extends MediaCollection with ParseMixin {
         'module': module,
         'mediaCount': mediaCount,
         'isActive': isActive,
+        'user': user,
       };
 
   static MediaCollectionParse from(ParseObject parseObject,
@@ -54,6 +57,7 @@ class MediaCollectionParse extends MediaCollection with ParseMixin {
       module: ParseMixin.value('module', parseOptions),
       mediaCount: ParseMixin.value('mediaCount', parseOptions),
       isActive: ParseMixin.value('isActive', parseOptions),
+      user: ParseMixin.value('user', parseOptions),
     );
   }
 }

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 class EmailField extends StatelessWidget {
+  final String label;
   const EmailField({
     Key key,
     @required TextEditingController emailController,
+    this.label,
   })  : _emailController = emailController,
         super(key: key);
 
@@ -12,7 +14,7 @@ class EmailField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(top: 50, left: 50, right: 50),
+      padding: const EdgeInsets.only(top: 20, left: 50, right: 50),
       child: Container(
         height: 60,
         width: MediaQuery.of(context).size.width,
@@ -24,7 +26,7 @@ class EmailField extends StatelessWidget {
           decoration: InputDecoration(
             border: InputBorder.none,
             fillColor: Colors.lightBlueAccent,
-            labelText: 'Username/Email',
+            labelText: label ?? 'Username/Email',
             labelStyle: TextStyle(
               color: Colors.white70,
             ),

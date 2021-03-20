@@ -1,5 +1,6 @@
 import 'package:custom_radio/custom_radio.dart';
 import 'package:flutter/material.dart';
+import 'package:invert_colors/invert_colors.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:mood_manager/features/metadata/domain/entities/m_mood.dart';
 import 'dart:math';
@@ -39,31 +40,40 @@ class _RadioSelectionState extends State<RadioSelection>
         Function updateState, MMood value) {
       final alpha = (animValues[0] * 255).toInt();
       final color = value.color;
+      if (value.mMoodList.contains(widget.initialSubValue)) {
+        value = widget.initialSubValue;
+      }
       return GestureDetector(
           onTap: () {
             setState(() {
               widget.onChange(value);
             });
           },
-          child: Container(
-              width: widget.parentCircleRadius / 2,
-              height: widget.parentCircleRadius / 2,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: color.withAlpha(alpha),
-                  border: Border.all(
-                    color: color.withAlpha(255 - alpha),
-                    width: 3.0,
-                  )),
-              child: widget.showLabel
-                  ? Text(
-                      value == widget.initialValue &&
-                              widget.initialSubValue != null
-                          ? widget.initialSubValue.moodName.toUpperCase()
-                          : value.moodName.toUpperCase(),
-                      style: TextStyle(color: alpha > 0 ? Colors.white : color))
-                  : EmptyWidget()));
+          child: value == widget.initialSubValue ||
+                  value.mMoodList.contains(widget.initialSubValue)
+              ? Stack(children: <Widget>[
+                  Positioned.fill(
+                    child: CircleAvatar(
+                      // child: Text(value.moodName),
+                      backgroundColor: color.withAlpha(alpha),
+                      radius: widget.parentCircleRadius / 4, // Color
+                    ),
+                  ),
+                  InvertColors(
+                    child: ImageIcon(
+                      AssetImage('assets/${value.moodName}.png'),
+                      size: widget.parentCircleRadius / 2,
+                      //color: color,
+                    ),
+                  ),
+                ])
+              : ImageIcon(
+                  AssetImage(
+                    'assets/${value.moodName}.png',
+                  ),
+                  size: widget.parentCircleRadius / 2,
+                  color: color,
+                ));
     };
   }
 

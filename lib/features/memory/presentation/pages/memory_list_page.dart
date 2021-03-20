@@ -3,9 +3,11 @@ import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:invert_colors/invert_colors.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:mood_manager/core/constants/app_constants.dart';
 import 'package:mood_manager/features/common/data/datasources/common_remote_data_source.dart';
+import 'package:mood_manager/features/common/domain/entities/media.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection_mapping.dart';
 import 'package:mood_manager/features/common/presentation/widgets/empty_widget.dart';
 import 'package:mood_manager/features/common/presentation/widgets/media_page_view.dart';
@@ -16,6 +18,7 @@ import 'package:mood_manager/features/memory/domain/entities/memory.dart';
 import 'package:mood_manager/features/memory/domain/entities/memory_collection.dart';
 import 'package:mood_manager/features/memory/presentation/bloc/memory_bloc.dart';
 import 'package:mood_manager/injection_container.dart';
+import 'package:parse_server_sdk/parse_server_sdk.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:sliding_panel/sliding_panel.dart';
 import 'package:sticky_headers/sticky_headers.dart';
@@ -82,7 +85,6 @@ Future showNewMemoryCollectionDialog(BuildContext context) async {
                   onPressed: () {
                     if (_textFieldController.text.isNotEmpty) {
                       Navigator.of(context).pop(_textFieldController.text);
-                      _textFieldController.dispose();
                     }
                   },
                 )
@@ -102,6 +104,7 @@ class MemoryListPage extends StatefulWidget {
   String title;
   String uniqueKey;
   MemoryCollection memoryCollection;
+  Media media;
   MemoryListPage({Key key, this.arguments}) : super(key: key) {
     if (arguments != null) {
       this.calendarSelectedDate = this.arguments['selectedDate'];
@@ -109,6 +112,7 @@ class MemoryListPage extends StatefulWidget {
       this.listType = this.arguments['listType'];
       this.title = this.arguments['title'];
       this.memoryCollection = this.arguments['collection'];
+      this.media = this.arguments['media'];
     }
   }
 
@@ -170,6 +174,9 @@ class _MemoryListPageState extends State<MemoryListPage> {
       memoryListMapByDate = subListMapByDate(memoryList);
       dateKeys = memoryListMapByDate.keys.toList();
       mediaCollectionListMapByMemory = getMediaCollectionMap();
+    } else if (widget.media != null) {
+      _memoryBloc = _memoryBloc ?? sl<MemoryBloc>();
+      _memoryBloc.add(GetMemoryListByMediaEvent(widget.media));
     } else {
       _memoryBloc = _memoryBloc ?? BlocProvider.of<MemoryBloc>(context);
       //_memoryBloc.add(GetMemoryListEvent());
@@ -276,10 +283,9 @@ class _MemoryListPageState extends State<MemoryListPage> {
         ),
         title: Text('Create new collection'),
         onTap: () async {
-          var newMemoryCollection = MemoryCollectionParse();
-          var collectionName = await showNewMemoryCollectionDialog(context);
-
-          newMemoryCollection.name = collectionName;
+          final collectionName = await showNewMemoryCollectionDialog(context);
+          final newMemoryCollection = MemoryCollectionParse(
+              name: collectionName, user: await ParseUser.currentUser());
           Navigator.of(context).pop(newMemoryCollection);
         },
       ),
@@ -458,6 +464,15 @@ class _MemoryListPageState extends State<MemoryListPage> {
                                                         mediaCollectionList:
                                                             snapshot.data,
                                                         initialIndex: index,
+                                                        saveMediaCollectionMappingList:
+                                                            (mediaCollectionMappingList) {
+                                                          _memoryBloc.add(
+                                                              SaveMemoryEvent(
+                                                            memory: memory,
+                                                            mediaCollectionMappingList:
+                                                                mediaCollectionMappingList,
+                                                          ));
+                                                        },
                                                       );
                                                     }));
                                                   },
@@ -570,15 +585,10 @@ class MemoryMediaGrid extends StatelessWidget {
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.grey, width: 1),
                       ),
-                      child: CachedNetworkImage(
+                      child: Image(
+                        image:
+                            mediaCollectionList[index].media.thumbnailProvider,
                         fit: BoxFit.cover,
-                        imageUrl: mediaCollectionList.length == 1
-                            ? mediaCollectionList[index].media.mediaType ==
-                                    'VIDEO'
-                                ? mediaCollectionList[index].media.thumbnail.url
-                                : mediaCollectionList[index].media.file.url
-                            : mediaCollectionList[index].media.thumbnail.url,
-                        errorWidget: (context, url, error) => Icon(Icons.error),
                       ),
                     ),
                   ),
@@ -792,10 +802,27 @@ class MemoryActivityAndMood extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(children: [
-                  CircleAvatar(
-                    backgroundColor: (memory.mMood?.color ?? Colors.grey),
-                    radius: 15,
-                  ),
+                  memory.mMood != null
+                      ? Stack(children: <Widget>[
+                          Positioned.fill(
+                            child: CircleAvatar(
+                              // child: Text(value.moodName),
+                              backgroundColor: memory.mMood.color,
+                              radius: 35, // Color
+                            ),
+                          ),
+                          InvertColors(
+                            child: ImageIcon(
+                              AssetImage('assets/${memory.mMood.moodName}.png'),
+                              size: 35,
+                              //color: color,
+                            ),
+                          ),
+                        ])
+                      : CircleAvatar(
+                          backgroundColor: Colors.grey,
+                          radius: 15,
+                        ),
                   SizedBox(
                     width: 20,
                   ),

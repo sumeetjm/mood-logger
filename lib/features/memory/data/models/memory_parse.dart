@@ -19,6 +19,7 @@ class MemoryParse extends Memory with ParseMixin {
     bool isActive = true,
     DateTime logDateTime,
     bool isArchived = false,
+    ParseUser user,
   }) : super(
           id: id,
           note: note,
@@ -28,6 +29,7 @@ class MemoryParse extends Memory with ParseMixin {
           isActive: isActive,
           logDateTime: logDateTime,
           isArchived: isArchived,
+          user: user,
         );
 
   @override
@@ -42,7 +44,8 @@ class MemoryParse extends Memory with ParseMixin {
         'collection': mediaCollectionList,
         'isActive': isActive,
         'logDateTime': logDateTime?.toUtc(),
-        'isArchived': isArchived
+        'isArchived': isArchived,
+        'user': user,
       };
 
   static MemoryParse from(ParseObject parseObject,
@@ -70,6 +73,7 @@ class MemoryParse extends Memory with ParseMixin {
           transform: MActivityParse.from)),
       isActive: ParseMixin.value('isActive', parseOptions),
       isArchived: ParseMixin.value('isArchived', parseOptions),
+      user: ParseMixin.value('user', parseOptions),
     );
   }
 }

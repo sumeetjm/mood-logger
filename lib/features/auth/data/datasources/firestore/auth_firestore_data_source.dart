@@ -80,7 +80,7 @@ class AuthFirestoreDataSource extends AuthDataSource {
   }
 
   @override
-  Future<bool> signUp({String email, String password}) async {
+  Future<bool> signUp({String email, String password, String username}) async {
     try {
       await _firebaseAuth.createUserWithEmailAndPassword(
         email: email,
@@ -90,5 +90,35 @@ class AuthFirestoreDataSource extends AuthDataSource {
     } catch (_) {
       throw ServerException();
     }
+  }
+
+  @override
+  Future<User> signInWithFacebook() {
+    // TODO: implement signInWithFacebook
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<bool> isUserExist({String email}) {
+    // TODO: implement isUserExist
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<bool> isUsernameExist({String username}) {
+    // TODO: implement isUserNameExist
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> linkWithFacebook() {
+    // TODO: implement linkWithFaceBook
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> linkWithGoogle() {
+    // TODO: implement linkWithGoogle
+    throw UnimplementedError();
   }
 }

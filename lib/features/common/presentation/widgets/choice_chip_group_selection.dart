@@ -36,6 +36,7 @@ class _ChoiceChipGroupSelectionPage<T> extends State<ChoiceChipGroupSelection> {
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
+      shrinkWrap: true,
       itemCount: widget.groupList.length,
       itemBuilder: (context, index) {
         final groupKey = widget.groupList[index];

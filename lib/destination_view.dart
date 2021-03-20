@@ -10,6 +10,7 @@ import 'package:mood_manager/features/memory/presentation/widgets/sliding_panel_
 import 'package:mood_manager/features/memory/presentation/widgets/sliding_up_panel_demo.dart';
 import 'package:mood_manager/features/memory/presentation/widgets/walllayout_demo.dart';
 import 'package:mood_manager/features/profile/presentation/pages/profile_page.dart';
+import 'package:mood_manager/features/reminder/presentation/pages/task_calendar_page.dart';
 import 'package:swipedetector/swipedetector.dart';
 
 final tabRoutes = {
@@ -91,7 +92,7 @@ class _DestinationViewState extends State<DestinationView> {
                                 arguments: settings.arguments,
                               )));
                     default:
-                      return MediaCollectionGridPage();
+                      return TaskCalendarPage();
                   }
               }
             },

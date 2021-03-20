@@ -4,6 +4,7 @@ import 'package:mood_manager/core/error/failures.dart';
 import 'package:dartz/dartz.dart';
 import 'package:mood_manager/core/network/network_info.dart';
 import 'package:mood_manager/features/common/data/models/media_collection_parse.dart';
+import 'package:mood_manager/features/common/domain/entities/media.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection_mapping.dart';
 import 'package:mood_manager/features/memory/data/datasources/memory_remote_data_source.dart';
@@ -167,6 +168,21 @@ class MemoryRepositoryImpl extends MemoryRepository {
             ));
         if (includeAll ?? false) {}
         return Right(mediaCollectionList);
+      } on ServerException {
+        return Left(ServerFailure());
+      }
+    } else {
+      return Left(ServerFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<Memory>>> getMemoryListByMedia(
+      Media media) async {
+    if (await networkInfo.isConnected) {
+      try {
+        final memoryList = await remoteDataSource.getMemoryListByMedia(media);
+        return Right(memoryList);
       } on ServerException {
         return Left(ServerFailure());
       }

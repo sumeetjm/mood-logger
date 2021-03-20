@@ -77,8 +77,9 @@ class UserProfileParse extends UserProfile with ParseMixin {
       gender:
           ParseMixin.value('gender', parseOptions, transform: GenderParse.from),
       interestedIn: List<Gender>.from(ParseMixin.value(
-          'interestedIn', parseOptions,
-          transform: GenderParse.from)),
+              'interestedIn', parseOptions,
+              transform: GenderParse.from) ??
+          []),
       isActive: ParseMixin.value(
         'isActive',
         parseOptions,

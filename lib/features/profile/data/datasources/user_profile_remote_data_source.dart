@@ -20,9 +20,14 @@ abstract class UserProfileRemoteDataSource {
   Future<MediaCollectionMapping> saveProfilePicture(
       final MediaCollectionMapping mediaCollectionMapping,
       final UserProfile userProfile);
+  Future<void> setUser(ParseObject parseObject) async {
+    if (parseObject != null) {
+      parseObject.set('user', await ParseUser.currentUser());
+    }
+  }
 }
 
-class UserProfileParseDataSource implements UserProfileRemoteDataSource {
+class UserProfileParseDataSource extends UserProfileRemoteDataSource {
   final CommonRemoteDataSource commonRemoteDataSource;
 
   UserProfileParseDataSource({this.commonRemoteDataSource});
@@ -61,7 +66,7 @@ class UserProfileParseDataSource implements UserProfileRemoteDataSource {
     final ParseResponse response = await queryBuilder.query();
     if (response.success) {
       UserProfile userProfileParse =
-          UserProfileParse.from(response.results.first);
+          UserProfileParse.from(response.results?.first);
       return userProfileParse;
     } else {
       throw ServerException();
@@ -71,9 +76,10 @@ class UserProfileParseDataSource implements UserProfileRemoteDataSource {
   @override
   Future<UserProfile> saveUserProfile(UserProfile userProfile) async {
     ParseResponse response;
-    response = await cast<UserProfileParse>(userProfile).toParse(
-        skipKeys: ['profilePicture'],
-        pointerKeys: ['gender', 'interestedIn']).save();
+    final userProfileParse = cast<UserProfileParse>(userProfile).toParse(
+        skipKeys: ['profilePicture'], pointerKeys: ['gender', 'interestedIn']);
+    setUser(userProfileParse.get('archiveMemoryCollection'));
+    response = await userProfileParse.save();
     if (response.success) {
       userProfile = UserProfileParse.from(response.results.first,
           cacheData: userProfile,

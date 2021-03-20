@@ -11,3 +11,5 @@ class LoginRequest extends LoginEvent {
 }
 
 class LoginWithGoogleRequest extends LoginEvent {}
+
+class LoginWithFacebookRequest extends LoginEvent {}

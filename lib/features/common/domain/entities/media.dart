@@ -28,7 +28,7 @@ class Media extends Base {
 
   ImageProvider get thumbnailProvider {
     if (thumbnail.url != null) {
-      return NetworkImage(thumbnail.url);
+      return CachedNetworkImageProvider(thumbnail.url);
     } else {
       return FileImage(thumbnail.file);
     }

@@ -1,19 +1,21 @@
 part of 'authentication_bloc.dart';
 
 abstract class AuthenticationState extends Equatable {
-  const AuthenticationState([List props = const []]);
+  const AuthenticationState();
   @override
-  List<Object> get props => props;
+  List<Object> get props => [];
 }
 
 class AuthenticationInitial extends AuthenticationState {
-  AuthenticationInitial() : super([]);
+  AuthenticationInitial() : super();
 }
 
 class Authenticated extends AuthenticationState {
   final String displayName;
 
-  Authenticated(this.displayName) : super([displayName]);
+  Authenticated(this.displayName) : super();
+  @override
+  List<Object> get props => [displayName];
 
   @override
   String toString() => 'Authenticated { displayName: $displayName }';

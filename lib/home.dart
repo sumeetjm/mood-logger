@@ -7,6 +7,7 @@ import 'package:mood_manager/core/constants/app_constants.dart';
 import 'package:mood_manager/core/util/hex_color.dart';
 import 'package:mood_manager/destination_view.dart';
 import 'package:mood_manager/features/about/presentation/pages/about_page.dart';
+import 'package:mood_manager/features/auth/presentation/bloc/authentication_bloc.dart';
 import 'package:mood_manager/features/memory/presentation/bloc/memory_bloc.dart';
 import 'package:mood_manager/features/memory/presentation/pages/memory_calendar_page.dart';
 import 'package:mood_manager/features/memory/presentation/pages/memory_collection_list_page.dart';
@@ -20,6 +21,7 @@ import 'package:mood_manager/features/mood_manager/presentation/pages/activity_f
 import 'package:mood_manager/features/mood_manager/presentation/pages/mood_form_page.dart';
 import 'package:mood_manager/features/mood_manager/presentation/pages/t_mood_list_page.dart';
 import 'package:mood_manager/injection_container.dart';
+import 'package:provider/provider.dart';
 
 const List<String> allDestinations = [
   '/profile',
@@ -39,7 +41,7 @@ class _HomeState extends State<Home> with TickerProviderStateMixin<Home> {
   List<GlobalKey<NavigatorState>> _destinationKeys;
   List<GlobalKey<NavigatorState>> _destinationViewKeys;
   List<AnimationController> _faders;
-  int _currentIndex = 1;
+  int _currentIndex = 3;
   AnimationController _hide;
   GlobalKey<NavigatorState> appNavigatorKey;
   GlobalKey<ScaffoldState> scaffoldKey;
@@ -59,7 +61,8 @@ class _HomeState extends State<Home> with TickerProviderStateMixin<Home> {
         allDestinations.map((index) => GlobalKey<NavigatorState>()).toList();
     _destinationViewKeys =
         allDestinations.map((index) => GlobalKey<NavigatorState>()).toList();
-    _hide = AnimationController(vsync: this, duration: kThemeAnimationDuration);
+    _hide = AnimationController(
+        vsync: this, duration: kThemeAnimationDuration, value: 1);
   }
 
   @override
@@ -128,8 +131,31 @@ class _HomeState extends State<Home> with TickerProviderStateMixin<Home> {
               });
         },
         home: WillPopScope(
-          onWillPop: () async =>
-              !await _destinationKeys[_currentIndex].currentState.maybePop(),
+          onWillPop: () async {
+            /*{
+            return (await showDialog(
+                  context: context,
+                  builder: (context) => new AlertDialog(
+                    title: new Text('Are you sure?'),
+                    content: new Text('Do you want to exit an App'),
+                    actions: <Widget>[
+                      new FlatButton(
+                        onPressed: () => Navigator.of(context).pop(false),
+                        child: new Text('No'),
+                      ),
+                      new FlatButton(
+                        onPressed: () => Navigator.of(context).pop(true),
+                        child: new Text('Yes'),
+                      ),
+                    ],
+                  ),
+                )) ??
+                false;
+          },*/
+            var maybePop =
+                await _destinationKeys[_currentIndex].currentState.maybePop();
+            return !maybePop;
+          },
           child: Scaffold(
             key: scaffoldKey,
             drawer: Drawer(
@@ -174,9 +200,9 @@ class _HomeState extends State<Home> with TickerProviderStateMixin<Home> {
                                   ),
                                 ),
                                 title: Text(
-                                  state.userProfile.firstName +
+                                  (state.userProfile?.firstName ?? '') +
                                       " " +
-                                      state.userProfile.lastName,
+                                      (state.userProfile?.lastName ?? ''),
                                   style: TextStyle(color: Colors.white),
                                 ),
                                 onTap: () {
@@ -221,6 +247,13 @@ class _HomeState extends State<Home> with TickerProviderStateMixin<Home> {
                     onTap: () {
                       Navigator.of(appNavigatorKey.currentContext)
                           .pushNamed('/about');
+                    },
+                  ),
+                  ListTile(
+                    title: Text('Log out'),
+                    onTap: () {
+                      BlocProvider.of<AuthenticationBloc>(context)
+                          .add(LoggedOut());
                     },
                   ),
                 ],
