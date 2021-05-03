@@ -7,11 +7,14 @@ import 'package:mood_manager/features/common/domain/entities/media_collection.da
 import 'package:mood_manager/features/metadata/domain/entities/m_activity.dart';
 import 'package:mood_manager/features/metadata/domain/entities/m_mood.dart';
 import 'package:mood_manager/features/memory/domain/entities/memory.dart';
+import 'package:mood_manager/features/reminder/data/models/task_parse.dart';
+import 'package:mood_manager/features/reminder/domain/entities/task.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
 
 class MemoryParse extends Memory with ParseMixin {
   MemoryParse({
     String id,
+    String title,
     String note,
     MMood mMood,
     List<MediaCollection> collectionList,
@@ -22,13 +25,13 @@ class MemoryParse extends Memory with ParseMixin {
     ParseUser user,
   }) : super(
           id: id,
+          title: title,
           note: note,
           mMood: mMood,
           mActivityList: mActivityList,
           mediaCollectionList: collectionList,
           isActive: isActive,
           logDateTime: logDateTime,
-          isArchived: isArchived,
           user: user,
         );
 
@@ -38,13 +41,13 @@ class MemoryParse extends Memory with ParseMixin {
   @override
   Map<String, dynamic> get map => {
         'objectId': id,
+        'title': title,
         'note': note,
         'mMood': mMood,
         'mActivity': mActivityList,
         'collection': mediaCollectionList,
         'isActive': isActive,
         'logDateTime': logDateTime?.toUtc(),
-        'isArchived': isArchived,
         'user': user,
       };
 
@@ -60,6 +63,7 @@ class MemoryParse extends Memory with ParseMixin {
     };
     return MemoryParse(
       id: ParseMixin.value('objectId', parseOptions),
+      title: ParseMixin.value('title', parseOptions),
       note: ParseMixin.value('note', parseOptions),
       logDateTime: ParseMixin.value('logDateTime', parseOptions)?.toLocal(),
       mMood:
@@ -74,6 +78,15 @@ class MemoryParse extends Memory with ParseMixin {
       isActive: ParseMixin.value('isActive', parseOptions),
       isArchived: ParseMixin.value('isArchived', parseOptions),
       user: ParseMixin.value('user', parseOptions),
+    );
+  }
+
+  static MemoryParse fromTask(Task task, DateTime selectedDate) {
+    return MemoryParse(
+      logDateTime: selectedDate,
+      title: task.title,
+      note: task.note,
+      mActivityList: task.mActivityList,
     );
   }
 }

@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:tinycolor/tinycolor.dart';
 
 class TimePicker extends StatelessWidget {
-  const TimePicker({Key key, this.selectedTime, this.selectTime})
+  const TimePicker(
+      {Key key, this.selectedTime, this.selectTime, this.textStyle})
       : super(key: key);
   final TimeOfDay selectedTime;
   final ValueChanged<TimeOfDay> selectTime;
+  final TextStyle textStyle;
 
   Future<void> _selectTime(BuildContext context) async {
     final TimeOfDay picked =
@@ -15,16 +16,16 @@ class TimePicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-        child: RaisedButton(
-      color: TinyColor(Theme.of(context).buttonColor).brighten(40).color,
-      child: Text(
-        selectedTime.format(context),
-        style: TextStyle(fontSize: 20),
+    return GestureDetector(
+      child: Center(
+        child: Text(
+          selectedTime.format(context),
+          style: textStyle ?? TextStyle(fontSize: 20),
+        ),
       ),
-      onPressed: () {
+      onTap: () {
         _selectTime(context);
       },
-    ));
+    );
   }
 }

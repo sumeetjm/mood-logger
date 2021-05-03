@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_overlay_loader/flutter_overlay_loader.dart';
+import 'package:mood_manager/core/util/hex_color.dart';
+import 'package:mood_manager/features/common/domain/entities/base_states.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection_mapping.dart';
 import 'package:mood_manager/features/common/presentation/widgets/empty_widget.dart';
@@ -58,6 +61,7 @@ class _MediaCollectionGridPageState extends State<MediaCollectionGridPage> {
       body: BlocConsumer<MemoryBloc, MemoryState>(
           listener: (context, state) {
             if (state is MediaCollectionListLoaded) {
+              Loader.hide();
               mediaCollectionList = state.mediaCollectionList;
               final Map<String, Future<List<MediaCollectionMapping>>>
                   mediaCollectionMap = {};
@@ -69,10 +73,20 @@ class _MediaCollectionGridPageState extends State<MediaCollectionGridPage> {
               }
               mediaCollectionListMapByCollectionId = mediaCollectionMap;
             }
+            if (state is Loading) {
+              Loader.show(context,
+                  overlayColor: Colors.black.withOpacity(0.5),
+                  isAppbarOverlay: true,
+                  isBottomBarOverlay: true,
+                  progressIndicator: RefreshProgressIndicator());
+            } else if (state is Completed) {
+              Loader.hide();
+            }
           },
           cubit: _memoryBloc,
           builder: (context, state) {
             if (state is MediaCollectionListLoaded) {
+              Loader.hide();
               return GridView.builder(
                 itemCount: mediaCollectionList.length,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(

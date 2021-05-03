@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_overlay_loader/flutter_overlay_loader.dart';
 import 'package:flutter_page_transition/flutter_page_transition.dart';
 import 'package:mood_manager/features/about/presentation/pages/about_page.dart';
 import 'package:mood_manager/features/common/presentation/widgets/empty_widget.dart';
@@ -11,6 +12,7 @@ import 'package:mood_manager/features/memory/presentation/widgets/sliding_up_pan
 import 'package:mood_manager/features/memory/presentation/widgets/walllayout_demo.dart';
 import 'package:mood_manager/features/profile/presentation/pages/profile_page.dart';
 import 'package:mood_manager/features/reminder/presentation/pages/task_calendar_page.dart';
+import 'package:mood_manager/features/reminder/presentation/pages/task_form_page.dart';
 import 'package:swipedetector/swipedetector.dart';
 
 final tabRoutes = {
@@ -92,7 +94,11 @@ class _DestinationViewState extends State<DestinationView> {
                                 arguments: settings.arguments,
                               )));
                     default:
-                      return TaskCalendarPage();
+                      return SwipeDetector(
+                          onSwipeUp: widget.unhideBottomNavigation,
+                          child: NotificationListener<ScrollNotification>(
+                              onNotification: widget.handleScrollNotification,
+                              child: TaskCalendarPage()));
                   }
               }
             },

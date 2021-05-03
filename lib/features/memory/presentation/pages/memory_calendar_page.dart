@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_overlay_loader/flutter_overlay_loader.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:mood_manager/core/constants/app_constants.dart';
 import 'package:mood_manager/core/util/color_util.dart';
 import 'package:mood_manager/core/util/date_util.dart';
+import 'package:mood_manager/features/common/domain/entities/base_states.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection_mapping.dart';
 import 'package:mood_manager/features/common/presentation/widgets/empty_widget.dart';
@@ -83,7 +85,6 @@ class _MemoryCalendarPageState extends State<MemoryCalendarPage>
   }
 
   archiveMemory(memory) async {
-    memory.isArchived = true;
     _memoryBloc.add(ArchiveMemoryEvent(
         memory: memory,
         mediaCollectionMappingList:
@@ -214,6 +215,7 @@ class _MemoryCalendarPageState extends State<MemoryCalendarPage>
         cubit: _memoryBloc,
         listener: (context, state) {
           if (state is MemoryListLoaded) {
+            Loader.hide();
             memoryList = state.memoryList;
             memoryListMapByDate = subListMapByDate(memoryList);
             dateKeys = memoryListMapByDate.keys.toList();
@@ -237,8 +239,18 @@ class _MemoryCalendarPageState extends State<MemoryCalendarPage>
               lastSavedWithActionType = null;
             }
           } else if (state is MemorySaved) {
+            Loader.hide();
             _memoryBloc.add(GetMemoryListEvent());
-          } else if (state is AddedToMemoryCollection) {}
+          }
+          if (state is Loading) {
+            Loader.show(context,
+                overlayColor: Colors.black.withOpacity(0.5),
+                isAppbarOverlay: true,
+                isBottomBarOverlay: true,
+                progressIndicator: RefreshProgressIndicator());
+          } else if (state is Completed) {
+            Loader.hide();
+          }
         },
         builder: (context, state) {
           final addWidgetButton = Container(
@@ -273,23 +285,28 @@ class _MemoryCalendarPageState extends State<MemoryCalendarPage>
             children: [
               _buildTableCalendarWithBuilders(memoryListMapByDate),
               Expanded(
-                child: ListView(
-                    physics: BouncingScrollPhysics(),
-                    controller: scrollController,
-                    children: [
-                      Column(
-                        children: [
-                          if ((memoryListByDate ?? []).isEmpty)
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Center(child: Text('No memories')),
-                            ),
-                          if ((memoryListByDate ?? []).isEmpty) addWidgetButton,
-                          if ((memoryListByDate ?? []).isNotEmpty)
-                            ..._buildEventList(memoryListByDate)
-                        ],
-                      ),
-                    ]),
+                child: RefreshIndicator(
+                  onRefresh: _refresh,
+                  child: ListView(
+                      physics: BouncingScrollPhysics(),
+                      controller: scrollController,
+                      children: [
+                        Column(
+                          children: [
+                            if ((memoryListByDate ?? []).isEmpty)
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Center(child: Text('No memories')),
+                              ),
+                            if ((memoryListByDate ?? []).isEmpty)
+                              addWidgetButton,
+                            if ((memoryListByDate ?? []).isNotEmpty)
+                              ..._buildEventList(memoryListByDate),
+                            SizedBox(height: 250),
+                          ],
+                        ),
+                      ]),
+                ),
               ),
             ],
           );
@@ -387,7 +404,7 @@ class _MemoryCalendarPageState extends State<MemoryCalendarPage>
             return children;
           },
         ),
-        onDaySelected: (date, events) {
+        onDaySelected: (date, events, holidays) {
           _onDaySelected(date, events);
           //_animationController.forward(from: 0.0);
         },
@@ -506,13 +523,7 @@ class _MemoryCalendarPageState extends State<MemoryCalendarPage>
                       );
                     },
                   ),
-                  if ((e.note ?? "").isNotEmpty)
-                    Container(
-                      padding: EdgeInsets.all(10),
-                      child: Row(children: [
-                        Text(e.note),
-                      ]),
-                    ),
+                  if ((e.note ?? "").isNotEmpty) MemoryNote(memory: e),
                 ],
               ),
             ),

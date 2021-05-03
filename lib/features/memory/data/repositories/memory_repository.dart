@@ -1,4 +1,4 @@
-import 'package:dartz/dartz.dart';
+import 'package:dartz/dartz.dart' show Either;
 import 'package:mood_manager/core/error/failures.dart';
 import 'package:mood_manager/features/common/domain/entities/media.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection.dart';
@@ -7,10 +7,11 @@ import 'package:mood_manager/features/memory/data/models/memory_collection_mappi
 import 'package:mood_manager/features/memory/domain/entities/memory.dart';
 import 'package:mood_manager/features/memory/domain/entities/memory_collection.dart';
 import 'package:mood_manager/features/memory/domain/entities/memory_collection_mapping.dart';
+import 'package:mood_manager/features/reminder/domain/entities/task.dart';
 
 abstract class MemoryRepository {
-  Future<Either<Failure, Memory>> saveMemory(
-      Memory memory, List<MediaCollectionMapping> mediaCollectionList);
+  Future<Either<Failure, Memory>> saveMemory(Memory memory,
+      List<MediaCollectionMapping> mediaCollectionList, Task task);
   Future<Either<Failure, Memory>> archiveMemory(Memory memory);
 
   Future<Either<Failure, List<Memory>>> getMemoryList();
@@ -25,4 +26,5 @@ abstract class MemoryRepository {
   Future<Either<Failure, List<MediaCollection>>> getMediaCollectionList(
       {bool includeAll});
   Future<Either<Failure, List<Memory>>> getMemoryListByMedia(Media media);
+  Future<Either<Failure, List<Memory>>> getMemory(String id);
 }

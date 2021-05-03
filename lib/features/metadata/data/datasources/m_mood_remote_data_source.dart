@@ -1,3 +1,4 @@
+import 'package:hive/hive.dart';
 import 'package:mood_manager/features/common/data/models/parse_mixin.dart';
 import 'package:mood_manager/features/metadata/data/models/m_mood_parse.dart';
 import 'package:mood_manager/features/metadata/domain/entities/m_mood.dart';
@@ -46,6 +47,8 @@ class MMoodParseDataSource implements MMoodRemoteDataSource {
 
   @override
   Future<List<MMood>> getMMoodList() async {
+    /*final mMoodBox = await Hive.openBox<MMood>("mMood");
+    if (mMoodBox.isEmpty) {*/
     QueryBuilder<ParseObject> queryBuilder =
         QueryBuilder<ParseObject>(ParseObject('mMood'))
           ..includeObject(['subMood'])
@@ -56,9 +59,13 @@ class MMoodParseDataSource implements MMoodRemoteDataSource {
     if (response.success) {
       List<MMood> mMoodList =
           ParseMixin.listFrom<MMood>(response.results, MMoodParse.from);
+      //mMoodBox.addAll(mMoodList);
       return mMoodList;
     } else {
       throw ServerException();
     }
+    /*} else {
+      return mMoodBox.values.toList();
+    }*/
   }
 }

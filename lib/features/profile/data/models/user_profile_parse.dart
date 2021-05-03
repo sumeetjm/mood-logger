@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+import 'package:mood_manager/core/constants/app_constants.dart';
 import 'package:mood_manager/features/common/data/models/media_collection_parse.dart';
 import 'package:mood_manager/features/memory/data/models/memory_collection_parse.dart';
 import 'package:mood_manager/features/memory/domain/entities/memory_collection.dart';
@@ -74,8 +75,10 @@ class UserProfileParse extends UserProfile with ParseMixin {
       profilePictureCollection: ParseMixin.value(
           'profilePictureCollection', parseOptions,
           transform: MediaCollectionParse.from),
-      gender:
-          ParseMixin.value('gender', parseOptions, transform: GenderParse.from),
+      gender: ParseMixin.value('gender', parseOptions,
+          transform: GenderParse.from,
+          defaultValue:
+              AppConstants.genderList.firstWhere((element) => element.isDummy)),
       interestedIn: List<Gender>.from(ParseMixin.value(
               'interestedIn', parseOptions,
               transform: GenderParse.from) ??
@@ -101,7 +104,7 @@ class UserProfileParse extends UserProfile with ParseMixin {
       'isActive': isActive,
       'profilePicture': profilePicture,
       'profilePictureCollection': profilePictureCollection,
-      'gender': gender,
+      'gender': gender?.id == null ? null : gender,
       'interestedIn': interestedIn,
       'archiveMemoryCollection': archiveMemoryCollection,
     };
@@ -109,4 +112,22 @@ class UserProfileParse extends UserProfile with ParseMixin {
 
   @override
   Base get get => this;
+
+  static UserProfileParse fromProfilePic(final UserProfile userProfile,
+      final Media media, final MediaCollection collection) {
+    return UserProfileParse(
+        about: userProfile.about,
+        archiveMemoryCollection: userProfile.archiveMemoryCollection,
+        dateOfBirth: userProfile.dateOfBirth,
+        firstName: userProfile.firstName,
+        gender: userProfile.gender,
+        id: userProfile.id,
+        interestedIn: userProfile.interestedIn,
+        isActive: userProfile.isActive,
+        lastName: userProfile.lastName,
+        profession: userProfile.profession,
+        profilePicture: media,
+        profilePictureCollection: collection,
+        user: userProfile.user);
+  }
 }

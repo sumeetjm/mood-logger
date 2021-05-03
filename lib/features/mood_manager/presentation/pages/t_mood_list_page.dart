@@ -10,6 +10,7 @@ import 'package:mood_manager/features/common/presentation/widgets/empty_widget.d
 import 'package:mood_manager/features/mood_manager/presentation/widgets/t_mood_event_calendar.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/t_mood_slidable.dart';
 import 'package:intl/intl.dart';
+import 'package:mood_manager/injection_container.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 
 class TMoodListPage extends StatefulWidget {
@@ -205,7 +206,7 @@ class _TMoodListPageState extends State<TMoodListPage> {
   @override
   void initState() {
     super.initState();
-    _tMoodBloc = BlocProvider.of<TMoodBloc>(context);
+    _tMoodBloc = sl<TMoodBloc>();
     _tMoodBloc.add(GetTMoodListEvent());
     scrollController = AutoScrollController(
         viewportBoundaryGetter: () =>

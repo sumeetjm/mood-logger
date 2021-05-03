@@ -9,8 +9,8 @@ abstract class TaskEvent extends Equatable {
 
 class SaveTaskEvent extends TaskEvent {
   final Task task;
-
-  SaveTaskEvent({this.task});
+  final int cancelNotificationId;
+  SaveTaskEvent({this.task, this.cancelNotificationId});
 
   @override
   List<Object> get props => [task, ...super.props];

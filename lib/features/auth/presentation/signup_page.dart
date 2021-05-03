@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_overlay_loader/flutter_overlay_loader.dart';
 import 'package:mood_manager/features/auth/domain/entitles/user.dart';
 import 'package:mood_manager/features/auth/presentation/bloc/authentication_bloc.dart';
 import 'package:mood_manager/features/auth/presentation/bloc/signup_bloc.dart';
@@ -7,6 +8,7 @@ import 'package:mood_manager/features/auth/presentation/widgets/auth_page_link_b
 import 'package:mood_manager/features/auth/presentation/widgets/auth_submit_button.dart';
 import 'package:mood_manager/features/auth/presentation/widgets/email_field.dart';
 import 'package:mood_manager/features/auth/presentation/widgets/password_field.dart';
+import 'package:mood_manager/features/common/domain/entities/base_states.dart';
 import 'package:mood_manager/injection_container.dart';
 
 class SignupPage extends StatefulWidget {
@@ -56,6 +58,15 @@ class _SignupPageState extends State<SignupPage> {
                 content: Text(state.message),
                 duration: Duration(seconds: 2),
               ));
+            }
+            if (state is Loading) {
+              Loader.show(context,
+                  overlayColor: Colors.black.withOpacity(0.5),
+                  isAppbarOverlay: true,
+                  isBottomBarOverlay: true,
+                  progressIndicator: RefreshProgressIndicator());
+            } else if (state is Completed) {
+              Loader.hide();
             }
           },
           cubit: _signupBloc,

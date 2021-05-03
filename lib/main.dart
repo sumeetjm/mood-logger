@@ -1,12 +1,30 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mood_manager/auth.dart';
 import 'package:mood_manager/features/auth/presentation/bloc/authentication_bloc.dart';
 import 'package:mood_manager/features/auth/presentation/splash_page.dart';
+import 'package:mood_manager/features/common/domain/entities/media.dart';
+import 'package:mood_manager/features/common/domain/entities/media_collection.dart';
+import 'package:mood_manager/features/common/domain/entities/media_collection_mapping.dart';
+import 'package:mood_manager/features/memory/domain/entities/memory.dart';
+import 'package:mood_manager/features/memory/domain/entities/memory_collection.dart';
+import 'package:mood_manager/features/metadata/domain/entities/gender.dart';
+import 'package:mood_manager/features/metadata/domain/entities/m_activity.dart';
+import 'package:mood_manager/features/metadata/domain/entities/m_activity_type.dart';
+import 'package:mood_manager/features/metadata/domain/entities/m_mood.dart';
+import 'package:mood_manager/features/profile/domain/entities/user_profile.dart';
+import 'package:mood_manager/features/reminder/domain/entities/task.dart';
+import 'package:mood_manager/features/reminder/domain/entities/task_memory_mapping.dart';
+import 'package:mood_manager/features/reminder/domain/entities/task_notification_mapping.dart';
+import 'package:mood_manager/features/reminder/domain/entities/task_repeat.dart';
 import 'package:mood_manager/home.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
+import 'package:path_provider/path_provider.dart';
 import 'injection_container.dart' as di;
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:hive/hive.dart';
 
 const String PARSE_APP_ID = 'M6MIrnNIxvQ3pt7JL5ydeaVfeIYdK8GO5y0B9k3N';
 const String PARSE_APP_URL = 'https://moodmanager.back4app.io';
@@ -24,12 +42,30 @@ void main() async {
     liveQueryUrl: LIVE_QUERY_URL,
     autoSendSessionId: true,
     debug: true,
-    coreStore: await CoreStoreSharedPrefsImp.getInstance(),
+    coreStore: CoreStoreMemoryImp(),
   );
-  ParseInstallation installation =
+  /*ParseInstallation installation =
       await ParseInstallation.currentInstallation();
   installation.set("GCMSenderId", "206555785179");
-  await installation.save();
+  await installation.save();*/
+  final document = await getApplicationDocumentsDirectory();
+  Hive
+    ..init(document.path)
+    ..registerAdapter(MMoodAdapter())
+    ..registerAdapter(MActivityAdapter())
+    ..registerAdapter(MActivityTypeAdapter())
+    ..registerAdapter(UserProfileAdapter())
+    ..registerAdapter(MediaAdapter())
+    ..registerAdapter(GenderAdapter())
+    ..registerAdapter(MediaCollectionAdapter())
+    ..registerAdapter(MemoryCollectionAdapter())
+    ..registerAdapter(MediaCollectionMappingAdapter())
+    ..registerAdapter(TaskAdapter())
+    ..registerAdapter(MemoryAdapter())
+    ..registerAdapter(TaskRepeatAdapter())
+    ..registerAdapter(TaskMemoryMappingAdapter())
+    ..registerAdapter(TaskNotificationMappingAdapter());
+
   initializeDateFormatting().then((_) => runApp(MyApp()));
 }
 

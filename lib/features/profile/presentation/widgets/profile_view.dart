@@ -6,6 +6,7 @@ import 'package:flutter_signin_button/button_list.dart';
 import 'package:flutter_signin_button/button_view.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:mood_manager/core/constants/app_constants.dart';
+import 'package:mood_manager/features/common/data/models/media_collection_mapping_parse.dart';
 import 'package:mood_manager/features/common/data/models/media_collection_parse.dart';
 import 'package:mood_manager/features/common/data/models/media_parse.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection_mapping.dart';
@@ -19,66 +20,47 @@ import 'package:multi_media_picker/multi_media_picker.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as img;
-import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:tinycolor/tinycolor.dart';
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import 'package:uuid/uuid.dart';
 
-class ProfileView extends StatelessWidget {
+class ProfileView extends StatefulWidget {
   final ValueChanged<UserProfile> saveCallback;
   final Function resetCallback;
   final ValueChanged<MediaCollectionMapping> profilePictureChangeCallback;
   final Function onPictureTapCallback;
   final ValueChanged<String> linkWithSocialCallback;
   final Uuid uuid = sl<Uuid>();
-  ProfileView({
-    Key key,
-    this.saveCallback,
-    this.resetCallback,
-    this.profilePictureChangeCallback,
-    this.onPictureTapCallback,
-    this.linkWithSocialCallback,
-  }) : super(key: key);
+  final Map<String, Future<int>> countMap;
+  final UserProfile value;
+  ProfileView(
+      {Key key,
+      this.saveCallback,
+      this.resetCallback,
+      this.profilePictureChangeCallback,
+      this.onPictureTapCallback,
+      this.linkWithSocialCallback,
+      this.countMap,
+      this.value})
+      : super(key: key);
 
-  String about;
-  String email;
-  String name;
-  DateTime dateOfBirth;
-  String profession;
-  Gender gender;
-  List<Gender> interestedIn;
-  bool isChanged = false;
+  @override
+  _ProfileViewState createState() => _ProfileViewState();
+}
 
-  UserProfile userProfile;
+class _ProfileViewState extends State<ProfileView> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final FocusNode _focusAbout = FocusNode();
   final FocusNode _focusEmail = new FocusNode();
   final FocusNode _focusName = new FocusNode();
   final FocusNode _focusDateOfBirth = new FocusNode();
   final FocusNode _focusProfession = new FocusNode();
+  final Uuid uuid = sl<Uuid>();
   @override
   Widget build(BuildContext context) {
-    userProfile = Provider.of<UserProfile>(context);
-    this.about = userProfile.about;
-    this.name =
-        (userProfile.firstName ?? '') + ' ' + (userProfile.lastName ?? '');
-    this.dateOfBirth = userProfile.dateOfBirth;
-    this.profession = userProfile.profession;
-    this.gender = userProfile.gender ??
-        AppConstants.genderList.firstWhere((element) => element.isDummy);
-    this.interestedIn = userProfile.interestedIn ?? [];
-    this.email = userProfile.user.emailAddress;
-    ImageProvider image;
-    if (userProfile?.profilePicture?.file?.url != null) {
-      image = NetworkImage(userProfile?.profilePicture?.file?.url);
-    } else if (userProfile?.profilePicture?.file?.file?.path != null) {
-      image = FileImage(userProfile?.profilePicture?.file?.file);
-    } else {
-      image = NetworkImage(AppConstants.DEFAULT_PROFILE_PIC);
-    }
-
     return CustomScrollView(
       slivers: [
         SliverAppBar(
@@ -88,13 +70,15 @@ class ProfileView extends StatelessWidget {
           flexibleSpace: FlexibleSpaceBar(
             centerTitle: true,
             title: Text(
-              name,
+              widget.value.name,
               style: TextStyle(fontSize: 16),
             ),
             background: Container(
                 decoration: BoxDecoration(
                   image: DecorationImage(
-                    image: image,
+                    image: widget.value.profilePicture?.imageProvider ??
+                        CachedNetworkImageProvider(
+                            AppConstants.DEFAULT_PROFILE_PIC),
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -118,12 +102,15 @@ class ProfileView extends StatelessWidget {
                                 backgroundColor: Colors.white,
                                 radius: 65,
                                 child: GestureDetector(
-                                  onTap: onPictureTapCallback,
+                                  onTap: widget.onPictureTapCallback,
                                   child: Hero(
-                                    tag: userProfile?.profilePicture?.tag ??
+                                    tag: widget.value?.profilePicture?.tag ??
                                         uuid.v1(),
                                     child: CircleAvatar(
-                                      backgroundImage: image,
+                                      backgroundImage: widget.value
+                                              .profilePicture?.imageProvider ??
+                                          CachedNetworkImageProvider(
+                                              AppConstants.DEFAULT_PROFILE_PIC),
                                       radius: 60.0,
                                     ),
                                   ),
@@ -159,7 +146,7 @@ class ProfileView extends StatelessWidget {
                                                               _onImageButtonPressed(
                                                                   ImageSource
                                                                       .camera,
-                                                                  userProfile,
+                                                                  widget.value,
                                                                   context:
                                                                       context)
                                                             }),
@@ -172,7 +159,7 @@ class ProfileView extends StatelessWidget {
                                                             .pop(),
                                                         _onImageButtonPressed(
                                                             ImageSource.gallery,
-                                                            userProfile,
+                                                            widget.value,
                                                             context: context)
                                                       },
                                                     ),
@@ -205,7 +192,7 @@ class ProfileView extends StatelessWidget {
                                     child: Column(
                                       children: <Widget>[
                                         Text(
-                                          'Posts',
+                                          'Tasks',
                                           style: TextStyle(
                                             color:
                                                 Theme.of(context).primaryColor,
@@ -216,14 +203,21 @@ class ProfileView extends StatelessWidget {
                                         SizedBox(
                                           height: 5.0,
                                         ),
-                                        Text(
-                                          '5200',
-                                          style: TextStyle(
-                                            fontSize: 18.0,
-                                            color:
-                                                Theme.of(context).primaryColor,
-                                          ),
-                                        )
+                                        FutureBuilder<int>(
+                                            future: widget.countMap['tasks'],
+                                            builder: (context, snapshot) {
+                                              final count = snapshot.hasData
+                                                  ? snapshot.data
+                                                  : 0;
+                                              return Text(
+                                                count.toString(),
+                                                style: TextStyle(
+                                                  fontSize: 18.0,
+                                                  color: Theme.of(context)
+                                                      .primaryColor,
+                                                ),
+                                              );
+                                            })
                                       ],
                                     ),
                                   ),
@@ -231,7 +225,7 @@ class ProfileView extends StatelessWidget {
                                     child: Column(
                                       children: <Widget>[
                                         Text(
-                                          'Likes',
+                                          'Memories',
                                           style: TextStyle(
                                             color:
                                                 Theme.of(context).primaryColor,
@@ -242,14 +236,21 @@ class ProfileView extends StatelessWidget {
                                         SizedBox(
                                           height: 5.0,
                                         ),
-                                        Text(
-                                          '28.5K',
-                                          style: TextStyle(
-                                            fontSize: 18.0,
-                                            color:
-                                                Theme.of(context).primaryColor,
-                                          ),
-                                        )
+                                        FutureBuilder<int>(
+                                            future: widget.countMap['memories'],
+                                            builder: (context, snapshot) {
+                                              final count = snapshot.hasData
+                                                  ? snapshot.data
+                                                  : 0;
+                                              return Text(
+                                                count.toString(),
+                                                style: TextStyle(
+                                                  fontSize: 18.0,
+                                                  color: Theme.of(context)
+                                                      .primaryColor,
+                                                ),
+                                              );
+                                            })
                                       ],
                                     ),
                                   ),
@@ -257,7 +258,7 @@ class ProfileView extends StatelessWidget {
                                     child: Column(
                                       children: <Widget>[
                                         Text(
-                                          'Followers',
+                                          'Photos',
                                           style: TextStyle(
                                             color:
                                                 Theme.of(context).primaryColor,
@@ -268,14 +269,21 @@ class ProfileView extends StatelessWidget {
                                         SizedBox(
                                           height: 5.0,
                                         ),
-                                        Text(
-                                          '1300',
-                                          style: TextStyle(
-                                            fontSize: 18.0,
-                                            color:
-                                                Theme.of(context).primaryColor,
-                                          ),
-                                        )
+                                        FutureBuilder<int>(
+                                            future: widget.countMap['media'],
+                                            builder: (context, snapshot) {
+                                              final count = snapshot.hasData
+                                                  ? snapshot.data
+                                                  : 0;
+                                              return Text(
+                                                count.toString(),
+                                                style: TextStyle(
+                                                  fontSize: 18.0,
+                                                  color: Theme.of(context)
+                                                      .primaryColor,
+                                                ),
+                                              );
+                                            })
                                       ],
                                     ),
                                   ),
@@ -301,7 +309,7 @@ class ProfileView extends StatelessWidget {
                 children: [
                   TextFormField(
                     focusNode: _focusName,
-                    initialValue: name,
+                    initialValue: widget.value.name,
                     autovalidateMode: AutovalidateMode.always,
                     validator: (value) {
                       if (value != null &&
@@ -315,13 +323,13 @@ class ProfileView extends StatelessWidget {
                     keyboardType: TextInputType.text,
                     style: TextStyle(color: Colors.black, fontSize: 16),
                     onChanged: (value) {
-                      name = value;
+                      widget.value.name = value;
                     },
                     decoration: getInputDecoration(context, 'Name', _focusName),
                   ),
                   TextFormField(
                     focusNode: _focusAbout,
-                    initialValue: about,
+                    initialValue: widget.value.about,
                     autovalidateMode: AutovalidateMode.always,
                     validator: (value) {
                       if (value != null &&
@@ -335,16 +343,15 @@ class ProfileView extends StatelessWidget {
                     keyboardType: TextInputType.text,
                     style: TextStyle(color: Colors.black, fontSize: 16),
                     onChanged: (value) {
-                      isChanged = true;
-                      about = value;
+                      widget.value.about = value;
                     },
                     decoration:
                         getInputDecoration(context, 'About', _focusAbout),
                   ),
                   TextFormField(
                     focusNode: _focusEmail,
-                    initialValue: email,
-                    autovalidate: true,
+                    initialValue: widget.value.user.emailAddress,
+                    autovalidateMode: AutovalidateMode.always,
                     validator: (value) {
                       if (value != null &&
                           value.isNotEmpty &&
@@ -356,7 +363,7 @@ class ProfileView extends StatelessWidget {
                     keyboardType: TextInputType.text,
                     style: TextStyle(color: Colors.black, fontSize: 16),
                     onChanged: (value) {
-                      email = value;
+                      widget.value.user.emailAddress = value;
                     },
                     decoration:
                         getInputDecoration(context, 'Email', _focusEmail),
@@ -367,7 +374,7 @@ class ProfileView extends StatelessWidget {
                         context, 'Date of Birth', _focusDateOfBirth),
                     format: DateFormat(AppConstants.HEADER_DATE_FORMAT),
                     autovalidate: true,
-                    initialValue: dateOfBirth,
+                    initialValue: widget.value.dateOfBirth,
                     onShowPicker: (context, currentValue) {
                       return showDatePicker(
                           context: context,
@@ -376,12 +383,12 @@ class ProfileView extends StatelessWidget {
                           initialDate: currentValue ?? DateTime.now());
                     },
                     onChanged: (value) {
-                      dateOfBirth = value;
+                      widget.value.dateOfBirth = value;
                     },
                   ),
                   TextFormField(
                     focusNode: _focusProfession,
-                    initialValue: profession,
+                    initialValue: widget.value.profession,
                     autovalidateMode: AutovalidateMode.always,
                     validator: (value) {
                       if (value != null &&
@@ -395,7 +402,7 @@ class ProfileView extends StatelessWidget {
                     keyboardType: TextInputType.text,
                     style: TextStyle(color: Colors.black, fontSize: 16),
                     onChanged: (value) {
-                      profession = value;
+                      widget.value.profession = value;
                     },
                     decoration: getInputDecoration(
                         context, 'Profession', _focusProfession),
@@ -418,9 +425,9 @@ class ProfileView extends StatelessWidget {
                           ));
                     }).toList(),
                     onChanged: (value) {
-                      gender = value;
+                      widget.value.gender = value;
                     },
-                    value: gender,
+                    value: widget.value.gender,
                     decoration: InputDecoration(
                       errorStyle: TextStyle(fontSize: 12),
                       enabledBorder: InputBorder.none,
@@ -433,8 +440,8 @@ class ProfileView extends StatelessWidget {
                   CheckboxSelectBottomSheet(
                     label: 'Interested in',
                     labelColor: Theme.of(context).primaryColor,
-                    values: interestedIn,
-                    onChange: (value) => interestedIn = value,
+                    values: widget.value.interestedIn,
+                    onChange: (value) => widget.value.interestedIn = value,
                     options: AppConstants.genderList,
                     valueColor: Colors.black,
                     inputDecoration:
@@ -447,14 +454,16 @@ class ProfileView extends StatelessWidget {
                         ButtonTheme(
                           minWidth:
                               (MediaQuery.of(context).size.width / 2) - 30,
-                          child: RaisedButton(
-                            onPressed: resetCallback,
+                          child: ElevatedButton(
+                            style: ButtonStyle(
+                                backgroundColor:
+                                    MaterialStateProperty.all(Colors.white)),
+                            onPressed: widget.resetCallback,
                             child: Text(
                               'Cancel',
                               style: TextStyle(
                                   color: Theme.of(context).primaryColor),
                             ),
-                            color: Colors.white,
                           ),
                         ),
                         SizedBox(
@@ -463,13 +472,15 @@ class ProfileView extends StatelessWidget {
                         ButtonTheme(
                           minWidth:
                               (MediaQuery.of(context).size.width / 2) - 30,
-                          child: RaisedButton(
+                          child: ElevatedButton(
+                            style: ButtonStyle(
+                                backgroundColor: MaterialStateProperty.all(
+                                    Theme.of(context).primaryColor)),
                             onPressed: save,
                             child: Text(
                               'Save',
                               style: TextStyle(color: Colors.white),
                             ),
-                            color: Theme.of(context).primaryColor,
                           ),
                         ),
                       ],
@@ -481,14 +492,14 @@ class ProfileView extends StatelessWidget {
                       SignInButton(
                         Buttons.Google,
                         onPressed: () {
-                          linkWithSocialCallback('google');
+                          widget.linkWithSocialCallback('google');
                         },
                         text: 'Link with Google',
                       ),
                       SignInButton(
                         Buttons.Facebook,
                         onPressed: () {
-                          linkWithSocialCallback('facebook');
+                          widget.linkWithSocialCallback('facebook');
                         },
                         text: 'Link with Facebook',
                       )
@@ -496,407 +507,6 @@ class ProfileView extends StatelessWidget {
                   )
                 ],
               ),
-            ),
-          ),
-        ),
-      ],
-    );
-
-    return ListView(
-      children: <Widget>[
-        Container(
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: image,
-                fit: BoxFit.cover,
-              ),
-            ),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-              child: Container(
-                width: double.infinity,
-                height: 350.0,
-                child: Center(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: <Widget>[
-                      Stack(
-                        children: [
-                          Container(
-                            width: 130,
-                            height: 130,
-                          ),
-                          CircleAvatar(
-                            backgroundColor: Colors.white,
-                            radius: 65,
-                            child: GestureDetector(
-                              onTap: onPictureTapCallback,
-                              child: Hero(
-                                tag: userProfile.profilePicture.tag,
-                                child: CircleAvatar(
-                                  backgroundImage: image,
-                                  radius: 60.0,
-                                ),
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: CircleAvatar(
-                              backgroundColor: Colors.white,
-                              radius: 20,
-                              child: IconButton(
-                                  icon: Icon(
-                                    Icons.camera_alt,
-                                    color: Theme.of(context).primaryColor,
-                                    size: 20,
-                                  ),
-                                  onPressed: () {
-                                    showModalBottomSheet(
-                                        context: context,
-                                        builder: (context) {
-                                          return Container(
-                                            child: Wrap(
-                                              children: <Widget>[
-                                                ListTile(
-                                                    leading: Icon(Icons.camera),
-                                                    title: Text('Camera'),
-                                                    onTap: () => {
-                                                          Navigator.of(context)
-                                                              .pop(),
-                                                          _onImageButtonPressed(
-                                                              ImageSource
-                                                                  .camera,
-                                                              userProfile,
-                                                              context: context)
-                                                        }),
-                                                ListTile(
-                                                  leading:
-                                                      Icon(Icons.photo_library),
-                                                  title: Text('Gallery'),
-                                                  onTap: () => {
-                                                    Navigator.of(context).pop(),
-                                                    _onImageButtonPressed(
-                                                        ImageSource.gallery,
-                                                        userProfile,
-                                                        context: context)
-                                                  },
-                                                ),
-                                              ],
-                                            ),
-                                          );
-                                        });
-                                  }),
-                            ),
-                          )
-                        ],
-                      ),
-                      SizedBox(
-                        height: 10.0,
-                      ),
-                      Card(
-                        margin: EdgeInsets.symmetric(
-                            horizontal: 20.0, vertical: 5.0),
-                        clipBehavior: Clip.antiAlias,
-                        color: Colors.white,
-                        elevation: 5.0,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8.0, vertical: 22.0),
-                          child: Row(
-                            children: <Widget>[
-                              Expanded(
-                                child: Column(
-                                  children: <Widget>[
-                                    Text(
-                                      'Posts',
-                                      style: TextStyle(
-                                        color: Theme.of(context).primaryColor,
-                                        fontSize: 20.0,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      height: 5.0,
-                                    ),
-                                    Text(
-                                      '5200',
-                                      style: TextStyle(
-                                        fontSize: 18.0,
-                                        color: Theme.of(context).primaryColor,
-                                      ),
-                                    )
-                                  ],
-                                ),
-                              ),
-                              Expanded(
-                                child: Column(
-                                  children: <Widget>[
-                                    Text(
-                                      'Likes',
-                                      style: TextStyle(
-                                        color: Theme.of(context).primaryColor,
-                                        fontSize: 20.0,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      height: 5.0,
-                                    ),
-                                    Text(
-                                      '28.5K',
-                                      style: TextStyle(
-                                        fontSize: 18.0,
-                                        color: Theme.of(context).primaryColor,
-                                      ),
-                                    )
-                                  ],
-                                ),
-                              ),
-                              Expanded(
-                                child: Column(
-                                  children: <Widget>[
-                                    Text(
-                                      'Followers',
-                                      style: TextStyle(
-                                        color: Theme.of(context).primaryColor,
-                                        fontSize: 20.0,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      height: 5.0,
-                                    ),
-                                    Text(
-                                      '1300',
-                                      style: TextStyle(
-                                        fontSize: 18.0,
-                                        color: Theme.of(context).primaryColor,
-                                      ),
-                                    )
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: TextFormField(
-                          textAlign: TextAlign.center,
-                          focusNode: _focusName,
-                          initialValue: name,
-                          validator: (value) {
-                            if (value != null &&
-                                value.isNotEmpty &&
-                                !RegExp(AppConstants.NO_SPECIAL_CHARACTER_REGEX)
-                                    .hasMatch(value)) {
-                              return 'Enter a valid name';
-                            }
-                            return null;
-                          },
-                          keyboardType: TextInputType.text,
-                          style: TextStyle(color: Colors.white, fontSize: 20),
-                          onChanged: (value) {
-                            name = value;
-                          },
-                          decoration: InputDecoration(
-                            errorStyle: TextStyle(fontSize: 12),
-                            border: InputBorder.none,
-                            // suffixIcon: getSuffixIcon(_focusName),
-                            fillColor: Colors.lightBlueAccent,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            )),
-        Container(
-          padding: EdgeInsets.fromLTRB(10, 20, 10, 10),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                TextFormField(
-                  focusNode: _focusAbout,
-                  initialValue: about,
-                  autovalidateMode: AutovalidateMode.always,
-                  validator: (value) {
-                    if (value != null &&
-                        value.isNotEmpty &&
-                        !RegExp(AppConstants.NO_SPECIAL_CHARACTER_REGEX)
-                            .hasMatch(value)) {
-                      return 'Invalid';
-                    }
-                    return null;
-                  },
-                  keyboardType: TextInputType.text,
-                  style: TextStyle(color: Colors.black, fontSize: 16),
-                  onChanged: (value) {
-                    isChanged = true;
-                    about = value;
-                  },
-                  decoration: getInputDecoration(context, 'About', _focusAbout),
-                ),
-                TextFormField(
-                  focusNode: _focusEmail,
-                  initialValue: email,
-                  autovalidate: true,
-                  validator: (value) {
-                    if (value != null &&
-                        value.isNotEmpty &&
-                        !RegExp(AppConstants.EMAIL_REGEX).hasMatch(value)) {
-                      return 'Enter a valid email';
-                    }
-                    return null;
-                  },
-                  keyboardType: TextInputType.text,
-                  style: TextStyle(color: Colors.black, fontSize: 16),
-                  onChanged: (value) {
-                    email = value;
-                  },
-                  decoration: getInputDecoration(context, 'Email', _focusEmail),
-                ),
-                TextFormField(
-                  focusNode: _focusName,
-                  initialValue: name,
-                  autovalidate: true,
-                  validator: (value) {
-                    if (value != null &&
-                        value.isNotEmpty &&
-                        !RegExp(AppConstants.NO_SPECIAL_CHARACTER_REGEX)
-                            .hasMatch(value)) {
-                      return 'Enter a valid name';
-                    }
-                    return null;
-                  },
-                  keyboardType: TextInputType.text,
-                  style: TextStyle(color: Colors.black, fontSize: 16),
-                  onChanged: (value) {
-                    name = value;
-                  },
-                  decoration: getInputDecoration(context, 'Name', _focusName),
-                ),
-                DateTimeField(
-                  focusNode: _focusDateOfBirth,
-                  decoration: getInputDecoration(
-                      context, 'Date of Birth', _focusDateOfBirth),
-                  format: DateFormat(AppConstants.HEADER_DATE_FORMAT),
-                  autovalidate: true,
-                  initialValue: dateOfBirth,
-                  onShowPicker: (context, currentValue) {
-                    return showDatePicker(
-                        context: context,
-                        firstDate: DateTime(1900),
-                        lastDate: DateTime.now(),
-                        initialDate: currentValue ?? DateTime.now());
-                  },
-                  onChanged: (value) {
-                    dateOfBirth = value;
-                  },
-                ),
-                TextFormField(
-                  focusNode: _focusProfession,
-                  initialValue: profession,
-                  autovalidateMode: AutovalidateMode.always,
-                  validator: (value) {
-                    if (value != null &&
-                        value.isNotEmpty &&
-                        !RegExp(AppConstants.NO_SPECIAL_CHARACTER_REGEX)
-                            .hasMatch(value)) {
-                      return 'Invalid';
-                    }
-                    return null;
-                  },
-                  keyboardType: TextInputType.text,
-                  style: TextStyle(color: Colors.black, fontSize: 16),
-                  onChanged: (value) {
-                    profession = value;
-                  },
-                  decoration: getInputDecoration(
-                      context, 'Profession', _focusProfession),
-                ),
-                DropdownButtonFormField<Gender>(
-                  icon: Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 0, 12.0, 0),
-                    child: Icon(Icons.keyboard_arrow_down),
-                  ),
-                  items: AppConstants.genderList.map((gender) {
-                    return new DropdownMenuItem<Gender>(
-                        value: gender,
-                        child: Row(
-                          children: <Widget>[
-                            gender?.iconData != null
-                                ? Icon(gender?.iconData)
-                                : EmptyWidget(),
-                            Text(gender.name),
-                          ],
-                        ));
-                  }).toList(),
-                  onChanged: (value) {
-                    gender = value;
-                  },
-                  value: gender,
-                  decoration: InputDecoration(
-                    errorStyle: TextStyle(fontSize: 12),
-                    enabledBorder: InputBorder.none,
-                    fillColor: Colors.lightBlueAccent,
-                    labelText: 'Gender',
-                    labelStyle: TextStyle(
-                        color: Theme.of(context).primaryColor, fontSize: 16),
-                  ),
-                ),
-                CheckboxSelectBottomSheet(
-                  label: 'Interested in',
-                  labelColor: Theme.of(context).primaryColor,
-                  values: interestedIn,
-                  onChange: (value) => interestedIn = value,
-                  options: AppConstants.genderList,
-                  valueColor: Colors.black,
-                  inputDecoration:
-                      getInputDecoration(context, 'Interested in', null),
-                ),
-                Center(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ButtonTheme(
-                        minWidth: (MediaQuery.of(context).size.width / 2) - 30,
-                        child: RaisedButton(
-                          onPressed: resetCallback,
-                          child: Text(
-                            'Cancel',
-                            style: TextStyle(
-                                color: Theme.of(context).primaryColor),
-                          ),
-                          color: Colors.white,
-                        ),
-                      ),
-                      SizedBox(
-                        width: 20,
-                      ),
-                      ButtonTheme(
-                        minWidth: (MediaQuery.of(context).size.width / 2) - 30,
-                        child: RaisedButton(
-                          onPressed: save,
-                          child: Text(
-                            'Save',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                          color: Theme.of(context).primaryColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
             ),
           ),
         ),
@@ -942,8 +552,18 @@ class ProfileView extends StatelessWidget {
           file: ParseFile(croppedImage),
           thumbnail: ParseFile(thumbnailFile),
         );
-        profilePictureChangeCallback(MediaCollectionMapping(
-          collection: pictureCollection,
+        userProfile.profilePicture = profilePicture;
+        widget.profilePictureChangeCallback(MediaCollectionMappingParse(
+          collection: MediaCollectionParse(
+            code: pictureCollection.code,
+            id: pictureCollection.id,
+            isActive: pictureCollection.isActive,
+            mediaCount: pictureCollection.mediaCount,
+            mediaType: pictureCollection.mediaType,
+            module: pictureCollection.module,
+            name: pictureCollection.name,
+            user: pictureCollection.user,
+          ),
           isActive: true,
           media: profilePicture,
         ));
@@ -955,26 +575,27 @@ class ProfileView extends StatelessWidget {
 
   void save() {
     if (_formKey.currentState.validate()) {
-      var names = name
+      var names = widget.value.name
           .split(' ')
           .where((element) => element.trim().isNotEmpty)
           .toList();
-      final user = userProfile.user;
-      user.emailAddress = email;
+      final user = widget.value.user;
       final UserProfile toBeSavedUserProfile = UserProfileParse(
-        about: about,
-        dateOfBirth: dateOfBirth,
+        about: widget.value.about,
+        dateOfBirth: widget.value.dateOfBirth,
         firstName: names.removeAt(0),
         lastName: names.join(' '),
-        gender: gender,
-        id: userProfile.id,
-        interestedIn: interestedIn,
-        isActive: userProfile.isActive,
-        profession: profession,
-        profilePicture: userProfile.profilePicture,
+        gender: widget.value.gender,
+        id: widget.value.id,
+        interestedIn: widget.value.interestedIn,
+        isActive: widget.value.isActive,
+        profession: widget.value.profession,
+        profilePicture: widget.value.profilePicture,
         user: user,
+        archiveMemoryCollection: widget.value.archiveMemoryCollection,
+        profilePictureCollection: widget.value.profilePictureCollection,
       );
-      saveCallback(toBeSavedUserProfile);
+      widget.saveCallback(toBeSavedUserProfile);
     }
   }
 

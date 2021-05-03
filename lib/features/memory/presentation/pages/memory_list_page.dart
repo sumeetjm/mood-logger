@@ -3,10 +3,13 @@ import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_overlay_loader/flutter_overlay_loader.dart';
 import 'package:invert_colors/invert_colors.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:mood_manager/core/constants/app_constants.dart';
+import 'package:mood_manager/core/util/hex_color.dart';
 import 'package:mood_manager/features/common/data/datasources/common_remote_data_source.dart';
+import 'package:mood_manager/features/common/domain/entities/base_states.dart';
 import 'package:mood_manager/features/common/domain/entities/media.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection_mapping.dart';
 import 'package:mood_manager/features/common/presentation/widgets/empty_widget.dart';
@@ -14,6 +17,7 @@ import 'package:mood_manager/features/common/presentation/widgets/media_page_vie
 import 'package:mood_manager/features/memory/data/datasources/memory_remote_data_source.dart';
 import 'package:mood_manager/features/memory/data/models/memory_collection_mapping_parse.dart';
 import 'package:mood_manager/features/memory/data/models/memory_collection_parse.dart';
+import 'package:mood_manager/features/memory/data/models/memory_parse.dart';
 import 'package:mood_manager/features/memory/domain/entities/memory.dart';
 import 'package:mood_manager/features/memory/domain/entities/memory_collection.dart';
 import 'package:mood_manager/features/memory/presentation/bloc/memory_bloc.dart';
@@ -105,6 +109,8 @@ class MemoryListPage extends StatefulWidget {
   String uniqueKey;
   MemoryCollection memoryCollection;
   Media media;
+  String memoryId;
+  Function saveCallback;
   MemoryListPage({Key key, this.arguments}) : super(key: key) {
     if (arguments != null) {
       this.calendarSelectedDate = this.arguments['selectedDate'];
@@ -113,6 +119,8 @@ class MemoryListPage extends StatefulWidget {
       this.title = this.arguments['title'];
       this.memoryCollection = this.arguments['collection'];
       this.media = this.arguments['media'];
+      this.memoryId = this.arguments['memoryId'];
+      this.saveCallback = this.arguments['saveCallback'];
     }
   }
 
@@ -163,24 +171,29 @@ class _MemoryListPageState extends State<MemoryListPage> {
   void initializeList() async {
     if (widget.listType == 'ARCHIVE') {
       _memoryBloc = _memoryBloc ?? sl<MemoryBloc>();
-      _memoryBloc.add(GetArchiveMemoryListEvent());
       _isFabVisible = false;
+      _memoryBloc.add(GetArchiveMemoryListEvent());
     } else if (widget.listType == 'COLLECTION') {
       _memoryBloc = _memoryBloc ?? sl<MemoryBloc>();
       _memoryBloc.add(GetMemoryListByCollectionEvent(widget.memoryCollection));
       _isFabVisible = false;
-    } else if (widget.calendarSelectedDate != null) {
+    } else if (widget.memoryList != null) {
       memoryList = widget.memoryList;
       memoryListMapByDate = subListMapByDate(memoryList);
       dateKeys = memoryListMapByDate.keys.toList();
       mediaCollectionListMapByMemory = getMediaCollectionMap();
+      _memoryBloc = _memoryBloc ?? sl<MemoryBloc>();
     } else if (widget.media != null) {
       _memoryBloc = _memoryBloc ?? sl<MemoryBloc>();
       _memoryBloc.add(GetMemoryListByMediaEvent(widget.media));
+    } else if (widget.memoryId != null) {
+      _memoryBloc = _memoryBloc ?? sl<MemoryBloc>();
+      _memoryBloc.add(GetSingleMemoryByIdEvent(widget.memoryId));
     } else {
       _memoryBloc = _memoryBloc ?? BlocProvider.of<MemoryBloc>(context);
-      //_memoryBloc.add(GetMemoryListEvent());
+      _memoryBloc.add(GetMemoryListEvent());
     }
+    if ((widget.arguments ?? {})['memoryList'] == null) {}
   }
 
   _scrollToIndex(int index) {
@@ -200,7 +213,6 @@ class _MemoryListPageState extends State<MemoryListPage> {
   }
 
   Future<void> archiveMemory(memory) async {
-    memory.isArchived = true;
     _memoryBloc.add(ArchiveMemoryEvent(
         memory: memory,
         mediaCollectionMappingList:
@@ -349,6 +361,7 @@ class _MemoryListPageState extends State<MemoryListPage> {
                 cubit: _memoryBloc,
                 listener: (context, state) {
                   if (state is MemoryListLoaded) {
+                    //Loader.hide();
                     memoryList = state.memoryList;
                     widget.memoryCollection =
                         widget.memoryCollection ?? state.memoryCollection;
@@ -356,12 +369,25 @@ class _MemoryListPageState extends State<MemoryListPage> {
                     dateKeys = memoryListMapByDate.keys.toList();
                     mediaCollectionListMapByMemory = getMediaCollectionMap();
                   } else if (state is AddedToMemoryCollection) {
+                    //Loader.hide();
+                    widget.saveCallback?.call();
                     if (state.memoryCollectionMapping.memoryCollection.id ==
                         widget.memoryCollection?.id) {
                       initializeList();
                     }
                   } else if (state is MemorySaved) {
+                    //Loader.hide();
                     initializeList();
+                    // widget.saveCallback?.call();
+                  }
+                  if (state is Loading) {
+                    Loader.show(context,
+                        overlayColor: Colors.black.withOpacity(0.5),
+                        isAppbarOverlay: true,
+                        isBottomBarOverlay: true,
+                        progressIndicator: RefreshProgressIndicator());
+                  } else if (state is Completed) {
+                    Loader.hide();
                   }
                 },
                 builder: (context, state) {
@@ -383,8 +409,14 @@ class _MemoryListPageState extends State<MemoryListPage> {
                     child: ListView.builder(
                       controller: autoScrollController,
                       physics: BouncingScrollPhysics(),
-                      itemCount: (memoryListMapByDate ?? {}).length,
+                      itemCount: (memoryListMapByDate ?? {}).length + 1,
                       itemBuilder: (context, index) {
+                        if (index == (memoryListMapByDate ?? {}).length) {
+                          return SizedBox(
+                              height: (memoryListMapByDate ?? {}).length <= 1
+                                  ? 500
+                                  : 400);
+                        }
                         final memoryListDateWise =
                             memoryListMapByDate[dateKeys[index]];
                         return StickyHeader(
@@ -516,7 +548,7 @@ class _MemoryListPageState extends State<MemoryListPage> {
 
   @override
   void dispose() {
-    _memoryBloc.close();
+    _memoryBloc?.close();
     super.dispose();
   }
 }
@@ -534,7 +566,12 @@ class MemoryNote extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(10),
       child: Row(children: [
-        Text(memory.note),
+        Flexible(
+          child: Text(
+            (memory.title ?? '') + '\n' + memory.note,
+            overflow: TextOverflow.clip,
+          ),
+        ),
       ]),
     );
   }

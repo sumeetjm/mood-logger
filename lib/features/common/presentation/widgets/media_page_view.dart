@@ -235,7 +235,7 @@ class _MediaPageViewState extends State<MediaPageView> {
     return Hero(
       tag: photo.media.tag,
       child: ClipRRect(
-        child: photo.media.imageProvider,
+        child: photo.media.image,
       ),
     );
   }

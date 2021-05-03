@@ -21,8 +21,8 @@ class MMoodRepositoryImpl implements MMoodRepository {
   Future<Either<Failure, List<MMood>>> getMMoodList() async {
     if (await networkInfo.isConnected) {
       try {
-        final remoteTrivia = await remoteDataSource.getMMoodList();
-        return Right(remoteTrivia);
+          final remoteTrivia = await remoteDataSource.getMMoodList();
+          return Right(remoteTrivia);
       } on ServerException {
         return Left(ServerFailure());
       }

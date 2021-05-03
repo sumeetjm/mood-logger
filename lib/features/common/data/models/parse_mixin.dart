@@ -55,14 +55,22 @@ mixin ParseMixin {
     }
   }
 
-  static value(String key, Map parseOptions, {Function transform}) {
-    final value = parseOptions['data'].get(key);
+  static value(String key, Map parseOptions,
+      {Function transform, dynamic defaultValue}) {
+    var value = parseOptions['data'].get(key);
     if (parseOptions['cacheKeys'].contains(key)) {
-      return parseOptions['cacheData'].map[key];
+      value = parseOptions['cacheData'].map[key];
+      Function cacheTransform = parseOptions['cacheTransform'] == null
+          ? null
+          : parseOptions['cacheTransform'][key];
+      if (cacheTransform != null) {
+        return cacheTransform(value);
+      }
+      return value;
     } else if (transform != null) {
       return getValue(value, transform);
     }
-    return value;
+    return value ?? defaultValue;
   }
 
   static getValue(dynamic value, Function transformer) {
@@ -77,6 +85,14 @@ mixin ParseMixin {
 
   static List<T> listFrom<T>(List array, Function transform) {
     return List<T>.from((array ?? []).map((e) => transform(e)).toList());
+  }
+
+  static Map<String, dynamic> toPointer(Map<String, dynamic> map) {
+    return {
+      '__type': 'Pointer',
+      'className': map['className'],
+      'objectId': map['objectId'],
+    };
   }
 
   Map<String, dynamic> get map;

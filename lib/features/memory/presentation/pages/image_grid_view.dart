@@ -50,9 +50,9 @@ class _ImageGridViewState extends State<ImageGridView> {
     for (final index in controller.value.selectedIndexes) {
       var removed = widget.imageMediaCollectionList.removeAt(index);
       removed.media.file.file?.delete();
-      removed.media.file.delete();
+      //removed.media.file.delete();
       removed.media.thumbnail.file?.delete();
-      removed.media.thumbnail.delete();
+      //removed.media.thumbnail.delete();
     }
     controller.clear();
     if (widget.imageMediaCollectionList.isEmpty) {
@@ -77,10 +77,10 @@ class _ImageGridViewState extends State<ImageGridView> {
         File((await tempDirectoryFuture).path + "/" + uuid.v1() + ".jpg");
     newThumbnailFile.writeAsBytesSync(img.encodeJpg(img
         .copyResize(img.decodeImage(newFile.readAsBytesSync()), width: 200)));
-    selectedMediaCollection.media.file.delete();
+    //selectedMediaCollection.media.file.delete();
     selectedMediaCollection.media.file?.file?.delete();
     selectedMediaCollection.media.file = ParseFile(newFile);
-    selectedMediaCollection.media.thumbnail.delete();
+    //selectedMediaCollection.media.thumbnail.delete();
     selectedMediaCollection.media.thumbnail?.file?.delete();
     selectedMediaCollection.media.thumbnail = ParseFile(newThumbnailFile);
     setState(() {});
@@ -295,10 +295,10 @@ class _ImageGridViewState extends State<ImageGridView> {
               newThumbnailFile.writeAsBytesSync(img.encodeJpg(img.copyResize(
                   img.decodeImage(newFile.readAsBytesSync()),
                   width: 200)));
-              selectedMediaCollection.media.file.delete();
+              //selectedMediaCollection.media.file.delete();
               selectedMediaCollection.media.file?.file?.delete();
               selectedMediaCollection.media.file = ParseFile(newFile);
-              selectedMediaCollection.media.thumbnail.delete();
+              //selectedMediaCollection.media.thumbnail.delete();
               selectedMediaCollection.media.thumbnail?.file?.delete();
               selectedMediaCollection.media.thumbnail =
                   ParseFile(newThumbnailFile);

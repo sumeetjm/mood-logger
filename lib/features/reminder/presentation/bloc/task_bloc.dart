@@ -5,6 +5,7 @@ import 'package:dartz/dartz.dart' show Either;
 import 'package:equatable/equatable.dart';
 import 'package:mood_manager/core/error/failures.dart';
 import 'package:mood_manager/core/usecases/usecase.dart';
+import 'package:mood_manager/features/common/domain/entities/base_states.dart';
 import 'package:mood_manager/features/mood_manager/presentation/bloc/activity_list_bloc.dart';
 import 'package:mood_manager/features/reminder/domain/entities/task.dart';
 import 'package:mood_manager/features/reminder/domain/usecases/get_memory_list.dart';
@@ -31,7 +32,8 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
       yield TaskLoading();
       yield* _eitherTaskListOrErrorState(either);
     } else if (event is SaveTaskEvent) {
-      final either = await saveTask(Params(event.task));
+      final either =
+          await saveTask(MultiParams([event.task, event.cancelNotificationId]));
       yield TaskLoading();
       yield* _eitherTaskOrErrorState(either);
     }

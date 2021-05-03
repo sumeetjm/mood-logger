@@ -22,9 +22,10 @@ import 'package:mood_manager/features/metadata/domain/entities/m_activity.dart';
 import 'package:mood_manager/features/metadata/domain/entities/m_mood.dart';
 import 'package:mood_manager/features/common/presentation/widgets/date_selector.dart';
 import 'package:mood_manager/features/common/presentation/widgets/mood_selection_dialog.dart';
-import 'package:mood_manager/features/common/presentation/widgets/time_picker.dart';
+import 'package:mood_manager/features/common/presentation/widgets/time_picker_button.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/radio_selection.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/widgets.dart';
+import 'package:mood_manager/features/reminder/domain/entities/task.dart';
 import 'package:mood_manager/injection_container.dart';
 import 'package:multi_media_picker/multi_media_picker.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
@@ -50,7 +51,8 @@ class _MemoryFormViewState extends State<MemoryFormView> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   TimeOfDay time = TimeOfDay.now();
   List<MActivity> activityList = [];
-  final TextEditingController noteController = TextEditingController();
+  final TextEditingController noteTitleController = TextEditingController();
+  final TextEditingController noteTextController = TextEditingController();
   MMood mMood;
   Uuid uuid;
   List<MediaCollectionMapping> imageMediaCollectionList = [];
@@ -60,11 +62,12 @@ class _MemoryFormViewState extends State<MemoryFormView> {
     if (memory != null) {
       time = TimeOfDay.fromDateTime(memory.logDateTime);
       activityList = memory.mActivityList;
-      noteController.text = memory.note;
+      noteTitleController.text = memory.title;
+      noteTextController.text = memory.note;
       mMood = memory.mMood;
       final mediaCollectionFutureList = sl<CommonRemoteDataSource>()
           .getMediaCollectionMappingByCollectionList(
-              memory.mediaCollectionList);
+              memory.mediaCollectionList ?? []);
       mediaCollectionFutureList.then((mediaCollectionList) {
         imageMediaCollectionList = mediaCollectionList
             .where((element) => element.media.mediaType == "PHOTO")
@@ -87,13 +90,15 @@ class _MemoryFormViewState extends State<MemoryFormView> {
           physics: BouncingScrollPhysics(),
           children: [
             DateSelector(
-                initialDate: widget.date,
-                selectDate: (DateTime date) {
-                  setState(() {
-                    widget.date = date;
-                  });
-                }),
-            TimePicker(
+              initialDate: widget.date,
+              selectDate: (DateTime date) {
+                setState(() {
+                  widget.date = date;
+                });
+              },
+              endDate: DateTime.now(),
+            ),
+            TimePickerButton(
               selectedTime: time,
               selectTime: (time) {
                 setState(() {
@@ -104,23 +109,59 @@ class _MemoryFormViewState extends State<MemoryFormView> {
             Container(
               child: Padding(
                 padding: const EdgeInsets.all(15.0),
-                child: TextField(
-                  controller: noteController,
-                  minLines: 6,
-                  maxLines: 15,
-                  autocorrect: false,
-                  decoration: InputDecoration(
-                    hintText: 'Write your story here',
-                    filled: true,
-                    fillColor: Theme.of(context).primaryColor.withOpacity(0.1),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(10.0)),
-                      borderSide: BorderSide(color: Colors.grey),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(10.0)),
-                      borderSide: BorderSide(color: Colors.grey),
-                    ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(),
+                    borderRadius: BorderRadius.all(Radius.circular(10.0)),
+                  ),
+                  child: Column(
+                    children: [
+                      TextField(
+                        style: TextStyle(fontSize: 20),
+                        controller: noteTitleController,
+                        minLines: 1,
+                        maxLines: 1,
+                        autocorrect: false,
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                          hintText: 'Title',
+                          filled: true,
+                          fillColor:
+                              Theme.of(context).primaryColor.withOpacity(0.1),
+                          /*enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(10.0)),
+                            borderSide: BorderSide(color: Colors.grey),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(10.0)),
+                            borderSide: BorderSide(color: Colors.grey),
+                          ),*/
+                        ),
+                      ),
+                      TextField(
+                        controller: noteTextController,
+                        minLines: 6,
+                        maxLines: 15,
+                        autocorrect: false,
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                          hintText: 'Write your story here',
+                          filled: true,
+                          fillColor:
+                              Theme.of(context).primaryColor.withOpacity(0.1),
+                          /*enabledBorder: OutlineInputBorder(
+                            borderRadius:
+                                BorderRadius.all(Radius.circular(10.0)),
+                            borderSide: BorderSide(color: Colors.grey),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius:
+                                BorderRadius.all(Radius.circular(10.0)),
+                            borderSide: BorderSide(color: Colors.grey),
+                          ),*/
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -424,7 +465,8 @@ class _MemoryFormViewState extends State<MemoryFormView> {
     var logDateTime = DateUtil.combine(widget.date, time);
     final memory = MemoryParse(
       id: widget.memory?.id,
-      note: noteController.text,
+      title: noteTitleController.text,
+      note: noteTextController.text,
       logDateTime: logDateTime,
       mMood: mMood,
       mActivityList: activityList,
@@ -606,26 +648,27 @@ class _MemoryFormViewState extends State<MemoryFormView> {
   }
 
   navigateToImageGrid() async {
-    var mediaCollectionList = (await Navigator.of(_scaffoldKey.currentContext)
-            .push(TransparentRoute(builder: (context) {
-          return ImageGridView(
-              imageMediaCollectionList: imageMediaCollectionList
-                  .where((element) => element.isActive)
-                  .toList());
-        })) as List<MediaCollectionMapping>) ??
-        [];
-    setState(() {
-      final removedImageMediaCollectionList = imageMediaCollectionList
-          .where((element) => !mediaCollectionList.contains(element))
-          .toList();
-      removedImageMediaCollectionList.forEach((element) {
-        element.isActive = false;
+    final mediaCollectionList = (await Navigator.of(_scaffoldKey.currentContext)
+        .push(TransparentRoute(builder: (context) {
+      return ImageGridView(
+          imageMediaCollectionList: imageMediaCollectionList
+              .where((element) => element.isActive)
+              .toList());
+    })) as List<MediaCollectionMapping>);
+    if (mediaCollectionList != null) {
+      setState(() {
+        final removedImageMediaCollectionList = imageMediaCollectionList
+            .where((element) => !mediaCollectionList.contains(element))
+            .toList();
+        removedImageMediaCollectionList.forEach((element) {
+          element.isActive = false;
+        });
+        imageMediaCollectionList = [
+          ...mediaCollectionList,
+          ...removedImageMediaCollectionList
+        ];
       });
-      imageMediaCollectionList = [
-        ...mediaCollectionList,
-        ...removedImageMediaCollectionList
-      ];
-    });
+    }
   }
 
   get video {

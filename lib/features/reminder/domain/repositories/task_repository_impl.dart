@@ -11,7 +11,6 @@ class TaskRepositoryImpl extends TaskRepository {
     this.remoteDataSource,
   });
 
-  @override
   Future<Either<Failure, List<Task>>> getTaskList() async {
     try {
       final list = await remoteDataSource.getTaskList();
@@ -22,7 +21,8 @@ class TaskRepositoryImpl extends TaskRepository {
   }
 
   @override
-  Future<Either<Failure, Task>> saveTask(Task task) async {
+  Future<Either<Failure, Task>> saveTask(Task task,
+      {int cancelNotificationId}) async {
     try {
       final saved = await remoteDataSource.saveTask(task);
       return Right(saved);

@@ -10,8 +10,10 @@ abstract class MemoryEvent extends Equatable {
 class SaveMemoryEvent extends MemoryEvent {
   final Memory memory;
   final List<MediaCollectionMapping> mediaCollectionMappingList;
+  final Task task;
 
-  SaveMemoryEvent({this.memory, this.mediaCollectionMappingList = const []});
+  SaveMemoryEvent(
+      {this.memory, this.mediaCollectionMappingList = const [], this.task});
 
   @override
   List<Object> get props => [memory, ...super.props];
@@ -67,4 +69,13 @@ class GetMemoryListByMediaEvent extends MemoryEvent {
 
   @override
   List<Object> get props => [this.media, ...super.props];
+}
+
+class GetSingleMemoryByIdEvent extends MemoryEvent {
+  final String memoryId;
+
+  GetSingleMemoryByIdEvent(this.memoryId);
+
+  @override
+  List<Object> get props => [this.memoryId, ...super.props];
 }

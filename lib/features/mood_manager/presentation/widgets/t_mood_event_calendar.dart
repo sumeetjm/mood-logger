@@ -141,7 +141,9 @@ class _TMoodEventCalendarState extends State<TMoodEventCalendar>
           borderRadius: BorderRadius.circular(16.0),
         ),
       ),
-      onDaySelected: _onDaySelected,
+      onDaySelected: (day, events, holidays) {
+        _onDaySelected(day, events);
+      },
       onVisibleDaysChanged: _onVisibleDaysChanged,
       onCalendarCreated: _onCalendarCreated,
     );
@@ -240,7 +242,7 @@ class _TMoodEventCalendarState extends State<TMoodEventCalendar>
             return children;
           },
         ),
-        onDaySelected: (date, events) {
+        onDaySelected: (date, events, holidays) {
           _onDaySelected(date, events);
           _animationController.forward(from: 0.0);
         },

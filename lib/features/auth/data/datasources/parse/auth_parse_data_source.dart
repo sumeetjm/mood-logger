@@ -225,26 +225,29 @@ class AuthParseDataSource extends AuthDataSource {
       existingUser = response.result;
       existingUser.set('email', email);
       await existingUser.save();
-      await userProfileRemoteDataSource.saveUserProfile(UserProfileParse(
-        firstName: firstName,
-        lastName: lastName,
-        user: existingUser,
-        archiveMemoryCollection: MemoryCollectionParse(
-          code: uuid.v1(),
-          name: 'ARCHIVE',
-          memoryCount: 0,
-          user: existingUser,
-        ),
-        profilePictureCollection: MediaCollectionParse(
-          code: uuid.v1(),
-          name: 'Profile Pictures',
-          mediaType: 'PHOTO',
-          module: 'PROFILE_PICTURE',
-          mediaCount: 0,
-          user: response.result as ParseUser,
-        ),
-      ));
-      return UserParse.fromParseUser(response.result);
+      if (await userProfileRemoteDataSource.getCurrentUserProfile() == null) {
+        await userProfileRemoteDataSource.saveUserProfile(UserProfileParse(
+          firstName: firstName,
+          lastName: lastName,
+          user: await ParseUser.currentUser(),
+          archiveMemoryCollection: MemoryCollectionParse(
+            code: uuid.v1(),
+            name: 'ARCHIVE',
+            memoryCount: 0,
+            user: await ParseUser.currentUser(),
+          ),
+          profilePictureCollection: MediaCollectionParse(
+            code: uuid.v1(),
+            name: 'Profile Pictures',
+            mediaType: 'PHOTO',
+            module: 'PROFILE_PICTURE',
+            mediaCount: 0,
+            user: await ParseUser.currentUser(),
+          ),
+        ));
+      }
+      final userParse = UserParse.fromParseUser(response.result);
+      return userParse;
     }
     throw ServerException();
   }

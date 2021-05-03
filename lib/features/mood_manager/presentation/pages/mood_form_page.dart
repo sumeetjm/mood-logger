@@ -7,7 +7,7 @@ import 'package:datetime_picker_formfield/datetime_picker_formfield.dart';
 import 'package:mood_manager/features/common/presentation/widgets/date_selector.dart';
 import 'package:mood_manager/features/common/presentation/widgets/empty_widget.dart';
 import 'package:mood_manager/features/common/presentation/widgets/scroll_select.dart';
-import 'package:mood_manager/features/common/presentation/widgets/time_picker.dart';
+import 'package:mood_manager/features/common/presentation/widgets/time_picker_button.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/radio_selection.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/widgets.dart';
 import 'package:flutter/material.dart';
@@ -39,13 +39,15 @@ class _MoodFormPageState extends State<MoodFormPage> {
     final content = Column(
       children: <Widget>[
         DateSelector(
-            initialDate: widget.date,
-            selectDate: (DateTime date) {
-              setState(() {
-                widget.date = date;
-              });
-            }),
-        TimePicker(
+          initialDate: widget.date,
+          selectDate: (DateTime date) {
+            setState(() {
+              widget.date = date;
+            });
+          },
+          endDate: DateTime.now(),
+        ),
+        TimePickerButton(
           selectedTime: widget.time,
           selectTime: (time) {
             setState(() {

@@ -5,6 +5,7 @@ import 'package:equatable/equatable.dart';
 import 'package:mood_manager/core/error/failures.dart';
 import 'package:mood_manager/core/usecases/usecase.dart';
 import 'package:mood_manager/features/auth/domain/entitles/user.dart';
+import 'package:mood_manager/features/common/domain/entities/base_states.dart';
 import 'package:mood_manager/features/common/domain/entities/media.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection_mapping.dart';
 import 'package:mood_manager/features/profile/domain/entities/user_profile.dart';

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mood_manager/core/error/exceptions.dart';
 import 'package:mood_manager/core/error/failures.dart';
-import 'package:dartz/dartz.dart';
+import 'package:dartz/dartz.dart' show Either, Right, Left;
 import 'package:mood_manager/core/network/network_info.dart';
 import 'package:mood_manager/features/common/data/models/media_collection_parse.dart';
 import 'package:mood_manager/features/common/domain/entities/media.dart';
@@ -13,6 +13,7 @@ import 'package:mood_manager/features/memory/data/repositories/memory_repository
 import 'package:mood_manager/features/memory/domain/entities/memory.dart';
 import 'package:mood_manager/features/memory/domain/entities/memory_collection.dart';
 import 'package:mood_manager/features/memory/domain/entities/memory_collection_mapping.dart';
+import 'package:mood_manager/features/reminder/domain/entities/task.dart';
 
 class MemoryRepositoryImpl extends MemoryRepository {
   final MemoryRemoteDataSource remoteDataSource;
@@ -24,12 +25,12 @@ class MemoryRepositoryImpl extends MemoryRepository {
   });
 
   @override
-  Future<Either<Failure, Memory>> saveMemory(
-      Memory memory, List<MediaCollectionMapping> mediaCollectionList) async {
+  Future<Either<Failure, Memory>> saveMemory(Memory memory,
+      List<MediaCollectionMapping> mediaCollectionList, Task task) async {
     if (await networkInfo.isConnected) {
       try {
-        final memorySaved =
-            await remoteDataSource.saveMemory(memory, mediaCollectionList);
+        final memorySaved = await remoteDataSource.saveMemory(
+            memory, mediaCollectionList, task);
         return Right(memorySaved);
       } on ServerException {
         return Left(ServerFailure());
@@ -182,6 +183,20 @@ class MemoryRepositoryImpl extends MemoryRepository {
     if (await networkInfo.isConnected) {
       try {
         final memoryList = await remoteDataSource.getMemoryListByMedia(media);
+        return Right(memoryList);
+      } on ServerException {
+        return Left(ServerFailure());
+      }
+    } else {
+      return Left(ServerFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<Memory>>> getMemory(String id) async {
+    if (await networkInfo.isConnected) {
+      try {
+        final memoryList = await remoteDataSource.getMemory(id);
         return Right(memoryList);
       } on ServerException {
         return Left(ServerFailure());

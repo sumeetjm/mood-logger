@@ -4,14 +4,21 @@ import 'package:table_calendar/table_calendar.dart';
 class DateSelector extends StatefulWidget {
   DateTime initialDate;
   ValueChanged<DateTime> selectDate;
-  DateSelector({Key key, this.selectDate, this.initialDate}) : super(key: key);
+  DateTime endDate;
+  DateTime startDate;
+  DateSelector({
+    Key key,
+    this.selectDate,
+    this.initialDate,
+    this.endDate,
+    this.startDate,
+  }) : super(key: key);
 
   @override
   _DateSelectorState createState() => _DateSelectorState();
 }
 
 class _DateSelectorState extends State<DateSelector> {
-  DateTime startDate = DateTime.fromMillisecondsSinceEpoch(0);
   DateTime endDate = DateTime.now();
   List<DateTime> markedDates = [];
   CalendarController _calendarController;
@@ -106,7 +113,8 @@ class _DateSelectorState extends State<DateSelector> {
       calendarController: _calendarController,
       initialCalendarFormat: CalendarFormat.week,
       availableCalendarFormats: {CalendarFormat.week: 'Week'},
-      endDay: DateTime.now(),
+      startDay: widget.startDate,
+      endDay: widget.endDate,
       // events: _events,
       //holidays: _holidays,
       startingDayOfWeek: StartingDayOfWeek.sunday,
@@ -125,7 +133,7 @@ class _DateSelectorState extends State<DateSelector> {
           borderRadius: BorderRadius.circular(16.0),
         ),
       ),
-      onDaySelected: (date, events) {
+      onDaySelected: (date, events, holidays) {
         onSelect(date);
       },
       onVisibleDaysChanged: _onVisibleDaysChanged,

@@ -1,10 +1,11 @@
 import 'dart:async';
 
 import 'package:bloc/bloc.dart';
-import 'package:dartz/dartz.dart';
+import 'package:dartz/dartz.dart' hide Task;
 import 'package:equatable/equatable.dart';
 import 'package:mood_manager/core/error/failures.dart';
 import 'package:mood_manager/core/usecases/usecase.dart';
+import 'package:mood_manager/features/common/domain/entities/base_states.dart';
 import 'package:mood_manager/features/common/domain/entities/media.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection_mapping.dart';
@@ -20,9 +21,11 @@ import 'package:mood_manager/features/memory/domain/usecases/get_memory_list.dar
 import 'package:mood_manager/features/memory/domain/usecases/get_memory_list_by_collection.dart';
 import 'package:mood_manager/features/memory/domain/usecases/get_memory_list_by_date.dart';
 import 'package:mood_manager/features/memory/domain/usecases/get_memory_list_by_media.dart';
+import 'package:mood_manager/features/memory/domain/usecases/get_single_memory.dart';
 import 'package:mood_manager/features/metadata/domain/usecases/add_activity.dart';
 import 'package:mood_manager/features/memory/domain/usecases/save_memory.dart';
 import 'package:mood_manager/features/mood_manager/presentation/bloc/activity_list_bloc.dart';
+import 'package:mood_manager/features/reminder/domain/entities/task.dart';
 
 part 'memory_event.dart';
 part 'memory_state.dart';
@@ -39,6 +42,7 @@ class MemoryBloc extends Bloc<MemoryEvent, MemoryState> {
   final GetMemoryListByCollection getMemoryListByCollection;
   final GetMediaCollectionList getMediaCollectionList;
   final GetMemoryListByMedia getMemoryListByMedia;
+  final GetSingleMemory getSingleMemory;
   MemoryBloc({
     this.getArchiveMemoryList,
     this.getMemoryListByDate,
@@ -51,6 +55,7 @@ class MemoryBloc extends Bloc<MemoryEvent, MemoryState> {
     this.getMemoryListByCollection,
     this.getMediaCollectionList,
     this.getMemoryListByMedia,
+    this.getSingleMemory,
   }) : super(MemoryInitial());
 
   @override
@@ -59,8 +64,8 @@ class MemoryBloc extends Bloc<MemoryEvent, MemoryState> {
   ) async* {
     if (event is SaveMemoryEvent) {
       yield MemorySaving(memory: event.memory);
-      final mayBeMemorySaved = await saveMemory(
-          MultiParams([event.memory, event.mediaCollectionMappingList]));
+      final mayBeMemorySaved = await saveMemory(MultiParams(
+          [event.memory, event.mediaCollectionMappingList, event.task]));
       yield* _eitherSavedOrErrorState(mayBeMemorySaved, event);
     } else if (event is GetMemoryListEvent) {
       yield MemoryListLoading();
@@ -79,7 +84,7 @@ class MemoryBloc extends Bloc<MemoryEvent, MemoryState> {
     } else if (event is ArchiveMemoryEvent) {
       yield MemorySaving(memory: event.memory);
       final mayBeMemorySaved = await saveMemory(
-          MultiParams([event.memory, event.mediaCollectionMappingList]));
+          MultiParams([event.memory, event.mediaCollectionMappingList, null]));
       await archiveMemory(Params(event.memory));
       yield* _eitherSavedOrErrorState(mayBeMemorySaved, event);
     } else if (event is GetMemoryCollectionListEvent) {
@@ -107,6 +112,10 @@ class MemoryBloc extends Bloc<MemoryEvent, MemoryState> {
     } else if (event is GetMemoryListByMediaEvent) {
       yield MemoryListLoading();
       final mayBeMemoryList = await getMemoryListByMedia(Params(event.media));
+      yield* _eitherListLoadedOrErrorState(mayBeMemoryList, event);
+    } else if (event is GetSingleMemoryByIdEvent) {
+      yield MemoryListLoading();
+      final mayBeMemoryList = await getSingleMemory(Params(event.memoryId));
       yield* _eitherListLoadedOrErrorState(mayBeMemoryList, event);
     }
   }

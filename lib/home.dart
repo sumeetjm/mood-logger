@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_page_transition/flutter_page_transition.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:mood_manager/core/constants/app_constants.dart';
@@ -8,6 +9,7 @@ import 'package:mood_manager/core/util/hex_color.dart';
 import 'package:mood_manager/destination_view.dart';
 import 'package:mood_manager/features/about/presentation/pages/about_page.dart';
 import 'package:mood_manager/features/auth/presentation/bloc/authentication_bloc.dart';
+import 'package:mood_manager/features/common/presentation/widgets/loading_bar.dart';
 import 'package:mood_manager/features/memory/presentation/bloc/memory_bloc.dart';
 import 'package:mood_manager/features/memory/presentation/pages/memory_calendar_page.dart';
 import 'package:mood_manager/features/memory/presentation/pages/memory_collection_list_page.dart';
@@ -21,7 +23,9 @@ import 'package:mood_manager/features/mood_manager/presentation/pages/activity_f
 import 'package:mood_manager/features/mood_manager/presentation/pages/mood_form_page.dart';
 import 'package:mood_manager/features/mood_manager/presentation/pages/t_mood_list_page.dart';
 import 'package:mood_manager/injection_container.dart';
-import 'package:provider/provider.dart';
+import 'package:mood_manager/features/reminder/presentation/bloc/task_bloc.dart';
+import 'package:flutter_overlay_loader/flutter_overlay_loader.dart';
+import 'package:back_button_interceptor/back_button_interceptor.dart';
 
 const List<String> allDestinations = [
   '/profile',
@@ -41,10 +45,12 @@ class _HomeState extends State<Home> with TickerProviderStateMixin<Home> {
   List<GlobalKey<NavigatorState>> _destinationKeys;
   List<GlobalKey<NavigatorState>> _destinationViewKeys;
   List<AnimationController> _faders;
-  int _currentIndex = 3;
+  int _currentIndex = 1;
   AnimationController _hide;
   GlobalKey<NavigatorState> appNavigatorKey;
   GlobalKey<ScaffoldState> scaffoldKey;
+  FlutterLocalNotificationsPlugin flutterNotification;
+  final memoryBloc = sl<MemoryBloc>();
 
   @override
   void initState() {
@@ -63,6 +69,15 @@ class _HomeState extends State<Home> with TickerProviderStateMixin<Home> {
         allDestinations.map((index) => GlobalKey<NavigatorState>()).toList();
     _hide = AnimationController(
         vsync: this, duration: kThemeAnimationDuration, value: 1);
+
+    var androidInitilize = new AndroidInitializationSettings('app_icon');
+    var iOSinitilize = new IOSInitializationSettings();
+    var initilizationsSettings = new InitializationSettings(
+        android: androidInitilize, iOS: iOSinitilize);
+    flutterNotification = new FlutterLocalNotificationsPlugin();
+    flutterNotification.initialize(initilizationsSettings,
+        onSelectNotification: notificationSelected);
+    BackButtonInterceptor.add(myInterceptor);
   }
 
   @override
@@ -75,10 +90,11 @@ class _HomeState extends State<Home> with TickerProviderStateMixin<Home> {
         ),
         BlocProvider<MemoryBloc>(
           create: (BuildContext context) {
-            final memoryBloc = sl<MemoryBloc>();
-            memoryBloc.add(GetMemoryListEvent());
             return memoryBloc;
           },
+        ),
+        BlocProvider<TaskBloc>(
+          create: (BuildContext context) => sl<TaskBloc>(),
         ),
       ],
       child: MaterialApp(
@@ -100,7 +116,10 @@ class _HomeState extends State<Home> with TickerProviderStateMixin<Home> {
                   case '/memory/list/archive':
                     return MemoryListPage(arguments: {
                       'listType': 'ARCHIVE',
-                      'title': 'Archived memories'
+                      'title': 'Archived memories',
+                      'saveCallback': () {
+                        memoryBloc.add(GetMemoryListEvent());
+                      }
                     });
                     break;
                   case '/memory/collection/list':
@@ -114,6 +133,9 @@ class _HomeState extends State<Home> with TickerProviderStateMixin<Home> {
                     break;
                   case '/media/collection/list':
                     return MediaCollectionGridPage();
+                    break;
+                  case '/memory/list':
+                    return MemoryListPage(arguments: settings.arguments);
                     break;
                   default:
                     return MemoryCalendarPage(arguments: settings.arguments);
@@ -336,6 +358,8 @@ class _HomeState extends State<Home> with TickerProviderStateMixin<Home> {
                   ),
                 ],
                 onTap: (int index) {
+                  //sl<FlutterLocalNotificationsPlugin>()
+                  //   .show(0, 'title', 'body', sl<NotificationDetails>());
                   setState(() {
                     _currentIndex = index;
                   });
@@ -449,6 +473,12 @@ class _HomeState extends State<Home> with TickerProviderStateMixin<Home> {
     super.dispose();
     _hide.dispose();
     tMoodBloc.close();
+    BackButtonInterceptor.remove(myInterceptor);
+  }
+
+  bool myInterceptor(bool stopDefaultButtonEvent, RouteInfo info) {
+    print("BACK BUTTON!"); // Do some stuff.
+    return Loader.isLoading();
   }
 
   bool _handleScrollNotification(ScrollNotification notification) {
@@ -468,5 +498,9 @@ class _HomeState extends State<Home> with TickerProviderStateMixin<Home> {
       }
     }
     return false;
+  }
+
+  Future notificationSelected(String payload) async {
+    Navigator.of(appNavigatorKey.currentContext).pushNamed('/about');
   }
 }

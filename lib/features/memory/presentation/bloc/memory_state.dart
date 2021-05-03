@@ -11,7 +11,7 @@ abstract class MemoryCompleted extends MemoryState {}
 
 class MemoryInitial extends MemoryState {}
 
-class MemorySaved extends MemoryCompleted {
+class MemorySaved extends MemoryCompleted with Completed {
   final Memory memory;
 
   MemorySaved({this.memory});
@@ -20,7 +20,7 @@ class MemorySaved extends MemoryCompleted {
   List<Object> get props => [memory, ...super.props];
 }
 
-class MemorySaving extends MemoryProcessing {
+class MemorySaving extends MemoryProcessing with Loading {
   final Memory memory;
 
   MemorySaving({this.memory});
@@ -29,7 +29,7 @@ class MemorySaving extends MemoryProcessing {
   List<Object> get props => [memory, ...super.props];
 }
 
-class MemorySaveError extends MemoryCompleted {
+class MemorySaveError extends MemoryCompleted with Completed {
   final String message;
 
   MemorySaveError({this.message});
@@ -38,7 +38,7 @@ class MemorySaveError extends MemoryCompleted {
   List<Object> get props => [message, ...super.props];
 }
 
-class MemoryListError extends MemoryCompleted {
+class MemoryListError extends MemoryCompleted with Completed {
   final String message;
 
   MemoryListError({this.message, String srcKey});
@@ -47,10 +47,10 @@ class MemoryListError extends MemoryCompleted {
   List<Object> get props => [message, ...super.props];
 }
 
-class MemoryListLoading extends MemoryProcessing {}
+class MemoryListLoading extends MemoryProcessing with Loading {}
 
 // ignore: must_be_immutable
-class MemoryListLoaded extends MemoryCompleted {
+class MemoryListLoaded extends MemoryCompleted with Completed {
   final List<Memory> memoryList;
   MemoryCollection memoryCollection;
 
@@ -60,7 +60,7 @@ class MemoryListLoaded extends MemoryCompleted {
   List<Object> get props => [memoryList, ...super.props];
 }
 
-class MemoryCollectionListLoaded extends MemoryCompleted {
+class MemoryCollectionListLoaded extends MemoryCompleted with Completed {
   final List<MemoryCollection> memoryCollectionList;
 
   MemoryCollectionListLoaded({this.memoryCollectionList});
@@ -69,7 +69,7 @@ class MemoryCollectionListLoaded extends MemoryCompleted {
   List<Object> get props => [memoryCollectionList];
 }
 
-class AddedToMemoryCollection extends MemoryCompleted {
+class AddedToMemoryCollection extends MemoryCompleted with Completed {
   final MemoryCollectionMapping memoryCollectionMapping;
 
   AddedToMemoryCollection({this.memoryCollectionMapping});
@@ -78,7 +78,7 @@ class AddedToMemoryCollection extends MemoryCompleted {
   List<Object> get props => [memoryCollectionMapping, ...super.props];
 }
 
-class MediaCollectionListLoaded extends MemoryCompleted {
+class MediaCollectionListLoaded extends MemoryCompleted with Completed {
   final List<MediaCollection> mediaCollectionList;
 
   MediaCollectionListLoaded({this.mediaCollectionList});

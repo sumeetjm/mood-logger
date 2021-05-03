@@ -12,6 +12,7 @@ class SaveMemory implements UseCase<Memory, MultiParams> {
 
   @override
   Future<Either<Failure, Memory>> call(MultiParams params) async {
-    return await repository.saveMemory(params.param[0], params.param[1]);
+    return await repository.saveMemory(
+        params.param[0], params.param[1], params.param[2]);
   }
 }
