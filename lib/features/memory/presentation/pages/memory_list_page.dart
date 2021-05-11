@@ -4,7 +4,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:invert_colors/invert_colors.dart';
-import 'package:loading_overlay/loading_overlay.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:mood_manager/core/constants/app_constants.dart';
 import 'package:mood_manager/core/util/hex_color.dart';
@@ -354,9 +353,7 @@ class _MemoryListPageState extends State<MemoryListPage> {
             heroTag: uniqueKey,
           ),
         ),
-        body: LoadingOverlay(
-            isLoading: _isLoading,
-            child: Container(
+        body: Container(
                 decoration: BoxDecoration(
                   image: DecorationImage(
                       image: AssetImage(
@@ -530,7 +527,7 @@ class _MemoryListPageState extends State<MemoryListPage> {
                           },
                         ),
                       );
-                    }))));
+                    })));
   }
 
   Map<String, Future<List<MediaCollectionMapping>>> getMediaCollectionMap() {
