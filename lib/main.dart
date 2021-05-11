@@ -8,6 +8,7 @@ import 'package:mood_manager/features/auth/presentation/splash_page.dart';
 import 'package:mood_manager/features/common/domain/entities/media.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection_mapping.dart';
+import 'package:mood_manager/features/common/presentation/widgets/custom_animation.dart';
 import 'package:mood_manager/features/memory/domain/entities/memory.dart';
 import 'package:mood_manager/features/memory/domain/entities/memory_collection.dart';
 import 'package:mood_manager/features/metadata/domain/entities/gender.dart';
@@ -26,6 +27,8 @@ import 'injection_container.dart' as di;
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:hive/hive.dart';
 
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+
 const String PARSE_APP_ID = 'M6MIrnNIxvQ3pt7JL5ydeaVfeIYdK8GO5y0B9k3N';
 const String PARSE_APP_URL = 'https://moodmanager.back4app.io';
 const String MASTER_KEY = 'QuamKAN1Lyv7Z9YLUgvfVVcEF0cZBJrjCDYcIy55';
@@ -43,6 +46,7 @@ void main() async {
     autoSendSessionId: true,
     debug: true,
     coreStore: CoreStoreMemoryImp(),
+    fileDirectory: (await getTemporaryDirectory()).path,
   );
   /*ParseInstallation installation =
       await ParseInstallation.currentInstallation();
@@ -65,6 +69,21 @@ void main() async {
     ..registerAdapter(TaskRepeatAdapter())
     ..registerAdapter(TaskMemoryMappingAdapter())
     ..registerAdapter(TaskNotificationMappingAdapter());
+
+  EasyLoading.instance
+    ..displayDuration = const Duration(milliseconds: 2000)
+    ..indicatorType = EasyLoadingIndicatorType.fadingCircle
+    ..loadingStyle = EasyLoadingStyle.dark
+    ..indicatorSize = 45.0
+    ..radius = 10.0
+    ..progressColor = Colors.yellow
+    ..backgroundColor = Colors.green
+    ..indicatorColor = Colors.yellow
+    ..textColor = Colors.yellow
+    ..maskColor = Colors.blue.withOpacity(0.5)
+    ..userInteractions = false
+    ..dismissOnTap = false
+    ..customAnimation = CustomAnimation();
 
   initializeDateFormatting().then((_) => runApp(MyApp()));
 }

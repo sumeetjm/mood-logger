@@ -1,5 +1,7 @@
-import 'package:flutter_overlay_loader/flutter_overlay_loader.dart';
-import 'package:flutter/material.dart';
+import 'dart:ui';
+
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:provider/provider.dart';
 
 class Started {}
 
@@ -7,14 +9,11 @@ class Loading {}
 
 class Completed {}
 
-void handleLoader(state, context) {
+void handleLoader(state, context) async {
   if (state is Loading) {
-    Loader.show(context,
-        overlayColor: Colors.black.withOpacity(0.5),
-        isAppbarOverlay: true,
-        isBottomBarOverlay: true,
-        progressIndicator: RefreshProgressIndicator());
+    await EasyLoading.show(
+        status: "Loading...", maskType: EasyLoadingMaskType.black);
   } else if (state is Completed) {
-    Loader.hide();
+    await EasyLoading.dismiss();
   }
 }

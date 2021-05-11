@@ -318,10 +318,10 @@ class _MediaPageViewState extends State<MediaPageView> {
           File((await tempDirectoryFuture).path + "/" + uuid.v1() + ".jpg");
       newThumbnailFile.writeAsBytesSync(img.encodeJpg(img
           .copyResize(img.decodeImage(newFile.readAsBytesSync()), width: 200)));
-      selectedMediaCollection.media.file.delete();
+      //selectedMediaCollection.media.file.delete();
       selectedMediaCollection.media.file?.file?.delete();
       selectedMediaCollection.media.file = ParseFile(newFile);
-      selectedMediaCollection.media.thumbnail.delete();
+      //selectedMediaCollection.media.thumbnail.delete();
       selectedMediaCollection.media.thumbnail?.file?.delete();
       selectedMediaCollection.media.thumbnail = ParseFile(newThumbnailFile);
       setState(() {});
@@ -380,10 +380,10 @@ class _MediaPageViewState extends State<MediaPageView> {
                   200, // specify the height of the thumbnail, let the width auto-scaled to keep the source aspect ratio
               quality: 50,
             );
-            selectedMediaCollection.media.file.delete();
+            //selectedMediaCollection.media.file.delete();
             selectedMediaCollection.media.file?.file?.delete();
             selectedMediaCollection.media.file = ParseFile(value);
-            selectedMediaCollection.media.thumbnail.delete();
+            //selectedMediaCollection.media.thumbnail.delete();
             selectedMediaCollection.media.thumbnail?.file?.delete();
             selectedMediaCollection.media.thumbnail =
                 ParseFile(newThumbnailFile);

@@ -1,17 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_overlay_loader/flutter_overlay_loader.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:mood_manager/core/util/date_util.dart';
-import 'package:mood_manager/features/common/presentation/widgets/empty_widget.dart';
-import 'package:mood_manager/features/memory/data/datasources/memory_remote_data_source.dart';
 import 'package:mood_manager/features/memory/data/models/memory_parse.dart';
-import 'package:mood_manager/features/memory/domain/entities/memory.dart';
 import 'package:mood_manager/features/memory/presentation/pages/memory_list_page.dart';
 import 'package:mood_manager/features/reminder/domain/entities/task.dart';
-import 'package:mood_manager/features/reminder/domain/entities/task_memory_mapping.dart';
 import 'package:mood_manager/features/reminder/presentation/bloc/task_bloc.dart';
-import 'package:mood_manager/injection_container.dart';
 import 'package:tinycolor/tinycolor.dart';
 import 'package:intl/intl.dart';
 

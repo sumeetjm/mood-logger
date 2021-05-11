@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_overlay_loader/flutter_overlay_loader.dart';
 import 'package:mood_manager/core/util/date_util.dart';
 import 'package:mood_manager/features/common/domain/entities/base_states.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection_mapping.dart';
@@ -48,21 +47,14 @@ class _MemoryFormPageState extends State<MemoryFormPage> {
       body: BlocConsumer<MemoryBloc, MemoryState>(
         cubit: _memoryBloc,
         listener: (context, state) {
+          handleLoader(state, context);
           if (state is MemorySaved) {
-            Loader.hide();
             memory = state.memory;
-            //pr.hide();
             Navigator.of(context)
                 .pop(MapEntry(widget.memory != null ? 'U' : 'I', memory));
-          }
-          if (state is Loading) {
-            Loader.show(context,
-                overlayColor: Colors.black.withOpacity(0.5),
-                isAppbarOverlay: true,
-                isBottomBarOverlay: true,
-                progressIndicator: RefreshProgressIndicator());
-          } else if (state is Completed) {
-            Loader.hide();
+            //pr.hide();
+            //Navigator.of(context)
+            //  .pop(MapEntry(widget.memory != null ? 'U' : 'I', memory));
           }
         },
         builder: (context, state) {

@@ -2,14 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_overlay_loader/flutter_overlay_loader.dart';
 import 'package:invert_colors/invert_colors.dart';
 import 'package:mood_manager/core/util/color_util.dart';
 import 'package:mood_manager/core/util/date_util.dart';
 import 'package:mood_manager/features/common/domain/entities/base_states.dart';
 import 'package:mood_manager/features/memory/presentation/bloc/memory_bloc.dart';
 import 'package:mood_manager/features/memory/presentation/widgets/transparent_page_route.dart';
-import 'package:mood_manager/features/metadata/presentation/bloc/activity_bloc.dart';
 import 'package:mood_manager/features/reminder/data/models/task_parse.dart';
 import 'package:mood_manager/features/reminder/domain/entities/task.dart';
 import 'package:mood_manager/features/reminder/presentation/bloc/task_bloc.dart';
@@ -62,7 +60,6 @@ class _TaskCalendarPageState extends State<TaskCalendarPage> {
 
   void memoryBlocListener(MemoryState state) {
     if (state is MemorySaved) {
-      Loader.hide();
       _taskBloc.add(GetTaskListEvent());
     }
   }
@@ -110,22 +107,12 @@ class _TaskCalendarPageState extends State<TaskCalendarPage> {
         cubit: _taskBloc,
         listener: (context, state) {
           if (state is TaskListLoaded) {
-            Loader.hide();
             taskList = state.taskList;
             taskListMapByDate = TaskParse.subListMapByDate(taskList);
           } else if (state is TaskSaved) {
-            Loader.hide();
             _taskBloc.add(GetTaskListEvent());
           }
-          if (state is Loading) {
-            Loader.show(context,
-                overlayColor: Colors.black.withOpacity(0.5),
-                isAppbarOverlay: true,
-                isBottomBarOverlay: true,
-                progressIndicator: RefreshProgressIndicator());
-          } else if (state is Completed) {
-            Loader.hide();
-          }
+          handleLoader(state, context);
         },
         builder: (context, state) => ListView(
           physics: BouncingScrollPhysics(),

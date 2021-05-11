@@ -28,13 +28,13 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
     TaskEvent event,
   ) async* {
     if (event is GetTaskListEvent) {
-      final either = await getTaskList(NoParams());
       yield TaskLoading();
+      final either = await getTaskList(NoParams());
       yield* _eitherTaskListOrErrorState(either);
     } else if (event is SaveTaskEvent) {
+      yield TaskLoading();
       final either =
           await saveTask(MultiParams([event.task, event.cancelNotificationId]));
-      yield TaskLoading();
       yield* _eitherTaskOrErrorState(either);
     }
   }

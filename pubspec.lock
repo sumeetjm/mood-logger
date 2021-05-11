@@ -433,6 +433,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.5.0"
+  flutter_easyloading:
+    dependency: "direct main"
+    description:
+      name: flutter_easyloading
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "3.0.0"
   flutter_facebook_login:
     dependency: "direct main"
     description:
@@ -475,13 +482,6 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.0.10"
-  flutter_overlay_loader:
-    dependency: "direct main"
-    description:
-      name: flutter_overlay_loader
-      url: "https://pub.dartlang.org"
-    source: hosted
-    version: "0.1.1"
   flutter_page_transition:
     dependency: "direct main"
     description:
@@ -510,6 +510,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "0.5.5"
+  flutter_spinkit:
+    dependency: transitive
+    description:
+      name: flutter_spinkit
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "5.0.0"
   flutter_test:
     dependency: "direct main"
     description: flutter
@@ -1311,4 +1318,4 @@ packages:
     version: "3.1.0"
 sdks:
   dart: ">=2.12.0 <3.0.0"
-  flutter: ">=1.22.0"
+  flutter: ">=2.0.0"

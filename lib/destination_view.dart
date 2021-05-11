@@ -1,18 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_overlay_loader/flutter_overlay_loader.dart';
 import 'package:flutter_page_transition/flutter_page_transition.dart';
-import 'package:mood_manager/features/about/presentation/pages/about_page.dart';
-import 'package:mood_manager/features/common/presentation/widgets/empty_widget.dart';
 import 'package:mood_manager/features/memory/presentation/pages/memory_calendar_page.dart';
 import 'package:mood_manager/features/memory/presentation/pages/memory_form_page.dart';
 import 'package:mood_manager/features/memory/presentation/pages/memory_list_page.dart';
-import 'package:mood_manager/features/memory/presentation/pages/media_collection_grid_page.dart';
-import 'package:mood_manager/features/memory/presentation/widgets/sliding_panel_demo.dart';
-import 'package:mood_manager/features/memory/presentation/widgets/sliding_up_panel_demo.dart';
-import 'package:mood_manager/features/memory/presentation/widgets/walllayout_demo.dart';
 import 'package:mood_manager/features/profile/presentation/pages/profile_page.dart';
 import 'package:mood_manager/features/reminder/presentation/pages/task_calendar_page.dart';
-import 'package:mood_manager/features/reminder/presentation/pages/task_form_page.dart';
 import 'package:swipedetector/swipedetector.dart';
 
 final tabRoutes = {

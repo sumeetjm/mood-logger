@@ -3,16 +3,11 @@ import 'package:datetime_picker_formfield/datetime_picker_formfield.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_material_color_picker/flutter_material_color_picker.dart';
-import 'package:flutter_overlay_loader/flutter_overlay_loader.dart';
-import 'package:mood_manager/core/constants/app_constants.dart';
 import 'package:mood_manager/core/util/date_util.dart';
 import 'package:mood_manager/features/common/domain/entities/base_states.dart';
 import 'package:mood_manager/features/common/presentation/pages/activity_selection_page.dart';
 import 'package:mood_manager/features/common/presentation/widgets/date_selector.dart';
-import 'package:mood_manager/features/common/presentation/widgets/empty_widget.dart';
 import 'package:mood_manager/features/common/presentation/widgets/time_picker.dart';
-import 'package:mood_manager/features/common/presentation/widgets/time_picker_button.dart';
-import 'package:mood_manager/features/metadata/domain/entities/gender.dart';
 import 'package:mood_manager/features/metadata/domain/entities/m_activity.dart';
 import 'package:mood_manager/features/reminder/data/models/task_parse.dart';
 import 'package:mood_manager/features/reminder/data/models/task_repeat_parse.dart';
@@ -22,7 +17,6 @@ import 'package:mood_manager/features/reminder/presentation/bloc/task_bloc.dart'
 import 'package:mood_manager/features/reminder/presentation/widgets/duration_picker.dart';
 import 'package:mood_manager/features/reminder/presentation/widgets/task_repeat_dialog.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
-import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 import 'package:tinycolor/tinycolor.dart';
 
 // ignore: must_be_immutable
@@ -89,19 +83,10 @@ class _TaskFormPageState extends State<TaskFormPage> {
           cubit: _taskBloc,
           listener: (context, state) {
             if (state is TaskSaved) {
-              Loader.hide();
               _taskBloc.add(GetTaskListEvent());
               Navigator.of(context).pop();
             }
-            if (state is Loading) {
-              Loader.show(context,
-                  overlayColor: Colors.black.withOpacity(0.5),
-                  isAppbarOverlay: true,
-                  isBottomBarOverlay: true,
-                  progressIndicator: RefreshProgressIndicator());
-            } else if (state is Completed) {
-              Loader.hide();
-            }
+            handleLoader(state, context);
           },
           builder: (context, state) => Column(
             children: [

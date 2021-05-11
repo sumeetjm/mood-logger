@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_overlay_loader/flutter_overlay_loader.dart';
 import 'package:mood_manager/features/auth/domain/entitles/user.dart';
 import 'package:mood_manager/features/auth/presentation/bloc/authentication_bloc.dart';
 import 'package:mood_manager/features/auth/presentation/bloc/signup_bloc.dart';
@@ -59,15 +58,7 @@ class _SignupPageState extends State<SignupPage> {
                 duration: Duration(seconds: 2),
               ));
             }
-            if (state is Loading) {
-              Loader.show(context,
-                  overlayColor: Colors.black.withOpacity(0.5),
-                  isAppbarOverlay: true,
-                  isBottomBarOverlay: true,
-                  progressIndicator: RefreshProgressIndicator());
-            } else if (state is Completed) {
-              Loader.hide();
-            }
+            handleLoader(state, context);
           },
           cubit: _signupBloc,
           builder: (BuildContext context, SignupState state) {

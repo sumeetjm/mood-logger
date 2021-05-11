@@ -3,8 +3,8 @@ import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_overlay_loader/flutter_overlay_loader.dart';
 import 'package:invert_colors/invert_colors.dart';
+import 'package:loading_overlay/loading_overlay.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:mood_manager/core/constants/app_constants.dart';
 import 'package:mood_manager/core/util/hex_color.dart';
@@ -111,6 +111,7 @@ class MemoryListPage extends StatefulWidget {
   Media media;
   String memoryId;
   Function saveCallback;
+  BuildContext appContext;
   MemoryListPage({Key key, this.arguments}) : super(key: key) {
     if (arguments != null) {
       this.calendarSelectedDate = this.arguments['selectedDate'];
@@ -121,6 +122,7 @@ class MemoryListPage extends StatefulWidget {
       this.media = this.arguments['media'];
       this.memoryId = this.arguments['memoryId'];
       this.saveCallback = this.arguments['saveCallback'];
+      this.appContext = this.arguments['context'];
     }
   }
 
@@ -143,6 +145,7 @@ class _MemoryListPageState extends State<MemoryListPage> {
   bool _isFabVisible = true;
   CommonRemoteDataSource commonRemoteDataSource;
   MemoryRemoteDataSource memoryRemoteDataSource;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -270,12 +273,14 @@ class _MemoryListPageState extends State<MemoryListPage> {
     });
   }
 
-  removeFromCollection(memory) async {
+  removeFromCollection(Memory memory) async {
     _memoryBloc.add(
       AddMemoryToCollectionEvent(
         MemoryCollectionMappingParse(
           memory: memory,
-          memoryCollection: widget.memoryCollection,
+          memoryCollection: widget.memoryCollection
+              .decrementMemoryCount()
+              .removeColor(memory.mMood.color),
           isActive: false,
         ),
       ),
@@ -349,179 +354,183 @@ class _MemoryListPageState extends State<MemoryListPage> {
             heroTag: uniqueKey,
           ),
         ),
-        body: Container(
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                  image:
-                      AssetImage("assets/grey_abstract_geometric_triangle.jpg"),
-                  fit: BoxFit.cover,
-                  colorFilter: ColorFilter.linearToSrgbGamma()),
-            ),
-            child: BlocConsumer<MemoryBloc, MemoryState>(
-                cubit: _memoryBloc,
-                listener: (context, state) {
-                  if (state is MemoryListLoaded) {
-                    //Loader.hide();
-                    memoryList = state.memoryList;
-                    widget.memoryCollection =
-                        widget.memoryCollection ?? state.memoryCollection;
-                    memoryListMapByDate = subListMapByDate(memoryList);
-                    dateKeys = memoryListMapByDate.keys.toList();
-                    mediaCollectionListMapByMemory = getMediaCollectionMap();
-                  } else if (state is AddedToMemoryCollection) {
-                    //Loader.hide();
-                    widget.saveCallback?.call();
-                    if (state.memoryCollectionMapping.memoryCollection.id ==
-                        widget.memoryCollection?.id) {
-                      initializeList();
-                    }
-                  } else if (state is MemorySaved) {
-                    //Loader.hide();
-                    initializeList();
-                    // widget.saveCallback?.call();
-                  }
-                  if (state is Loading) {
-                    Loader.show(context,
-                        overlayColor: Colors.black.withOpacity(0.5),
-                        isAppbarOverlay: true,
-                        isBottomBarOverlay: true,
-                        progressIndicator: RefreshProgressIndicator());
-                  } else if (state is Completed) {
-                    Loader.hide();
-                  }
-                },
-                builder: (context, state) {
-                  /*if (state is MemoryProcessing) {
+        body: LoadingOverlay(
+            isLoading: _isLoading,
+            child: Container(
+                decoration: BoxDecoration(
+                  image: DecorationImage(
+                      image: AssetImage(
+                          "assets/grey_abstract_geometric_triangle.jpg"),
+                      fit: BoxFit.cover,
+                      colorFilter: ColorFilter.linearToSrgbGamma()),
+                ),
+                child: BlocConsumer<MemoryBloc, MemoryState>(
+                    cubit: _memoryBloc,
+                    listener: (context, state) {
+                      handleLoader(state, context);
+                      if (state is MemoryListLoaded) {
+                        //Loader.hide();
+                        memoryList = state.memoryList;
+                        widget.memoryCollection =
+                            widget.memoryCollection ?? state.memoryCollection;
+                        memoryListMapByDate = subListMapByDate(memoryList);
+                        dateKeys = memoryListMapByDate.keys.toList();
+                        mediaCollectionListMapByMemory =
+                            getMediaCollectionMap();
+                      } else if (state is AddedToMemoryCollection) {
+                        //Loader.hide();
+                        widget.saveCallback?.call();
+                        if (state.memoryCollectionMapping.memoryCollection.id ==
+                            widget.memoryCollection?.id) {
+                          initializeList();
+                        }
+                      } else if (state is MemorySaved) {
+                        //Loader.hide();
+                        initializeList();
+                        //Navigator.of(context).pop(MapEntry('U', state.memory));
+                        // widget.saveCallback?.call();
+                      }
+                    },
+                    builder: (context, state) {
+                      /*if (state is MemoryProcessing) {
                     return EmptyWidget();
                   }*/
-                  if (lastSavedWithActionType != null) {
-                    final scrollIndex = (memoryList ?? []).indexWhere(
-                        (element) =>
-                            element.id == lastSavedWithActionType.value.id);
-                    _scrollToIndex(scrollIndex);
-                    //_scrollToIndex(scrollIndex);
-                    /*WidgetsBinding.instance.addPostFrameCallback(
+                      if (lastSavedWithActionType != null) {
+                        final scrollIndex = (memoryList ?? []).indexWhere(
+                            (element) =>
+                                element.id == lastSavedWithActionType.value.id);
+                        _scrollToIndex(scrollIndex);
+                        //_scrollToIndex(scrollIndex);
+                        /*WidgetsBinding.instance.addPostFrameCallback(
                         (_) => _scrollToIndex(scrollIndex));*/
-                    lastSavedWithActionType = null;
-                  }
-                  return RefreshIndicator(
-                    onRefresh: _refresh,
-                    child: ListView.builder(
-                      controller: autoScrollController,
-                      physics: BouncingScrollPhysics(),
-                      itemCount: (memoryListMapByDate ?? {}).length + 1,
-                      itemBuilder: (context, index) {
-                        if (index == (memoryListMapByDate ?? {}).length) {
-                          return SizedBox(
-                              height: (memoryListMapByDate ?? {}).length <= 1
-                                  ? 500
-                                  : 400);
-                        }
-                        final memoryListDateWise =
-                            memoryListMapByDate[dateKeys[index]];
-                        return StickyHeader(
-                            header: Center(
-                                child: Container(
-                                    height: 30,
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey,
-                                    ),
-                                    child: Center(
-                                        child: Text(
-                                      DateFormat(
-                                              AppConstants.HEADER_DATE_FORMAT)
-                                          .format(dateKeys[index]),
-                                      style: TextStyle(
-                                          color: Colors.grey[50],
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          fontStyle: FontStyle.italic),
-                                    )))),
-                            content: ListView.builder(
-                              physics: NeverScrollableScrollPhysics(),
-                              itemCount: memoryListDateWise.length,
-                              shrinkWrap: true,
-                              itemBuilder: (context, index) {
-                                final memory = memoryListDateWise[index];
-                                final mediaCount = memory.mediaCollectionList
-                                    .fold(
-                                        0,
-                                        (previousValue, element) =>
-                                            element.mediaCount + previousValue);
-                                return wrapScrollTag(
-                                    controller: autoScrollController,
-                                    index: memoryList.indexWhere(
-                                        (element) => element.id == memory.id),
-                                    highlightColor:
-                                        (memory.mMood?.color ?? Colors.grey),
+                        lastSavedWithActionType = null;
+                      }
+                      return RefreshIndicator(
+                        onRefresh: _refresh,
+                        child: ListView.builder(
+                          controller: autoScrollController,
+                          physics: BouncingScrollPhysics(),
+                          itemCount: (memoryListMapByDate ?? {}).length + 1,
+                          itemBuilder: (context, index) {
+                            if (index == (memoryListMapByDate ?? {}).length) {
+                              return SizedBox(
+                                  height:
+                                      (memoryListMapByDate ?? {}).length <= 1
+                                          ? 500
+                                          : 400);
+                            }
+                            final memoryListDateWise =
+                                memoryListMapByDate[dateKeys[index]];
+                            return StickyHeader(
+                                header: Center(
                                     child: Container(
-                                      padding: EdgeInsets.all(2),
-                                      child: Column(
-                                        children: [
-                                          MemoryTime(memory: memory),
-                                          MemoryActivityAndMood(
-                                              listType: widget.listType,
-                                              memory: memory,
-                                              navigateToMemoryForm:
-                                                  navigateToMemoryForm,
-                                              deleteMemory: deleteMemory,
-                                              archiveMemory: archiveMemory,
-                                              addToCollection: addToCollection,
-                                              removeFromCollection:
-                                                  removeFromCollection),
-                                          if (mediaCount > 0)
-                                            FutureBuilder<
-                                                List<MediaCollectionMapping>>(
-                                              future:
-                                                  mediaCollectionListMapByMemory[
-                                                      memory.id],
-                                              builder: (context, snapshot) {
-                                                if (!snapshot.hasData) {
-                                                  return GridPlaceholder(
-                                                      mediaCount: mediaCount);
-                                                }
-                                                if ((snapshot.data ?? [])
-                                                    .isEmpty) {
-                                                  return EmptyWidget();
-                                                }
-                                                return MemoryMediaGrid(
-                                                  mediaCollectionList:
-                                                      snapshot.data,
-                                                  navigateToMediaPageView:
-                                                      (index) {
-                                                    Navigator.of(context).push(
-                                                        MaterialPageRoute(
-                                                            builder: (context) {
-                                                      return MediaPageView(
-                                                        mediaCollectionList:
-                                                            snapshot.data,
-                                                        initialIndex: index,
-                                                        saveMediaCollectionMappingList:
-                                                            (mediaCollectionMappingList) {
-                                                          _memoryBloc.add(
-                                                              SaveMemoryEvent(
-                                                            memory: memory,
-                                                            mediaCollectionMappingList:
-                                                                mediaCollectionMappingList,
-                                                          ));
-                                                        },
-                                                      );
-                                                    }));
+                                        height: 30,
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey,
+                                        ),
+                                        child: Center(
+                                            child: Text(
+                                          DateFormat(AppConstants
+                                                  .HEADER_DATE_FORMAT)
+                                              .format(dateKeys[index]),
+                                          style: TextStyle(
+                                              color: Colors.grey[50],
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                              fontStyle: FontStyle.italic),
+                                        )))),
+                                content: ListView.builder(
+                                  physics: NeverScrollableScrollPhysics(),
+                                  itemCount: memoryListDateWise.length,
+                                  shrinkWrap: true,
+                                  itemBuilder: (context, index) {
+                                    final memory = memoryListDateWise[index];
+                                    final mediaCount =
+                                        memory.mediaCollectionList.fold(
+                                            0,
+                                            (previousValue, element) =>
+                                                element.mediaCount +
+                                                previousValue);
+                                    return wrapScrollTag(
+                                        controller: autoScrollController,
+                                        index: memoryList.indexWhere(
+                                            (element) =>
+                                                element.id == memory.id),
+                                        highlightColor: (memory.mMood?.color ??
+                                            Colors.grey),
+                                        child: Container(
+                                          padding: EdgeInsets.all(2),
+                                          child: Column(
+                                            children: [
+                                              MemoryTime(memory: memory),
+                                              MemoryActivityAndMood(
+                                                  listType: widget.listType,
+                                                  memory: memory,
+                                                  navigateToMemoryForm:
+                                                      navigateToMemoryForm,
+                                                  deleteMemory: deleteMemory,
+                                                  archiveMemory: archiveMemory,
+                                                  addToCollection:
+                                                      addToCollection,
+                                                  removeFromCollection:
+                                                      removeFromCollection),
+                                              if (mediaCount > 0)
+                                                FutureBuilder<
+                                                    List<
+                                                        MediaCollectionMapping>>(
+                                                  future:
+                                                      mediaCollectionListMapByMemory[
+                                                          memory.id],
+                                                  builder: (context, snapshot) {
+                                                    if (!snapshot.hasData) {
+                                                      return GridPlaceholder(
+                                                          mediaCount:
+                                                              mediaCount);
+                                                    }
+                                                    if ((snapshot.data ?? [])
+                                                        .isEmpty) {
+                                                      return EmptyWidget();
+                                                    }
+                                                    return MemoryMediaGrid(
+                                                      mediaCollectionList:
+                                                          snapshot.data,
+                                                      navigateToMediaPageView:
+                                                          (index) {
+                                                        Navigator.of(context).push(
+                                                            MaterialPageRoute(
+                                                                builder:
+                                                                    (context) {
+                                                          return MediaPageView(
+                                                            mediaCollectionList:
+                                                                snapshot.data,
+                                                            initialIndex: index,
+                                                            saveMediaCollectionMappingList:
+                                                                (mediaCollectionMappingList) {
+                                                              _memoryBloc.add(
+                                                                  SaveMemoryEvent(
+                                                                memory: memory,
+                                                                mediaCollectionMappingList:
+                                                                    mediaCollectionMappingList,
+                                                              ));
+                                                            },
+                                                          );
+                                                        }));
+                                                      },
+                                                    );
                                                   },
-                                                );
-                                              },
-                                            ),
-                                          if ((memory.note ?? "").isNotEmpty)
-                                            MemoryNote(memory: memory),
-                                        ],
-                                      ),
-                                    ));
-                              },
-                            ));
-                      },
-                    ),
-                  );
-                })));
+                                                ),
+                                              if ((memory.note ?? "")
+                                                  .isNotEmpty)
+                                                MemoryNote(memory: memory),
+                                            ],
+                                          ),
+                                        ));
+                                  },
+                                ));
+                          },
+                        ),
+                      );
+                    }))));
   }
 
   Map<String, Future<List<MediaCollectionMapping>>> getMediaCollectionMap() {
@@ -540,9 +549,9 @@ class _MemoryListPageState extends State<MemoryListPage> {
     final result = await Navigator.of(context)
         .pushNamed('/memory/add', arguments: {'memory': memory});
     if (result != null) {
-      // initializeList();
+      lastSavedWithActionType = result;
+      initializeList();
     }
-    lastSavedWithActionType = result;
     //initializeList();
   }
 

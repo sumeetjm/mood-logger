@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_page_transition/flutter_page_transition.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
@@ -24,7 +25,7 @@ import 'package:mood_manager/features/mood_manager/presentation/pages/mood_form_
 import 'package:mood_manager/features/mood_manager/presentation/pages/t_mood_list_page.dart';
 import 'package:mood_manager/injection_container.dart';
 import 'package:mood_manager/features/reminder/presentation/bloc/task_bloc.dart';
-import 'package:flutter_overlay_loader/flutter_overlay_loader.dart';
+import 'package:provider/provider.dart';
 import 'package:back_button_interceptor/back_button_interceptor.dart';
 
 const List<String> allDestinations = [
@@ -80,9 +81,14 @@ class _HomeState extends State<Home> with TickerProviderStateMixin<Home> {
     BackButtonInterceptor.add(myInterceptor);
   }
 
+  bool myInterceptor(bool stopDefaultButtonEvent, RouteInfo info) {
+    print("BACK BUTTON!"); // Do some stuff.
+    return EasyLoading.isShow;
+  }
+
   @override
   Widget build(BuildContext context) {
-    var keys = allDestinations.asMap().keys.toList();
+    final keys = allDestinations.asMap().keys.toList();
     return MultiBlocProvider(
       providers: [
         BlocProvider<ProfileBloc>(
@@ -98,6 +104,7 @@ class _HomeState extends State<Home> with TickerProviderStateMixin<Home> {
         ),
       ],
       child: MaterialApp(
+        builder: EasyLoading.init(),
         navigatorKey: appNavigatorKey,
         title: 'Mood Manager',
         theme: ThemeData(
@@ -114,13 +121,15 @@ class _HomeState extends State<Home> with TickerProviderStateMixin<Home> {
                     return MemoryFormPage(arguments: settings.arguments);
                     break;
                   case '/memory/list/archive':
-                    return MemoryListPage(arguments: {
-                      'listType': 'ARCHIVE',
-                      'title': 'Archived memories',
-                      'saveCallback': () {
-                        memoryBloc.add(GetMemoryListEvent());
-                      }
-                    });
+                    return MemoryListPage(
+                      arguments: {
+                        'listType': 'ARCHIVE',
+                        'title': 'Archived memories',
+                        'saveCallback': () {
+                          memoryBloc.add(GetMemoryListEvent());
+                        }
+                      },
+                    );
                     break;
                   case '/memory/collection/list':
                     return MemoryCollectionListPage();
@@ -155,25 +164,25 @@ class _HomeState extends State<Home> with TickerProviderStateMixin<Home> {
         home: WillPopScope(
           onWillPop: () async {
             /*{
-            return (await showDialog(
-                  context: context,
-                  builder: (context) => new AlertDialog(
-                    title: new Text('Are you sure?'),
-                    content: new Text('Do you want to exit an App'),
-                    actions: <Widget>[
-                      new FlatButton(
-                        onPressed: () => Navigator.of(context).pop(false),
-                        child: new Text('No'),
-                      ),
-                      new FlatButton(
-                        onPressed: () => Navigator.of(context).pop(true),
-                        child: new Text('Yes'),
-                      ),
-                    ],
-                  ),
-                )) ??
-                false;
-          },*/
+                  return (await showDialog(
+                        context: context,
+                        builder: (context) => new AlertDialog(
+                          title: new Text('Are you sure?'),
+                          content: new Text('Do you want to exit an App'),
+                          actions: <Widget>[
+                            new FlatButton(
+                              onPressed: () => Navigator.of(context).pop(false),
+                              child: new Text('No'),
+                            ),
+                            new FlatButton(
+                              onPressed: () => Navigator.of(context).pop(true),
+                              child: new Text('Yes'),
+                            ),
+                          ],
+                        ),
+                      )) ??
+                      false;
+                },*/
             var maybePop =
                 await _destinationKeys[_currentIndex].currentState.maybePop();
             return !maybePop;
@@ -338,12 +347,12 @@ class _HomeState extends State<Home> with TickerProviderStateMixin<Home> {
                     label: 'List',
                   ),
                   /*     BottomNavigationBarItem(
-                    icon: Icon(
-                      Icons.add_circle,
-                      size: 40,
-                    ),
-                    label: '',
-                  ),*/
+                          icon: Icon(
+                            Icons.add_circle,
+                            size: 40,
+                          ),
+                          label: '',
+                        ),*/
                   BottomNavigationBarItem(
                     icon: Icon(
                       MdiIcons.calendarMonth,
@@ -474,11 +483,6 @@ class _HomeState extends State<Home> with TickerProviderStateMixin<Home> {
     _hide.dispose();
     tMoodBloc.close();
     BackButtonInterceptor.remove(myInterceptor);
-  }
-
-  bool myInterceptor(bool stopDefaultButtonEvent, RouteInfo info) {
-    print("BACK BUTTON!"); // Do some stuff.
-    return Loader.isLoading();
   }
 
   bool _handleScrollNotification(ScrollNotification notification) {

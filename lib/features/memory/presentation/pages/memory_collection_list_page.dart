@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_overlay_loader/flutter_overlay_loader.dart';
 import 'package:mood_manager/features/common/domain/entities/base_states.dart';
 import 'package:mood_manager/features/common/presentation/widgets/empty_widget.dart';
 import 'package:mood_manager/features/memory/domain/entities/memory_collection.dart';
@@ -50,18 +49,9 @@ class _MemoryCollectionListPageState extends State<MemoryCollectionListPage> {
       body: BlocConsumer<MemoryBloc, MemoryState>(
           listener: (context, state) {
             if (state is MemoryCollectionListLoaded) {
-              Loader.hide();
               memoryCollectionList = state.memoryCollectionList;
             }
-            if (state is Loading) {
-              Loader.show(context,
-                  overlayColor: Colors.black.withOpacity(0.5),
-                  isAppbarOverlay: true,
-                  isBottomBarOverlay: true,
-                  progressIndicator: RefreshProgressIndicator());
-            } else if (state is Completed) {
-              Loader.hide();
-            }
+            handleLoader(state, context);
           },
           cubit: _memoryBloc,
           builder: (context, state) {

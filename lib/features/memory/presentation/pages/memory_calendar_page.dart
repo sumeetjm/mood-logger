@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_overlay_loader/flutter_overlay_loader.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
-import 'package:mood_manager/core/constants/app_constants.dart';
 import 'package:mood_manager/core/util/color_util.dart';
 import 'package:mood_manager/core/util/date_util.dart';
 import 'package:mood_manager/features/common/domain/entities/base_states.dart';
@@ -215,7 +213,6 @@ class _MemoryCalendarPageState extends State<MemoryCalendarPage>
         cubit: _memoryBloc,
         listener: (context, state) {
           if (state is MemoryListLoaded) {
-            Loader.hide();
             memoryList = state.memoryList;
             memoryListMapByDate = subListMapByDate(memoryList);
             dateKeys = memoryListMapByDate.keys.toList();
@@ -239,18 +236,9 @@ class _MemoryCalendarPageState extends State<MemoryCalendarPage>
               lastSavedWithActionType = null;
             }
           } else if (state is MemorySaved) {
-            Loader.hide();
             _memoryBloc.add(GetMemoryListEvent());
           }
-          if (state is Loading) {
-            Loader.show(context,
-                overlayColor: Colors.black.withOpacity(0.5),
-                isAppbarOverlay: true,
-                isBottomBarOverlay: true,
-                progressIndicator: RefreshProgressIndicator());
-          } else if (state is Completed) {
-            Loader.hide();
-          }
+          handleLoader(state, context);
         },
         builder: (context, state) {
           final addWidgetButton = Container(

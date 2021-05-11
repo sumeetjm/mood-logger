@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_overlay_loader/flutter_overlay_loader.dart';
 import 'package:mood_manager/features/common/data/datasources/common_remote_data_source.dart';
 import 'package:mood_manager/features/common/domain/entities/base_states.dart';
 import 'package:mood_manager/features/common/domain/entities/media.dart';
@@ -11,7 +10,6 @@ import 'package:mood_manager/features/profile/domain/entities/user_profile.dart'
 import 'package:mood_manager/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:mood_manager/features/profile/presentation/widgets/profile_view.dart';
 import 'package:mood_manager/injection_container.dart';
-import 'package:provider/provider.dart';
 import 'package:mood_manager/features/reminder/data/datasources/task_remote_data_source.dart';
 import 'package:mood_manager/features/memory/data/datasources/memory_remote_data_source.dart';
 
@@ -48,26 +46,16 @@ class _ProfilePageState extends State<ProfilePage> {
         cubit: _profileBloc,
         listener: (context, state) {
           if (state is UserProfileLoaded) {
-            Loader.hide();
             setState(() {
               userProfile = state.userProfile;
             });
           } else if (state is UserProfileSaved) {
-            Loader.hide();
             userProfile = state.userProfile;
             _profileBloc.add(GetCurrentUserProfileEvent());
           } else if (state is UserProfileSaving) {
             userProfile = state.userProfile;
           } else if (state is UserProfileLoading) {}
-          if (state is Loading) {
-            Loader.show(context,
-                overlayColor: Colors.black.withOpacity(0.5),
-                isAppbarOverlay: true,
-                isBottomBarOverlay: true,
-                progressIndicator: RefreshProgressIndicator());
-          } else if (state is Completed) {
-            Loader.hide();
-          }
+          handleLoader(state, context);
         },
         builder: (context, state) {
           if (userProfile == null) {
