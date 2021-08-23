@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:tinycolor/tinycolor.dart';
 
+// ignore: must_be_immutable
 class DateSelector extends StatefulWidget {
   DateTime initialDate;
   ValueChanged<DateTime> selectDate;
   DateTime endDate;
   DateTime startDate;
+  bool enabled;
   DateSelector({
     Key key,
     this.selectDate,
     this.initialDate,
     this.endDate,
     this.startDate,
+    this.enabled = true,
   }) : super(key: key);
 
   @override
@@ -31,21 +35,6 @@ class _DateSelectorState extends State<DateSelector> {
 
   onSelect(data) {
     widget.selectDate(data);
-  }
-
-  _monthNameWidget(monthName) {
-    return Container(
-      child: Text(
-        monthName,
-        style: TextStyle(
-          fontSize: 17,
-          fontWeight: FontWeight.w600,
-          color: Colors.black87,
-          fontStyle: FontStyle.italic,
-        ),
-      ),
-      padding: EdgeInsets.only(top: 8, bottom: 4),
-    );
   }
 
   getMarkedIndicatorWidget() {
@@ -117,10 +106,11 @@ class _DateSelectorState extends State<DateSelector> {
       endDay: widget.endDate,
       // events: _events,
       //holidays: _holidays,
+      enabledDayPredicate: (day) => widget.enabled,
       startingDayOfWeek: StartingDayOfWeek.sunday,
       calendarStyle: CalendarStyle(
-        selectedColor: Theme.of(context).primaryColor,
-        todayColor: Theme.of(context).primaryColor.withOpacity(0.5),
+        selectedColor: Theme.of(context).accentColor,
+        todayColor: TinyColor(Theme.of(context).accentColor).lighten(20).color,
         markersColor: Colors.brown[700],
         outsideDaysVisible: false,
       ),

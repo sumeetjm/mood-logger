@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:mood_manager/features/auth/presentation/login_page.dart';
 import 'package:mood_manager/features/auth/presentation/signup_page.dart';
 
@@ -12,6 +13,7 @@ class AuthApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      builder: EasyLoading.init(),
       home: LoginPage(null),
       onGenerateRoute: (RouteSettings settings) {
         print(

@@ -33,8 +33,10 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
       yield* _eitherTaskListOrErrorState(either);
     } else if (event is SaveTaskEvent) {
       yield TaskLoading();
-      final either =
-          await saveTask(MultiParams([event.task, event.cancelNotificationId]));
+      final either = await saveTask(MultiParams([
+        event.task,
+        event.cancelNotificationId,
+      ]));
       yield* _eitherTaskOrErrorState(either);
     }
   }
@@ -62,7 +64,7 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
       case CacheFailure:
         return CACHE_FAILURE_MESSAGE;
       default:
-        return 'Unexpected error';
+        return failure.toString();
     }
   }
 }

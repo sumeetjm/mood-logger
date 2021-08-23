@@ -17,6 +17,7 @@ class MMoodAdapter extends TypeAdapter<MMood> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return MMoodParse(
+      moodId: fields[0] as String,
       moodName: fields[3] as String,
       moodCode: fields[4] as String,
       isActive: fields[1] as bool,

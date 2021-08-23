@@ -27,7 +27,7 @@ class AuthSubmitButton extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(30),
         ),
-        child: FlatButton(
+        child: TextButton(
           onPressed: onPressed,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,

@@ -1,6 +1,7 @@
 import 'package:mood_manager/features/auth/domain/entitles/user.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
 
+// ignore: must_be_immutable
 class UserParse extends User {
   UserParse({String id, String userId, String email, String password})
       : super(id: id, userId: userId, email: email, password: password);

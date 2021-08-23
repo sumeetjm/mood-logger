@@ -32,55 +32,11 @@ class _TextEditFieldState extends State<TextEditField> {
   bool isChanged = false;
   @override
   Widget build(BuildContext context) {
-    IconButton icon = !_focus.hasFocus
-        ? IconButton(
-            icon: Icon(
-              Icons.edit,
-              size: 18,
-            ),
-            onPressed: () {},
-          )
-        : IconButton(
-            icon: Icon(
-              Icons.check,
-              size: 18,
-            ),
-            onPressed: () {
-              _focus.unfocus();
-            },
-          );
-
-    /*TextFormField(
-      validator: (value) {
-        if (value != null &&
-            !value.isNotEmpty &&
-            RegExp('^[_A-z0-9]*((-|\s)*[_A-z0-9])*\$').hasMatch(value)) {
-          return 'Invalid';
-        }
-        return null;
-      },
-      inputFormatters: [
-        FilteringTextInputFormatter.allow(
-            RegExp('^[_A-z0-9]*((-|\s)*[_A-z0-9])*\$'))
-      ],
-      keyboardType: TextInputType.text,
-      focusNode: _focus,
-      controller: textEditingController,
-      style: TextStyle(color: Colors.black, fontSize: 16),
-      onChanged: print,
-      decoration: InputDecoration(
-        enabledBorder: InputBorder.none,
-        suffixIcon: Icon(Icons.edit),
-        fillColor: Colors.lightBlueAccent,
-        labelText: widget.label,
-        labelStyle: TextStyle(color: widget.valueColor, fontSize: 16),
-      ),
-    );*/
     return Container(
       height: 65,
       width: MediaQuery.of(context).size.width,
       child: TextFormField(
-        autovalidate: true,
+        autovalidateMode: AutovalidateMode.always,
         validator: (value) {
           if (value != null &&
               value.isNotEmpty &&

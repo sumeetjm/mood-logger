@@ -1,8 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_facebook_login/flutter_facebook_login.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_video_info/flutter_video_info.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:hive/hive.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:mood_manager/core/util/time_zone.dart';
 import 'package:mood_manager/features/auth/data/datasources/auth_data_source.dart';
 import 'package:mood_manager/features/auth/data/datasources/parse/auth_parse_data_source.dart';
@@ -21,7 +22,7 @@ import 'package:mood_manager/features/auth/presentation/bloc/authentication_bloc
 import 'package:mood_manager/features/auth/presentation/bloc/login_bloc.dart';
 import 'package:mood_manager/features/auth/presentation/bloc/signup_bloc.dart';
 import 'package:mood_manager/features/common/data/datasources/common_remote_data_source.dart';
-import 'package:mood_manager/features/common/domain/entities/media_collection_mapping.dart';
+import 'package:mood_manager/features/common/data/datasources/media_file_service.dart';
 import 'package:mood_manager/features/memory/data/datasources/memory_remote_data_source.dart';
 import 'package:mood_manager/features/memory/data/repositories/memory_repository.dart';
 import 'package:mood_manager/features/memory/domain/repositories/memory_repository_impl.dart';
@@ -35,9 +36,7 @@ import 'package:mood_manager/features/memory/domain/usecases/get_memory_list_by_
 import 'package:mood_manager/features/memory/domain/usecases/get_memory_list_by_date.dart';
 import 'package:mood_manager/features/memory/domain/usecases/get_memory_list_by_media.dart';
 import 'package:mood_manager/features/memory/domain/usecases/get_single_memory.dart';
-import 'package:mood_manager/features/metadata/domain/entities/m_activity.dart';
-import 'package:mood_manager/features/metadata/domain/entities/m_activity_type.dart';
-import 'package:mood_manager/features/metadata/domain/entities/m_mood.dart';
+import 'package:mood_manager/features/memory/domain/usecases/save_memory_collection.dart';
 import 'package:mood_manager/features/metadata/domain/usecases/add_activity.dart';
 import 'package:mood_manager/features/memory/domain/usecases/save_memory.dart';
 import 'package:mood_manager/features/memory/presentation/bloc/memory_bloc.dart';
@@ -50,7 +49,6 @@ import 'package:mood_manager/features/profile/data/datasources/user_profile_remo
 import 'package:mood_manager/features/metadata/data/repositories/m_activity_repository_impl.dart';
 import 'package:mood_manager/features/profile/data/repositories/user_profile_repository_impl.dart';
 import 'package:mood_manager/features/metadata/domain/repositories/m_activity_repository.dart';
-import 'package:mood_manager/features/profile/domain/entities/user_profile.dart';
 import 'package:mood_manager/features/profile/domain/repositories/user_profile_repository.dart';
 import 'package:mood_manager/features/profile/domain/usecases/get_current_user_profile.dart';
 import 'package:mood_manager/features/metadata/domain/usecases/get_activity_type_list.dart';
@@ -81,6 +79,8 @@ import 'package:mood_manager/features/reminder/domain/repositories/task_reposito
 import 'package:mood_manager/features/reminder/domain/usecases/get_memory_list.dart';
 import 'package:mood_manager/features/reminder/domain/usecases/save_memory.dart';
 import 'package:mood_manager/features/reminder/presentation/bloc/task_bloc.dart';
+import 'package:mood_manager/main.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:video_trimmer/video_trimmer.dart';
 
@@ -130,6 +130,7 @@ Future<void> init() async {
         getMediaCollectionList: sl(),
         getMemoryListByMedia: sl(),
         getSingleMemory: sl(),
+        saveMemoryCollection: sl(),
       ));
 
   sl.registerFactory(() => ActivityBloc(
@@ -179,34 +180,40 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetMediaCollectionList(sl()));
   sl.registerLazySingleton(() => GetMemoryListByMedia(sl()));
   sl.registerLazySingleton(() => GetSingleMemory(sl()));
+  sl.registerLazySingleton(() => SaveMemoryCollection(sl()));
 
   sl.registerLazySingleton(() => SaveTask(sl()));
   sl.registerLazySingleton(() => GetTaskList(sl()));
   // Repository
   sl.registerLazySingleton<MMoodRepository>(() => MMoodRepositoryImpl(
-        remoteDataSource: sl(),
-        networkInfo: sl(),
-      ));
+      remoteDataSource: sl(), commomRemoteDataSource: sl()));
   sl.registerLazySingleton<TMoodRepository>(
     () => TMoodRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()),
   );
   sl.registerLazySingleton<MActivityRepository>(
-    () => MActivityRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()),
+    () => MActivityRepositoryImpl(
+      remoteDataSource: sl(),
+      commonRemoteDataSource: sl(),
+    ),
   );
   sl.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryImpl(dataSource: sl(), networkInfo: sl()),
+    () => AuthRepositoryImpl(dataSource: sl(), commonRemoteDataSource: sl()),
   );
   sl.registerLazySingleton<UserProfileRepository>(
     () => UserProfileRepositoryImpl(
-        remoteDataSource: sl(), networkInfo: sl(), authRemoteDataSource: sl()),
+        remoteDataSource: sl(),
+        commonRemoteDataSource: sl(),
+        authRemoteDataSource: sl()),
   );
   sl.registerLazySingleton<MemoryRepository>(
-    () => MemoryRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()),
+    () => MemoryRepositoryImpl(
+      remoteDataSource: sl(),
+      commonRemoteDataSource: sl(),
+    ),
   );
   sl.registerLazySingleton<TaskRepository>(
     () => TaskRepositoryImpl(
-      remoteDataSource: sl(),
-    ),
+        remoteDataSource: sl(), commonRemoteDataSource: sl()),
   );
 
   // Data sources
@@ -240,7 +247,7 @@ Future<void> init() async {
     ),
   );
   sl.registerLazySingleton<CommonRemoteDataSource>(
-    () => CommonParseDataSource(),
+    () => CommonParseDataSource(networkInfo: sl()),
   );
   sl.registerLazySingleton<TaskRemoteDataSource>(
     () => TaskParseDataSource(
@@ -253,6 +260,14 @@ Future<void> init() async {
       flutterLocalNotificationsPlugin: sl(),
       notificationDetails: sl(),
       locationFuture: sl(),
+    ),
+  );
+  sl.registerLazySingleton<MediaFileService>(
+    () => MediaFileService(
+      imagePicker: sl(),
+      tempDirectory: sl('tempDirectory'),
+      uuid: sl(),
+      videoInfo: sl(),
     ),
   );
 
@@ -268,7 +283,8 @@ Future<void> init() async {
   sl.registerLazySingleton(() => FacebookLogin());
   sl.registerLazySingleton(
       () => RestCountries.setup('d2b3ecd3f68f52fa52225702e328769e'));
-  // sl.registerLazySingleton(() => ImagePicker());
+  sl.registerLazySingleton(() => ImagePicker());
+  sl.registerLazySingleton(() => FlutterVideoInfo());
   sl.registerLazySingleton(() => Trimmer());
   sl.registerLazySingleton(() => Uuid());
   sl.registerLazySingleton(() => AndroidInitializationSettings('app_icon'));
@@ -282,12 +298,18 @@ Future<void> init() async {
   sl.registerLazySingleton(() => NotificationDetails(android: sl(), iOS: sl()));
   sl.registerLazySingleton(() {
     var flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
-    flutterLocalNotificationsPlugin.initialize(sl());
+    /*flutterLocalNotificationsPlugin.initialize(sl(),
+        onSelectNotification: (value) {
+      print('Notification tapped ->' + value);
+      return;
+    });*/
     return flutterLocalNotificationsPlugin;
   });
   sl.registerLazySingleton<Future<tz.Location>>(() async {
     return await getLocation();
   });
+  getTemporaryDirectory().then((value) =>
+      sl.registerLazySingleton(() => value, instanceName: 'tempDirectory'));
 }
 
 getLocation() async {

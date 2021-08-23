@@ -13,6 +13,8 @@ class TaskNotificationMapping extends Base {
   final DateTime notifyDateTime;
   @HiveField(5)
   final int localNotificationId;
+  @HiveField(6)
+  final bool isAfterTask;
 
   TaskNotificationMapping({
     String id,
@@ -20,6 +22,7 @@ class TaskNotificationMapping extends Base {
     this.notifyDateTime,
     this.localNotificationId,
     bool isActive = true,
+    this.isAfterTask = false,
   }) : super(
           id: id,
           isActive: isActive,
@@ -31,6 +34,7 @@ class TaskNotificationMapping extends Base {
         task,
         notifyDateTime,
         localNotificationId,
+        isAfterTask,
         ...super.props,
       ];
 }

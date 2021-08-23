@@ -1,6 +1,9 @@
 import 'package:chips_choice/chips_choice.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'package:mood_manager/core/util/color_util.dart';
+import 'package:tinycolor/tinycolor.dart';
 
 // ignore: must_be_immutable
 class ChoiceChipGroupSelection<T> extends StatefulWidget {
@@ -35,61 +38,106 @@ class _ChoiceChipGroupSelectionPage<T> extends State<ChoiceChipGroupSelection> {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      shrinkWrap: true,
-      itemCount: widget.groupList.length,
-      itemBuilder: (context, index) {
-        final groupKey = widget.groupList[index];
-        return Column(
-          children: [
-            ExpansionTile(
-              title: Container(
-                child: Text(
-                  widget.groupLabel(groupKey),
-                ),
-              ),
-              initiallyExpanded: true,
-              children: [
-                Container(
-                  color: Theme.of(context).primaryColor.withOpacity(0.05),
-                  alignment: Alignment.centerLeft,
-                  child: ChipsChoice<T>.multiple(
-                    itemConfig: ChipsChoiceItemConfig(),
-                    value: selectedOptionsGrouped[groupKey] ?? [],
-                    options: ChipsChoiceOption.listFrom<T,
-                        ChoiceChipGroupSelectionOption>(
-                      disabled: (index, item) =>
-                          widget.maxSelection != null &&
-                          widget.maxSelection ==
-                              (widget.initialValue ?? []).length &&
-                          !widget.initialValue.contains(item.value),
-                      source: choiceChipOptionsGrouped[groupKey] ?? [],
-                      value: (i, v) => v.value,
-                      label: (i, v) => v.label,
-                    ),
-                    onChanged: (List<T> value) {
-                      setState(() {
-                        selectedOptionsGrouped[groupKey] = List<T>.from(value);
-                        final List<T> selectedValues = selectedOptionsGrouped
-                            .values
-                            .expand((element) => element)
-                            .toList();
-                        widget.initialValue = selectedValues;
-                        widget.onChange(selectedValues);
-                      });
-                    },
-                    isWrapped: true,
-                  ),
-                ),
-              ],
-            ),
-            Divider(
-              height: 0,
-              color: Colors.black.withOpacity(0.5),
-            )
-          ],
-        );
-      },
+    return AnimationLimiter(
+      child: ListView.builder(
+        shrinkWrap: true,
+        itemCount: widget.groupList.length,
+        itemBuilder: (context, index) {
+          final groupKey = widget.groupList[index];
+          return AnimationConfiguration.staggeredList(
+              position: index,
+              duration: const Duration(milliseconds: 500),
+              child: SlideAnimation(
+                  horizontalOffset: 50.0,
+                  child: FadeInAnimation(
+                      child: Column(
+                    children: [
+                      ExpansionTile(
+                        collapsedBackgroundColor: ColorUtil.mix([
+                          TinyColor(Theme.of(context).primaryColor)
+                              .lighten(75)
+                              .color,
+                          TinyColor(Theme.of(context).accentColor)
+                              .lighten(20)
+                              .color
+                        ]),
+                        backgroundColor:
+                            TinyColor(Theme.of(context).primaryColor)
+                                .lighten(75)
+                                .color,
+                        title: Container(
+                          child: Text(
+                            widget.groupLabel(groupKey),
+                            style: TextStyle(
+                              color: Theme.of(context).primaryColor,
+                            ),
+                          ),
+                        ),
+                        initiallyExpanded: true,
+                        children: [
+                          Container(
+                            color: Colors.white,
+                            padding: EdgeInsets.all(8.0),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(10)),
+                                  color:
+                                      TinyColor(Theme.of(context).accentColor)
+                                          .lighten(20)
+                                          .color,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      offset: Offset(1.0, 1.0),
+                                      blurRadius: 3.0,
+                                      color: TinyColor(
+                                              Theme.of(context).primaryColor)
+                                          .lighten(50)
+                                          .color,
+                                    )
+                                  ]),
+                              alignment: Alignment.centerLeft,
+                              child: ChipsChoice<T>.multiple(
+                                itemConfig: ChipsChoiceItemConfig(),
+                                value: selectedOptionsGrouped[groupKey] ?? [],
+                                options: ChipsChoiceOption.listFrom<T,
+                                    ChoiceChipGroupSelectionOption>(
+                                  disabled: (index, item) =>
+                                      widget.maxSelection != null &&
+                                      widget.maxSelection ==
+                                          (widget.initialValue ?? []).length &&
+                                      !widget.initialValue.contains(item.value),
+                                  source:
+                                      choiceChipOptionsGrouped[groupKey] ?? [],
+                                  value: (i, v) => v.value,
+                                  label: (i, v) => v.label,
+                                ),
+                                onChanged: (List<T> value) {
+                                  setState(() {
+                                    selectedOptionsGrouped[groupKey] =
+                                        List<T>.from(value);
+                                    final List<T> selectedValues =
+                                        selectedOptionsGrouped.values
+                                            .expand((element) => element)
+                                            .toList();
+                                    widget.initialValue = selectedValues;
+                                    widget.onChange(selectedValues);
+                                  });
+                                },
+                                isWrapped: true,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Divider(
+                        height: 0,
+                        color: Colors.black.withOpacity(0.5),
+                      )
+                    ],
+                  ))));
+        },
+      ),
     );
   }
 

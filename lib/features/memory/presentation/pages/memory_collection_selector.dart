@@ -1,21 +1,15 @@
-/*
-Name: Akshath Jain
-Date: 3/18/2019 - 1/25/2020
-Purpose: Example app that implements the package: sliding_up_panel
-Copyright: © 2020, Akshath Jain. All rights reserved.
-Licensing: More information can be found here: https://github.com/akshathjain/sliding_up_panel/blob/master/LICENSE
-*/
-
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:mood_manager/features/common/data/datasources/common_remote_data_source.dart';
 import 'package:mood_manager/features/common/presentation/widgets/empty_widget.dart';
 import 'package:mood_manager/features/memory/data/datasources/memory_remote_data_source.dart';
 import 'package:mood_manager/features/memory/domain/entities/memory_collection.dart';
 import 'package:mood_manager/injection_container.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
-
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:mood_manager/home.dart';
 
 class MemoryCollectionSelector extends StatefulWidget {
   @override
@@ -24,9 +18,10 @@ class MemoryCollectionSelector extends StatefulWidget {
 }
 
 class _MemoryCollectionSelectorState extends State<MemoryCollectionSelector> {
-  final double _initFabHeight = 120.0;
   double _panelHeightOpen;
   double _panelHeightClosed = 195.0;
+  final memoryRemoteDataSource = sl<MemoryRemoteDataSource>();
+  final commonRemoteDataSource = sl<CommonRemoteDataSource>();
 
   @override
   void initState() {
@@ -69,12 +64,24 @@ class _MemoryCollectionSelectorState extends State<MemoryCollectionSelector> {
   }
 
   Widget _panel(ScrollController sc) {
+    final memoryCollectionList =
+        memoryRemoteDataSource.getMemoryCollectionList();
+    final isConnected = commonRemoteDataSource.isConnected();
     return MediaQuery.removePadding(
         context: context,
         removeTop: true,
-        child: ListView(
+        child: AnimationLimiter(
+          child: ListView(
           controller: sc,
-          children: <Widget>[
+          children: AnimationConfiguration.toStaggeredList(
+              duration: const Duration(milliseconds: 375),
+              childAnimationBuilder: (widget) => SlideAnimation(
+                horizontalOffset: 50.0,
+                child: FadeInAnimation(
+                  child: widget,
+                ),
+              ),
+              children: <Widget>[
             SizedBox(
               height: 18.0,
             ),
@@ -83,34 +90,51 @@ class _MemoryCollectionSelectorState extends State<MemoryCollectionSelector> {
               trailing: IconButton(
                   icon: Icon(Icons.close),
                   onPressed: () {
-                    Navigator.of(context).pop();
+                    Navigator.of(appNavigatorContext(context)).pop();
                   }),
             ),
             SizedBox(
               height: 36.0,
             ),
-            FutureBuilder<List<MemoryCollection>>(
-              future: sl<MemoryRemoteDataSource>().getMemoryCollectionList(),
-              initialData: [],
-              builder: (context, snapshot) {
-                if (snapshot.hasData) {
-                  return ListView.builder(
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    itemBuilder: (context, index) {
-                      return ListTile(
-                        leading: CircleAvatar(
-                          child: Icon(Icons.book_online_rounded),
-                        ),
+            FutureBuilder<bool>(
+                future: isConnected,
+                builder: (context, snapshot) {
+                  if (snapshot.hasData) {
+                    if (snapshot.data) {
+                      return FutureBuilder<List<MemoryCollection>>(
+                        future: memoryCollectionList,
+                        initialData: [],
+                        builder: (context, snapshot1) {
+                          if (snapshot1.hasData) {
+                            return ListView.builder(
+                              shrinkWrap: true,
+                              physics: NeverScrollableScrollPhysics(),
+                              itemCount: snapshot1.data.length,
+                              itemBuilder: (context, index) {
+                                return ListTile(
+                                  leading: CircleAvatar(
+                                    child: Icon(Icons.book_online_rounded),
+                                  ),
+                                );
+                              },
+                            );
+                          } else {
+                            return EmptyWidget();
+                          }
+                        },
                       );
-                    },
-                  );
-                } else {
-                  return EmptyWidget();
-                }
-              },
-            )
-          ],
+                    } else {
+                      Fluttertoast.showToast(
+                          gravity: ToastGravity.TOP,
+                          msg: 'Unable to connect',
+                          backgroundColor: Colors.red);
+                      return EmptyWidget();
+                    }
+                  } else {
+                    return EmptyWidget();
+                  }
+                })
+          ])),
         ));
   }
 

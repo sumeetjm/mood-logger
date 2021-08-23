@@ -1,3 +1,4 @@
+import 'package:mood_manager/core/constants/app_constants.dart';
 import 'package:mood_manager/features/common/data/models/parse_mixin.dart';
 import 'package:mood_manager/features/common/data/models/media_collection_parse.dart';
 import 'package:mood_manager/features/metadata/data/models/m_activity_parse.dart';
@@ -7,7 +8,6 @@ import 'package:mood_manager/features/common/domain/entities/media_collection.da
 import 'package:mood_manager/features/metadata/domain/entities/m_activity.dart';
 import 'package:mood_manager/features/metadata/domain/entities/m_mood.dart';
 import 'package:mood_manager/features/memory/domain/entities/memory.dart';
-import 'package:mood_manager/features/reminder/data/models/task_parse.dart';
 import 'package:mood_manager/features/reminder/domain/entities/task.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
 
@@ -43,9 +43,9 @@ class MemoryParse extends Memory with ParseMixin {
         'objectId': id,
         'title': title,
         'note': note,
-        'mMood': mMood,
+        'mMood': mMood ?? AppConstants.dummyMood,
         'mActivity': mActivityList,
-        'collection': mediaCollectionList,
+        'mediaCollection': mediaCollectionList,
         'isActive': isActive,
         'logDateTime': logDateTime?.toUtc(),
         'user': user,
@@ -69,7 +69,7 @@ class MemoryParse extends Memory with ParseMixin {
       mMood:
           ParseMixin.value('mMood', parseOptions, transform: MMoodParse.from),
       collectionList: List<MediaCollection>.from(ParseMixin.value(
-              'collection', parseOptions,
+              'mediaCollection', parseOptions,
               transform: MediaCollectionParse.from) ??
           []),
       mActivityList: List<MActivity>.from(ParseMixin.value(
@@ -81,12 +81,13 @@ class MemoryParse extends Memory with ParseMixin {
     );
   }
 
-  static MemoryParse fromTask(Task task, DateTime selectedDate) {
+  static MemoryParse fromTask(
+      Task task, DateTime selectedDate, List<MActivity> mActivityList) {
     return MemoryParse(
       logDateTime: selectedDate,
       title: task.title,
       note: task.note,
-      mActivityList: task.mActivityList,
+      mActivityList: mActivityList,
     );
   }
 }

@@ -9,7 +9,9 @@ abstract class UserProfileRepository {
   Future<Either<Failure, UserProfile>> getCurrentUserProfile();
   Future<Either<Failure, UserProfile>> getUserProfile(ParseUser user);
   Future<Either<Failure, UserProfile>> saveUserProfile(UserProfile userProfile);
-  Future<Either<Failure, Media>> saveProfilePicture(
+  Future<Either<Failure, MediaCollectionMapping>> saveProfilePicture(
       MediaCollectionMapping photoMediaCollection, UserProfile userProfile);
+  Future<Either<Failure, MediaCollectionMapping>>
+      saveProfilePictureAndAddToProfilePictureCollection(Media media);
   Future<Either<Failure, String>> linkWithSocial(String social);
 }

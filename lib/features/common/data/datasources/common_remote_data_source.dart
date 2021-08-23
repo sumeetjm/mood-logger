@@ -1,6 +1,8 @@
 import 'package:dartz/dartz.dart';
-import 'package:hive/hive.dart';
+import 'package:flutter/material.dart';
 import 'package:mood_manager/core/error/exceptions.dart';
+import 'package:mood_manager/core/network/network_info.dart';
+import 'package:mood_manager/core/util/color_util.dart';
 import 'package:mood_manager/features/common/data/models/media_collection_parse.dart';
 import 'package:mood_manager/features/common/data/models/media_collection_mapping_parse.dart';
 import 'package:mood_manager/features/common/data/models/media_parse.dart';
@@ -9,73 +11,121 @@ import 'package:mood_manager/features/common/domain/entities/media_collection.da
 import 'package:mood_manager/features/common/domain/entities/media.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection_mapping.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
+import 'package:mood_manager/core/util/hex_color.dart';
 
 abstract class CommonRemoteDataSource {
   Future<MediaCollection> saveMediaCollection(MediaCollection mediaCollection);
   Future<Media> saveMedia(Media media);
   Future<MediaCollectionMapping> saveMediaCollectionMapping(
-      final MediaCollectionMapping mediaCollectionMapping);
+      final MediaCollectionMapping mediaCollectionMapping,
+      {bool skipIfAlreadyPresent});
   Future<List<MediaCollectionMapping>> getMediaCollectionMappingByMedia(
       Media media, String module, ParseUser user);
   Future<List<MediaCollectionMapping>> getMediaCollectionMappingByCollection(
       MediaCollection mediaCollection,
       {Media priorityMedia,
-      int limit});
+      int limit,
+      String mediaType});
   Future<List<MediaCollectionMapping>>
       getMediaCollectionMappingByCollectionList(
           List<MediaCollection> collectionList);
   Future<List<MediaCollectionMapping>> saveMediaCollectionMappingList(
-      List<MediaCollectionMapping> mediaCollectionList);
+      List<MediaCollectionMapping> mediaCollectionList,
+      {bool skipIfAlreadyPresent});
+  Future<int> getTotalNoOfMedia();
   Future<int> getTotalNoOfPhotos();
+  Future<int> getTotalNoOfVideos();
+  Future<void> checkConnectivity();
+  Future<bool> isConnected();
 }
 
 class CommonParseDataSource extends CommonRemoteDataSource {
+  final NetworkInfo networkInfo;
+
+  CommonParseDataSource({this.networkInfo});
+
   @override
   Future<MediaCollectionMapping> saveMediaCollectionMapping(
-      MediaCollectionMapping mediaCollectionMapping) async {
+      MediaCollectionMapping mediaCollectionMapping,
+      {bool skipIfAlreadyPresent = false}) async {
     /*final mediaCollectionMappingBox =
         await Hive.openBox<MediaCollectionMapping>('mediaCollectionMapping');*/
-    ParseResponse response =
-        await cast<MediaCollectionMappingParse>(mediaCollectionMapping)
-            .toParse(pointerKeys: ['collection', 'media']).save();
-
-    if (response.success) {
-      var mediaCollectionMappingSaved = MediaCollectionMappingParse.from(
-          response.results.first,
-          cacheData: mediaCollectionMapping,
-          cacheKeys: ['collection', 'media']);
-      /*if (!mediaCollectionMappingBox.values
+    if (!skipIfAlreadyPresent ||
+        !await existsMediaCollectionMappingByMediaAndMediaCollection(
+            mediaCollectionMapping.media, mediaCollectionMapping.collection)) {
+      ParseResponse response =
+          await cast<MediaCollectionMappingParse>(mediaCollectionMapping)
+              .toParse(pointerKeys: ['mediaCollection', 'media']).save();
+      if (response.success) {
+        var mediaCollectionMappingSaved = MediaCollectionMappingParse.from(
+            response.results.first,
+            cacheData: mediaCollectionMapping,
+            cacheKeys: ['mediaCollection', 'media']);
+        /*if (!mediaCollectionMappingBox.values
           .any((element) => element.id == mediaCollectionMappingSaved.id)) {
         mediaCollectionMappingBox.add(mediaCollectionMappingSaved);
       }*/
-      return mediaCollectionMappingSaved;
+        await saveMediaCount(mediaCollectionMappingSaved.collection);
+        return mediaCollectionMappingSaved;
+      } else {
+        throw ServerException();
+      }
     } else {
-      throw ServerException();
+      return mediaCollectionMapping;
     }
   }
 
   @override
   Future<List<MediaCollectionMapping>> saveMediaCollectionMappingList(
-      List<MediaCollectionMapping> mediaCollectionMappingList) async {
-    Set<MediaCollection> mediaCollectionList =
-        mediaCollectionMappingList.map((e) => e.collection).toSet();
+      List<MediaCollectionMapping> mediaCollectionMappingList,
+      {bool skipIfAlreadyPresent = false}) async {
+    var mediaCollectionMapByCode = Map.fromEntries(mediaCollectionMappingList
+        .map((e) => MapEntry(e.collection.code, e.collection)));
+
     List<MediaCollection> collectionListSaved = [];
-    for (final collection in mediaCollectionList) {
-      collectionListSaved.add(await saveMediaCollection(collection));
+    for (final collectionEntry in mediaCollectionMapByCode.entries) {
+      collectionListSaved.add(await saveMediaCollection(collectionEntry.value));
     }
     List<MediaCollectionMapping> mediaCollectionMappingListSaved = [];
     for (final mediaCollectionMapping in mediaCollectionMappingList) {
-      mediaCollectionMappingListSaved.add(await saveMediaCollectionMapping(
+      var value = await saveMediaCollectionMapping(
         MediaCollectionMappingParse(
             collection: collectionListSaved.firstWhere((element) =>
                 element.code == mediaCollectionMapping.collection.code),
             id: mediaCollectionMapping.id,
             isActive: mediaCollectionMapping.isActive,
             media: await saveMedia(mediaCollectionMapping.media)),
-      ));
+        skipIfAlreadyPresent: skipIfAlreadyPresent,
+      );
+      if (value.isActive) {
+        mediaCollectionMappingListSaved.add(value);
+      }
     }
-
     return mediaCollectionMappingListSaved;
+  }
+
+  Future<void> saveMediaCount(MediaCollection mediaCollection) async {
+    final mediaCollectionParse =
+        cast<MediaCollectionParse>(mediaCollection).toParse();
+    final mediaCollectionMappingList =
+        await getMediaCollectionMappingByCollection(mediaCollection);
+    mediaCollectionParse.set('mediaCount', mediaCollectionMappingList.length);
+    mediaCollectionParse.set(
+        'imageCount',
+        mediaCollectionMappingList
+            .where((element) => element.media.mediaType == 'PHOTO')
+            .length);
+    mediaCollectionParse.set(
+        'videoCount',
+        mediaCollectionMappingList
+            .where((element) => element.media.mediaType == 'VIDEO')
+            .length);
+    final colorList = mediaCollectionMappingList
+        .map((e) => e.media?.dominantColor ?? Colors.grey)
+        .toList();
+    final mixColor = ColorUtil.mix(colorList);
+    mediaCollectionParse.set('averageMediaHexColor', mixColor?.toHex());
+    await mediaCollectionParse.save();
   }
 
   @override
@@ -134,7 +184,7 @@ class CommonParseDataSource extends CommonRemoteDataSource {
             'mediaCollection_media_${media.id}');*/
     //if (mediaCollectionMappingBox.isEmpty) {
     QueryBuilder<ParseObject> queryBuilder =
-        QueryBuilder.name('mediaCollection')
+        QueryBuilder.name('mediaCollectionMapping')
           ..whereEqualTo('media', cast<MediaParse>(media).pointer)
           ..whereEqualTo('isActive', true);
 
@@ -158,35 +208,57 @@ class CommonParseDataSource extends CommonRemoteDataSource {
   Future<List<MediaCollectionMapping>> getMediaCollectionMappingByCollection(
       MediaCollection mediaCollection,
       {Media priorityMedia,
-      int limit}) async {
+      int limit,
+      String mediaType}) async {
     /*final mediaCollectionMappingBox =
         await Hive.openBox<MediaCollectionMapping>(
             'mediaCollectionMapping_mediaCollection_${mediaCollection.id}');*/
 
     //if (mediaCollectionMappingBox.isEmpty) {
     QueryBuilder<ParseObject> queryBuilder =
-        QueryBuilder.name('mediaCollection')
+        QueryBuilder.name('mediaCollectionMapping')
           ..whereEqualTo('isActive', true)
-          ..includeObject(['media, collection'])
           ..orderByDescending('createdAt');
     if (mediaCollection.code != 'ALL') {
       queryBuilder
-        ..whereEqualTo(
-            'collection', cast<MediaCollectionParse>(mediaCollection).pointer);
+        ..whereEqualTo('mediaCollection',
+            cast<MediaCollectionParse>(mediaCollection).pointer);
+    } else {
+      queryBuilder
+        ..whereMatchesQuery(
+            'mediaCollection',
+            QueryBuilder.name('mediaCollection')
+              ..whereEqualTo('isActive', true)
+              ..whereEqualTo('user',
+                  ((await ParseUser.currentUser()) as ParseUser).toPointer()));
     }
     if (limit != null) {
       queryBuilder..setLimit(limit);
     }
+    if (mediaType != null) {
+      queryBuilder
+        ..whereMatchesQuery('media',
+            QueryBuilder.name('media')..whereEqualTo('mediaType', mediaType));
+    }
 
-    final ParseResponse response = await queryBuilder.query();
+    ParseResponse response = await queryBuilder.query();
 
     if (response.success) {
-      final List<MediaCollectionMapping> mediaCollectionList =
-          ParseMixin.listFrom<MediaCollectionMapping>(
-              response.results, MediaCollectionMappingParse.from);
-      /*mediaCollectionMappingBox.addAll(mediaCollectionList);*/
-      setPriorityOrder(mediaCollectionList, priorityMedia);
-      return mediaCollectionList;
+      queryBuilder = QueryBuilder.name('mediaCollectionMapping')
+        ..whereContainedIn('objectId',
+            (response.results ?? []).map((e) => e.get('objectId')).toList())
+        ..includeObject(['media', 'mediaCollection']);
+      response = await queryBuilder.query();
+      if (response.success) {
+        final List<MediaCollectionMapping> mediaCollectionList =
+            ParseMixin.listFrom<MediaCollectionMapping>(
+                response.results, MediaCollectionMappingParse.from);
+        /*mediaCollectionMappingBox.addAll(mediaCollectionList);*/
+        setPriorityOrder(mediaCollectionList, priorityMedia);
+        return mediaCollectionList;
+      } else {
+        throw ServerException();
+      }
     } else {
       throw ServerException();
     }
@@ -223,15 +295,15 @@ class CommonParseDataSource extends CommonRemoteDataSource {
     }
     if (mediaCollectionMappingBoxMap.values.any((element) => element.isEmpty)) {*/
     QueryBuilder<ParseObject> queryBuilder =
-        QueryBuilder.name('mediaCollection')
+        QueryBuilder.name('mediaCollectionMapping')
           ..whereContainedIn(
-              'collection',
+              'mediaCollection',
               collectionList
                   .map((collection) =>
                       cast<MediaCollectionParse>(collection).pointer)
                   .toList())
           ..whereEqualTo('isActive', true)
-          ..includeObject(['media', 'collection'])
+          ..includeObject(['media', 'mediaCollection'])
           ..orderByDescending('createdAt');
 
     final ParseResponse response = await queryBuilder.query();
@@ -264,13 +336,13 @@ class CommonParseDataSource extends CommonRemoteDataSource {
   }
 
   @override
-  Future<int> getTotalNoOfPhotos() async {
+  Future<int> getTotalNoOfMedia() async {
     QueryBuilder<ParseObject> queryBuilder =
-        QueryBuilder.name('mediaCollection')
+        QueryBuilder.name('mediaCollectionMapping')
           ..whereEqualTo('isActive', true)
           ..whereMatchesQuery(
-              'collection',
-              QueryBuilder(ParseObject('collection'))
+              'mediaCollection',
+              QueryBuilder(ParseObject('mediaCollection'))
                 ..whereEqualTo('isActive', true)
                 ..whereEqualTo('user',
                     ((await ParseUser.currentUser()) as ParseUser).toPointer()))
@@ -281,5 +353,82 @@ class CommonParseDataSource extends CommonRemoteDataSource {
     } else {
       throw ServerException();
     }
+  }
+
+  @override
+  Future<int> getTotalNoOfPhotos() async {
+    QueryBuilder<ParseObject> queryBuilder =
+        QueryBuilder.name('mediaCollectionMapping')
+          ..whereEqualTo('isActive', true)
+          ..whereMatchesQuery(
+              'mediaCollection',
+              QueryBuilder(ParseObject('mediaCollection'))
+                ..whereEqualTo('isActive', true)
+                ..whereEqualTo('user',
+                    ((await ParseUser.currentUser()) as ParseUser).toPointer()))
+          ..whereMatchesQuery(
+              'media',
+              QueryBuilder(ParseObject('media'))
+                ..whereEqualTo('isActive', true)
+                ..whereEqualTo('mediaType', 'PHOTO'))
+          ..count();
+    final ParseResponse response = await queryBuilder.query();
+    if (response.success) {
+      return response.count;
+    } else {
+      throw ServerException();
+    }
+  }
+
+  @override
+  Future<int> getTotalNoOfVideos() async {
+    QueryBuilder<ParseObject> queryBuilder =
+        QueryBuilder.name('mediaCollectionMapping')
+          ..whereEqualTo('isActive', true)
+          ..whereMatchesQuery(
+              'mediaCollection',
+              QueryBuilder(ParseObject('mediaCollection'))
+                ..whereEqualTo('isActive', true)
+                ..whereEqualTo('user',
+                    ((await ParseUser.currentUser()) as ParseUser).toPointer()))
+          ..whereMatchesQuery(
+              'media',
+              QueryBuilder(ParseObject('media'))
+                ..whereEqualTo('isActive', true)
+                ..whereEqualTo('mediaType', 'VIDEO'))
+          ..count();
+    final ParseResponse response = await queryBuilder.query();
+    if (response.success) {
+      return response.count;
+    } else {
+      throw ServerException();
+    }
+  }
+
+  @override
+  Future<void> checkConnectivity() async {
+    if (!await networkInfo.isConnected) {
+      throw NoInternetException();
+    }
+  }
+
+  @override
+  Future<bool> isConnected() async {
+    return await networkInfo.isConnected;
+  }
+
+  Future<bool> existsMediaCollectionMappingByMediaAndMediaCollection(
+      Media media, MediaCollection mediaCollection) async {
+    QueryBuilder<ParseObject> queryBuilder =
+        QueryBuilder.name('mediaCollectionMapping')
+          ..whereEqualTo('media', cast<MediaParse>(media).pointer)
+          ..whereEqualTo('mediaCollection',
+              cast<MediaCollectionParse>(mediaCollection).pointer)
+          ..whereEqualTo('isActive', true);
+    final ParseResponse response = await queryBuilder.query();
+    if (response.success) {
+      return response.count > 0;
+    }
+    throw ServerException();
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:mood_manager/core/util/date_util.dart';
 import 'package:mood_manager/features/common/domain/entities/base_states.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection_mapping.dart';
@@ -7,6 +8,7 @@ import 'package:mood_manager/features/memory/domain/entities/memory.dart';
 import 'package:mood_manager/features/memory/presentation/bloc/memory_bloc.dart';
 import 'package:mood_manager/features/memory/presentation/widgets/memory_form_view.dart';
 import 'package:mood_manager/features/reminder/domain/entities/task.dart';
+import 'package:mood_manager/home.dart';
 
 // ignore: must_be_immutable
 class MemoryFormPage extends StatefulWidget {
@@ -23,7 +25,7 @@ class MemoryFormPage extends StatefulWidget {
     } else {
       this.selectedDate = arguments['selectedDate'] ?? DateTime.now();
     }
-    if (arguments['task'] != null) {
+    if (arguments['memory'] != null && arguments['task'] != null) {
       task = arguments['task'];
     }
   }
@@ -50,11 +52,16 @@ class _MemoryFormPageState extends State<MemoryFormPage> {
           handleLoader(state, context);
           if (state is MemorySaved) {
             memory = state.memory;
-            Navigator.of(context)
+            Navigator.of(appNavigatorContext(context))
                 .pop(MapEntry(widget.memory != null ? 'U' : 'I', memory));
             //pr.hide();
             //Navigator.of(context)
             //  .pop(MapEntry(widget.memory != null ? 'U' : 'I', memory));
+          } else if (state is MemorySaveError) {
+            Fluttertoast.showToast(
+                gravity: ToastGravity.TOP,
+                msg: state.message,
+                backgroundColor: Colors.red);
           }
         },
         builder: (context, state) {
@@ -62,6 +69,7 @@ class _MemoryFormPageState extends State<MemoryFormPage> {
             saveCallback: save,
             date: widget.selectedDate,
             memory: widget.memory,
+            task: widget.task,
           );
         },
       ),
@@ -70,9 +78,6 @@ class _MemoryFormPageState extends State<MemoryFormPage> {
 
   void save(Memory toBeSavedMemory,
       List<MediaCollectionMapping> mediaCollectionList) {
-    /*Navigator.of(context).pop(SaveMemoryEvent(
-        memory: toBeSavedMemory,
-        mediaCollectionMappingList: mediaCollectionList));*/
     _memoryBloc.add(SaveMemoryEvent(
       memory: toBeSavedMemory,
       mediaCollectionMappingList: mediaCollectionList,
@@ -83,12 +88,4 @@ class _MemoryFormPageState extends State<MemoryFormPage> {
       widget.selectedDate = toBeSavedMemory.logDateTime;
     });
   }
-
-  /*progressDialogListener(state) async {
-    if (state is MemoryProcessing) {
-      await pr.show();
-    } else if (state is MemoryCompleted) {
-      await pr.hide();
-    }
-  }*/
 }

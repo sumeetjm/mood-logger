@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mood_manager/features/metadata/domain/entities/gender.dart';
 import 'package:mood_manager/features/common/presentation/widgets/checkbox_list.dart';
+import 'package:mood_manager/home.dart';
 
+// ignore: must_be_immutable
 class CheckboxSelectBottomSheet extends StatefulWidget {
   CheckboxSelectBottomSheet({
     Key key,
@@ -53,13 +55,11 @@ class _CheckboxSelectBottomSheetState extends State<CheckboxSelectBottomSheet> {
   }
 
   Future<void> _selectOption(BuildContext context) async {
-    final options =
-        widget.options.where((element) => !element.isDummy).toList();
     showModalBottomSheet(
-        context: context,
+        context: appNavigatorContext(context),
         builder: (context) {
           return Container(
-            height: 50.0 * options.length,
+            height: 60.0 * widget.options.length,
             child: CheckboxList(
               onChanged: (value) {
                 widget.onChange(value);
@@ -67,7 +67,7 @@ class _CheckboxSelectBottomSheetState extends State<CheckboxSelectBottomSheet> {
                     widget.values.map((e) => e.altName).join(', ');
               },
               options: CheckboxListOption.listFrom<Gender, Gender>(
-                source: options,
+                source: widget.options,
                 value: (i, v) => v,
                 label: (i, v) => v.altName,
               ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:numberpicker/numberpicker.dart';
+import 'package:mood_manager/home.dart';
 
 // ignore: must_be_immutable
 class DurationPicker extends StatefulWidget {
@@ -30,7 +31,7 @@ class _DurationPickerState extends State<DurationPicker> {
                       color: Colors.grey,
                     ),
                     onPressed: () {
-                      Navigator.of(context).pop();
+                      Navigator.of(appNavigatorContext(context)).pop();
                     }),
               ),
               Padding(
@@ -41,7 +42,7 @@ class _DurationPickerState extends State<DurationPicker> {
                     ),
                     onPressed: () {
                       widget.submitCallback(widget.duration);
-                      Navigator.of(context).pop();
+                      Navigator.of(appNavigatorContext(context)).pop();
                     }),
               )
             ],

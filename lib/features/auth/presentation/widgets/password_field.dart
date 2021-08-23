@@ -4,10 +4,12 @@ class PasswordField extends StatelessWidget {
   const PasswordField({
     Key key,
     @required TextEditingController passwordController,
+    @required this.focusNode,
   })  : _passwordController = passwordController,
         super(key: key);
 
   final TextEditingController _passwordController;
+  final FocusNode focusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -17,6 +19,7 @@ class PasswordField extends StatelessWidget {
         height: 60,
         width: MediaQuery.of(context).size.width,
         child: TextField(
+          focusNode: focusNode,
           controller: _passwordController,
           style: TextStyle(
             color: Colors.white,

@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 
 class EmailField extends StatelessWidget {
   final String label;
+  final FocusNode focusNode;
+  final TextEditingController emailController;
   const EmailField({
     Key key,
-    @required TextEditingController emailController,
+    @required this.emailController,
     this.label,
-  })  : _emailController = emailController,
-        super(key: key);
-
-  final TextEditingController _emailController;
+    this.focusNode,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +19,8 @@ class EmailField extends StatelessWidget {
         height: 60,
         width: MediaQuery.of(context).size.width,
         child: TextField(
-          controller: _emailController,
+          focusNode: focusNode,
+          controller: emailController,
           style: TextStyle(
             color: Colors.white,
           ),

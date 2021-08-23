@@ -12,12 +12,14 @@ class MActivityParse extends MActivity with ParseMixin {
     String activityCode,
     MActivityType mActivityType,
     bool isActive = true,
+    Map userPtr,
   }) : super(
           activityId: activityId,
           activityName: activityName,
           activityCode: activityCode,
           mActivityType: mActivityType,
           isActive: isActive,
+          userPtr: userPtr,
         );
 
   factory MActivityParse.fromId(String activityId) {
@@ -46,6 +48,12 @@ class MActivityParse extends MActivity with ParseMixin {
       mActivityType: ParseMixin.value('mActivityType', parseOptions,
           transform: MActivityTypeParse.from),
       isActive: ParseMixin.value('isActive', parseOptions),
+      userPtr: ParseMixin.value('user', parseOptions, transform: (object) {
+        if (object is ParseObject) {
+          return object?.toPointer();
+        }
+        return object;
+      }),
     );
   }
 
@@ -59,5 +67,6 @@ class MActivityParse extends MActivity with ParseMixin {
         'code': activityCode,
         'mActivityType': mActivityType,
         'isActive': isActive,
+        'user': userPtr,
       };
 }

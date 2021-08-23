@@ -5,8 +5,6 @@ import 'package:material_design_icons_flutter/material_design_icons_flutter.dart
 import 'package:mood_manager/features/metadata/domain/entities/m_mood.dart';
 import 'dart:math';
 
-import 'package:mood_manager/features/common/presentation/widgets/empty_widget.dart';
-
 class RadioSelection extends StatefulWidget {
   RadioSelection(
       {Key key,
@@ -38,11 +36,11 @@ class _RadioSelectionState extends State<RadioSelection>
   _RadioSelectionState() {
     simpleBuilder = (BuildContext context, List<double> animValues,
         Function updateState, MMood value) {
+      final alpha = (animValues[0] * 255).toInt();
+      final color = value.color;
       if (value.mMoodList.contains(widget.initialSubValue)) {
         value = widget.initialSubValue;
       }
-      final alpha = (animValues[0] * 255).toInt();
-      final color = value.color;
       return GestureDetector(
           onTap: () {
             setState(() {

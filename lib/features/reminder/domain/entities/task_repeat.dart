@@ -12,11 +12,14 @@ class TaskRepeat extends Base {
   List<DateTime> selectedDateList;
   @HiveField(5)
   final DateTime validUpto;
+  @HiveField(6)
+  List<DateTime> markedDoneDateList;
 
   TaskRepeat({
     String id,
     this.repeatType,
     this.selectedDateList,
+    this.markedDoneDateList,
     bool isActive,
     this.validUpto,
   }) : super(
@@ -30,6 +33,7 @@ class TaskRepeat extends Base {
         repeatType,
         selectedDateList,
         validUpto,
+        markedDoneDateList,
         ...super.props,
       ];
 }

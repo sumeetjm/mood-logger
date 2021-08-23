@@ -1,4 +1,3 @@
-import 'package:chips_choice/chips_choice.dart';
 import 'package:flutter/material.dart';
 import 'package:mood_manager/core/constants/app_constants.dart';
 import 'package:mood_manager/core/util/date_util.dart';
@@ -6,6 +5,7 @@ import 'package:mood_manager/features/reminder/data/models/task_repeat_parse.dar
 import 'package:mood_manager/features/reminder/domain/entities/task_repeat.dart';
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 import 'package:intl/intl.dart';
+import 'package:mood_manager/home.dart';
 
 final weekDays = [
   'monday',
@@ -21,7 +21,12 @@ final weekDays = [
 class TaskRepeatDialog extends StatefulWidget {
   TaskRepeat taskRepeat;
   DateTime dateTime;
-  TaskRepeatDialog(this.taskRepeat, this.dateTime);
+  bool enabled;
+  TaskRepeatDialog(
+    this.taskRepeat,
+    this.dateTime,
+    this.enabled,
+  );
   @override
   _TaskRepeatDialogState createState() =>
       _TaskRepeatDialogState(taskRepeat, dateTime);
@@ -63,16 +68,16 @@ class _TaskRepeatDialogState extends State<TaskRepeatDialog> {
               children: [
                 IconButton(
                     icon: Icon(Icons.close),
-                    onPressed: () => Navigator.of(context).pop()),
+                    onPressed: () =>
+                        Navigator.of(appNavigatorContext(context)).pop()),
                 IconButton(
                     icon: Icon(Icons.done),
                     onPressed: () {
                       Navigator.of(context).pop(TaskRepeatParse(
                         id: widget.taskRepeat?.id,
                         repeatType: repeatType,
-                        selectedDateList: repeatType == 'Selected dates'
-                            ? dateRangePickerController.selectedDates
-                            : [],
+                        selectedDateList:
+                            dateRangePickerController.selectedDates,
                         validUpto: validUpto,
                       ));
                     })
@@ -110,60 +115,40 @@ class _TaskRepeatDialogState extends State<TaskRepeatDialog> {
                   },
                 ),
               ],
-              onChanged: (value) {
-                setState(() {
-                  repeatType = value;
-                });
-              },
+              onChanged: !widget.enabled
+                  ? null
+                  : (value) {
+                      setState(() {
+                        repeatType = value;
+                      });
+                    },
               value: repeatType,
             ),
-            /*if (repeatType == 'Selected days')
-              ChipsChoice<String>.multiple(
-                itemConfig: ChipsChoiceItemConfig(),
-                value: selectedDays ?? [],
-                options: ChipsChoiceOption.listFrom<String, String>(
-                  source: weekDays ?? [],
-                  value: (i, v) => v,
-                  label: (i, v) => v,
-                ),
-                onChanged: (List<String> value) {
-                  setState(() {
-                    selectedDays = [
-                      ...value,
-                      weekDays[widget.dateTime.weekday - 1]
-                    ].toSet().toList();
-                  });
-                },
-                isWrapped: true,
-              ),*/
             if (repeatType == 'Daily' || repeatType == 'Selected dates')
               Container(
                 child: Column(
                   children: [
-                    /* Row(
-                      children: weekDays
-                          .map((day) => CircleAvatar(
-                                child: Text(day.substring(0, 1)),
-                              ))
-                          .toList(),
-                    ),*/
-                    SfDateRangePicker(
-                      controller: dateRangePickerController,
-                      enablePastDates: false,
-                      maxDate: validUpto,
-                      onSelectionChanged:
-                          (dateRangePickerSelectionChangedArgs) {
-                        setState(() {
-                          repeatType = 'Selected dates';
-                          final selectedDates = List<DateTime>.from([
-                            ...dateRangePickerSelectionChangedArgs.value,
-                            DateUtil.getDateOnly(widget.dateTime)
-                          ]).toSet().toList();
-                          dateRangePickerController.selectedDates =
-                              selectedDates;
-                        });
-                      },
-                      selectionMode: DateRangePickerSelectionMode.multiple,
+                    AbsorbPointer(
+                      absorbing: !widget.enabled,
+                      child: SfDateRangePicker(
+                        controller: dateRangePickerController,
+                        enablePastDates: false,
+                        minDate: DateUtil.getDateOnly(widget.dateTime),
+                        maxDate: validUpto,
+                        onSelectionChanged:
+                            (dateRangePickerSelectionChangedArgs) {
+                          setState(() {
+                            repeatType = 'Selected dates';
+                            final selectedDates = List<DateTime>.from([
+                              ...dateRangePickerSelectionChangedArgs.value,
+                              DateUtil.getDateOnly(widget.dateTime)
+                            ]).toSet().toList();
+                            dateRangePickerController.selectedDates =
+                                selectedDates;
+                          });
+                        },
+                        selectionMode: DateRangePickerSelectionMode.multiple,
+                      ),
                     ),
                   ],
                 ),

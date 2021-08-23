@@ -52,9 +52,12 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       yield* _eitherUserProfileSavedOrErrorState(either);
     } else if (event is SaveProfilePictureEvent) {
       yield ProfilePictureSaving(
-          photo: event.profilePictureMediaCollection.media);
-      await saveProfilePicture(Params(
-          MapEntry(event.profilePictureMediaCollection, event.userProfile)));
+          photo: event.profilePictureMediaCollection?.media);
+      await saveProfilePicture(MultiParams([
+        event.profilePictureMediaCollection,
+        event.userProfile,
+        event.media
+      ]));
       final either = await getCurrentUserProfile(NoParams());
       yield* _eitherUserProfileSavedOrErrorState(either);
     } else if (event is LinkWithSocialEvent) {
@@ -98,7 +101,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       case CacheFailure:
         return CACHE_FAILURE_MESSAGE;
       default:
-        return 'Unexpected error';
+        return failure.toString();
     }
   }
 }

@@ -17,23 +17,26 @@ class MActivityAdapter extends TypeAdapter<MActivity> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return MActivityParse(
-      activityName: fields[3] as String,
-      activityCode: fields[4] as String,
-      isActive: fields[1] as bool,
-      mActivityType: fields[5] as MActivityType,
-    );
+        activityId: fields[0] as String,
+        activityName: fields[3] as String,
+        activityCode: fields[4] as String,
+        isActive: fields[1] as bool,
+        mActivityType: fields[5] as MActivityType,
+        userPtr: fields[6] as Map);
   }
 
   @override
   void write(BinaryWriter writer, MActivity obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(7)
       ..writeByte(3)
       ..write(obj.activityName)
       ..writeByte(4)
       ..write(obj.activityCode)
       ..writeByte(5)
       ..write(obj.mActivityType)
+      ..writeByte(6)
+      ..write(obj.userPtr)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)

@@ -13,13 +13,14 @@ class TaskNotificationMappingParse extends TaskNotificationMapping
     DateTime notifyDateTime,
     int localNotificationId,
     bool isActive = true,
+    bool isAfterTask = false,
   }) : super(
-          id: id,
-          isActive: isActive,
-          localNotificationId: localNotificationId,
-          notifyDateTime: notifyDateTime,
-          task: task,
-        );
+            id: id,
+            isActive: isActive,
+            localNotificationId: localNotificationId,
+            notifyDateTime: notifyDateTime,
+            task: task,
+            isAfterTask: isAfterTask);
 
   @override
   Base get get => this;
@@ -31,6 +32,7 @@ class TaskNotificationMappingParse extends TaskNotificationMapping
         'localNotificationId': localNotificationId,
         'notifyDateTime': notifyDateTime?.toUtc(),
         'task': task,
+        'isAfterTask': isAfterTask,
       };
 
   static TaskNotificationMappingParse from(ParseObject parseObject,
@@ -54,6 +56,7 @@ class TaskNotificationMappingParse extends TaskNotificationMapping
       notifyDateTime:
           ParseMixin.value('notifyDateTime', parseOptions)?.toLocal(),
       task: ParseMixin.value('task', parseOptions, transform: TaskParse.from),
+      isAfterTask: ParseMixin.value('isAfterTask', parseOptions),
     );
   }
 }

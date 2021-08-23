@@ -47,25 +47,26 @@ class MMoodParseDataSource implements MMoodRemoteDataSource {
 
   @override
   Future<List<MMood>> getMMoodList() async {
-    /*final mMoodBox = await Hive.openBox<MMood>("mMood");
-    if (mMoodBox.isEmpty) {*/
-    QueryBuilder<ParseObject> queryBuilder =
-        QueryBuilder<ParseObject>(ParseObject('mMood'))
-          ..includeObject(['subMood'])
-          ..whereEqualTo('isActive', true)
-          ..whereEqualTo('isPrimary', true);
+    final ParseUser user = await ParseUser.currentUser();
+    final mMoodBox = await Hive.openBox<MMood>("getMMoodList${user.objectId}");
+    if (mMoodBox.isEmpty) {
+      QueryBuilder<ParseObject> queryBuilder =
+          QueryBuilder<ParseObject>(ParseObject('mMood'))
+            ..includeObject(['subMood'])
+            ..whereEqualTo('isActive', true)
+            ..whereEqualTo('isPrimary', true);
 
-    final ParseResponse response = await queryBuilder.query();
-    if (response.success) {
-      List<MMood> mMoodList =
-          ParseMixin.listFrom<MMood>(response.results, MMoodParse.from);
-      //mMoodBox.addAll(mMoodList);
-      return mMoodList;
+      final ParseResponse response = await queryBuilder.query();
+      if (response.success) {
+        List<MMood> mMoodList =
+            ParseMixin.listFrom<MMood>(response.results, MMoodParse.from);
+        mMoodBox.addAll(mMoodList);
+        return mMoodList;
+      } else {
+        throw ServerException();
+      }
     } else {
-      throw ServerException();
-    }
-    /*} else {
       return mMoodBox.values.toList();
-    }*/
+    }
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
@@ -19,4 +21,21 @@ abstract class Base with EquatableMixin {
 
   @override
   List<Object> get props => [id, isActive, className];
+}
+
+class BaseUtil {
+  static isEmpty(List list) {
+    return list.where((element) => element.isActive).isEmpty;
+  }
+
+  static isNotEmpty(List list) {
+    return !isEmpty(list);
+  }
+
+  static renameFileSync(File file, String name) {
+    return file.renameSync(file.parent.path +
+          "/" +
+          name +
+          file.path.substring(file.path.lastIndexOf(".")));
+  }
 }

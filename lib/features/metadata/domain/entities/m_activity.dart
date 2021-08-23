@@ -14,7 +14,10 @@ class MActivity extends Base {
   final String activityCode;
   @HiveField(5)
   final MActivityType mActivityType;
+  @HiveField(6)
+  final Map userPtr;
   MActivity({
+    this.userPtr,
     String activityId,
     @required this.activityName,
     @required this.activityCode,

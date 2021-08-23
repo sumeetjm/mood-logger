@@ -2,6 +2,7 @@ import 'package:mood_manager/features/common/data/models/media_collection_parse.
 import 'package:mood_manager/features/common/domain/entities/base.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
 import 'package:hive/hive.dart';
+import 'package:flutter/material.dart';
 
 part 'media_collection.g.dart';
 
@@ -16,7 +17,13 @@ class MediaCollection extends Base {
   @HiveField(6)
   final String module;
   @HiveField(7)
+  int imageCount;
+  @HiveField(8)
+  int videoCount;
+  @HiveField(9)
   int mediaCount;
+  @HiveField(10)
+  Color averageMediaColor;
   ParseUser user;
 
   MediaCollection({
@@ -25,26 +32,19 @@ class MediaCollection extends Base {
     this.code,
     this.module,
     this.mediaType,
+    this.imageCount = 0,
+    this.videoCount = 0,
     this.mediaCount = 0,
     bool isActive = true,
+    this.averageMediaColor,
     this.user,
   }) : super(
           id: id,
           isActive: isActive,
-          className: 'collection',
+          className: 'mediaCollection',
         );
-
-  MediaCollection incrementMediaCount() {
-    mediaCount++;
-    return this;
-  }
-
-  MediaCollection decrementMediaCount() {
-    mediaCount--;
-    return this;
-  }
 
   @override
   List<Object> get props =>
-      [...super.props, mediaType, name, code, module, mediaCount, user];
+      [...super.props, mediaType, name, code, module, averageMediaColor];
 }

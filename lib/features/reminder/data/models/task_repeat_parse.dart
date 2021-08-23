@@ -9,12 +9,14 @@ class TaskRepeatParse extends TaskRepeat with ParseMixin {
     bool isActive = true,
     String repeatType,
     List<DateTime> selectedDateList = const [],
+    List<DateTime> markedDoneDateList = const [],
     DateTime validUpto,
   }) : super(
           id: id,
           isActive: isActive,
           repeatType: repeatType,
           selectedDateList: selectedDateList,
+          markedDoneDateList: markedDoneDateList,
           validUpto: validUpto,
         );
 
@@ -22,14 +24,28 @@ class TaskRepeatParse extends TaskRepeat with ParseMixin {
   Base get get => this;
 
   @override
-  Map<String, dynamic> get map => {
-        'objectId': id,
-        'isActive': isActive,
-        'repeatType': repeatType,
-        'selectedDateList':
-            (selectedDateList ?? []).map((e) => e?.toUtc()).toList(),
-        'validUpto': validUpto?.toUtc(),
-      };
+  Map<String, dynamic> get map {
+    if (selectedDateList != null && selectedDateList.isNotEmpty) {
+      selectedDateList.sort((a, b) {
+        return a.compareTo(b);
+      });
+    }
+    if (markedDoneDateList != null && markedDoneDateList.isNotEmpty) {
+      markedDoneDateList.sort((a, b) {
+        return a.compareTo(b);
+      });
+    }
+    return {
+      'objectId': id,
+      'isActive': isActive,
+      'repeatType': repeatType,
+      'selectedDateList':
+          (selectedDateList ?? []).map((e) => e?.toUtc()).toList(),
+      'markedDoneDateList':
+          (markedDoneDateList ?? []).map((e) => e?.toUtc()).toList(),
+      'validUpto': validUpto?.toUtc(),
+    };
+  }
 
   static TaskRepeatParse from(ParseObject parseObject,
       {TaskRepeatParse cacheData, List<String> cacheKeys = const []}) {
@@ -53,6 +69,15 @@ class TaskRepeatParse extends TaskRepeat with ParseMixin {
             return dateTime;
           }) ??
           []),
+      markedDoneDateList: List<DateTime>.from(
+          ParseMixin.value('markedDoneDateList', parseOptions,
+                  transform: (dynamic dateTime) {
+                if (dateTime is DateTime) {
+                  return dateTime?.toLocal();
+                }
+                return dateTime;
+              }) ??
+              []),
       validUpto: ParseMixin.value('validUpto', parseOptions,
           transform: (dynamic dateTime) {
         if (dateTime is DateTime) {

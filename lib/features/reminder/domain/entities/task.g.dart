@@ -31,7 +31,7 @@ class TaskAdapter extends TypeAdapter<Task> {
   }
 
   @override
-  void write(BinaryWriter writer, Task obj) {
+  void write(BinaryWriter writer, Task obj) async {
     writer
       ..writeByte(11)
       ..writeByte(3)

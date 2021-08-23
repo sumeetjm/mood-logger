@@ -19,7 +19,11 @@ class SaveMemoryEvent extends MemoryEvent {
   List<Object> get props => [memory, ...super.props];
 }
 
-class GetMemoryListEvent extends MemoryEvent {}
+class GetMemoryListEvent extends MemoryEvent {
+  final String scrollToItemId;
+
+  GetMemoryListEvent({this.scrollToItemId});
+}
 
 class GetMemoryListByDateEvent extends MemoryEvent {
   final DateTime date;
@@ -60,7 +64,13 @@ class GetMemoryListByCollectionEvent extends MemoryEvent {
   List<Object> get props => [this.memoryCollection, ...super.props];
 }
 
-class GetMediaCollectionListEvent extends MemoryEvent {}
+class GetMediaCollectionListEvent extends MemoryEvent {
+  final bool skipEmpty;
+  final String mediaType;
+  GetMediaCollectionListEvent({this.skipEmpty = false, this.mediaType});
+  @override
+  List<Object> get props => [this.skipEmpty, ...super.props];
+}
 
 class GetMemoryListByMediaEvent extends MemoryEvent {
   final Media media;
@@ -78,4 +88,11 @@ class GetSingleMemoryByIdEvent extends MemoryEvent {
 
   @override
   List<Object> get props => [this.memoryId, ...super.props];
+}
+
+class SaveMemoryCollectionEvent extends MemoryEvent {
+  final MemoryCollection memoryCollection;
+  SaveMemoryCollectionEvent(this.memoryCollection);
+  @override
+  List<Object> get props => [this.memoryCollection, ...super.props];
 }

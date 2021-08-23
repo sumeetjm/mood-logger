@@ -9,6 +9,7 @@ import 'package:mood_manager/features/auth/presentation/widgets/email_field.dart
 import 'package:mood_manager/features/auth/presentation/widgets/password_field.dart';
 import 'package:mood_manager/features/common/domain/entities/base_states.dart';
 import 'package:mood_manager/injection_container.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class SignupPage extends StatefulWidget {
   final Map<String, Object> arguments;
@@ -20,6 +21,9 @@ class SignupPage extends StatefulWidget {
 
 class _SignupPageState extends State<SignupPage> {
   SignupBloc _signupBloc;
+  TextEditingController _emailController;
+  TextEditingController _usernameController;
+  TextEditingController _passwordController;
 
   @override
   void initState() {
@@ -30,14 +34,18 @@ class _SignupPageState extends State<SignupPage> {
     _passwordController = TextEditingController(text: '');
   }
 
-  TextEditingController _emailController;
-  TextEditingController _usernameController;
-  TextEditingController _passwordController;
+  @override
+  void dispose() {
+    super.dispose();
+    _signupBloc.close();
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<SignupBloc, SignupState>(
       cubit: _signupBloc,
       listener: (BuildContext context, SignupState state) {
+        handleLoader(state, context);
         if (state is SignupSuccess) {
           BlocProvider.of<AuthenticationBloc>(context).add(LoggedIn());
         }
@@ -53,10 +61,10 @@ class _SignupPageState extends State<SignupPage> {
         child: BlocConsumer<SignupBloc, SignupState>(
           listener: (context, state) {
             if (state is SignupFailure) {
-              return Scaffold.of(context).showSnackBar(SnackBar(
-                content: Text(state.message),
-                duration: Duration(seconds: 2),
-              ));
+              Fluttertoast.showToast(
+                  gravity: ToastGravity.TOP,
+                  msg: state.message,
+                  backgroundColor: Colors.red);
             }
             handleLoader(state, context);
           },
@@ -104,6 +112,9 @@ class _SignupPageState extends State<SignupPage> {
                         Navigator.of(context).pushReplacementNamed('/login');
                       },
                     ),
+                    SizedBox(
+                      height: 20,
+                    )
                   ],
                 ),
               ],
@@ -116,24 +127,24 @@ class _SignupPageState extends State<SignupPage> {
 
   void _onFormSubmitted(context) {
     if (_emailController.text.isEmpty) {
-      Scaffold.of(context).showSnackBar(SnackBar(
-        content: Text('Email cannot be empty'),
-        duration: Duration(seconds: 2),
-      ));
+      Fluttertoast.showToast(
+          gravity: ToastGravity.TOP,
+          msg: 'Email cannot be empty',
+          backgroundColor: Colors.red);
       return;
     }
     if (_usernameController.text.isEmpty) {
-      Scaffold.of(context).showSnackBar(SnackBar(
-        content: Text('Username cannot be empty'),
-        duration: Duration(seconds: 2),
-      ));
+      Fluttertoast.showToast(
+          gravity: ToastGravity.TOP,
+          msg: 'Username cannot be empty',
+          backgroundColor: Colors.red);
       return;
     }
     if (_passwordController.text.isEmpty) {
-      Scaffold.of(context).showSnackBar(SnackBar(
-        content: Text('Password cannot be empty'),
-        duration: Duration(seconds: 2),
-      ));
+      Fluttertoast.showToast(
+          gravity: ToastGravity.TOP,
+          msg: 'Password cannot be empty',
+          backgroundColor: Colors.red);
       return;
     }
     _signupBloc.add(

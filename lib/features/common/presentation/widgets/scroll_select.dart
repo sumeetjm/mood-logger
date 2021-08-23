@@ -114,6 +114,7 @@ class _ScrollSelectState extends State<ScrollSelect> {
   }
 }
 
+// ignore: must_be_immutable
 class ItemWidget<T> extends StatefulWidget {
   final ScrollSelectOption<T> curItem;
   final double fontSize;

@@ -22,6 +22,7 @@ import 'package:mood_manager/features/memory/domain/usecases/get_memory_list_by_
 import 'package:mood_manager/features/memory/domain/usecases/get_memory_list_by_date.dart';
 import 'package:mood_manager/features/memory/domain/usecases/get_memory_list_by_media.dart';
 import 'package:mood_manager/features/memory/domain/usecases/get_single_memory.dart';
+import 'package:mood_manager/features/memory/domain/usecases/save_memory_collection.dart';
 import 'package:mood_manager/features/metadata/domain/usecases/add_activity.dart';
 import 'package:mood_manager/features/memory/domain/usecases/save_memory.dart';
 import 'package:mood_manager/features/mood_manager/presentation/bloc/activity_list_bloc.dart';
@@ -32,8 +33,8 @@ part 'memory_state.dart';
 
 class MemoryBloc extends Bloc<MemoryEvent, MemoryState> {
   final SaveMemory saveMemory;
-  final ArchiveMemory archiveMemory;
   final GetMemoryList getMemoryList;
+  final ArchiveMemory archiveMemory;
   final GetArchiveMemoryList getArchiveMemoryList;
   final GetMemoryListByDate getMemoryListByDate;
   final AddActivity addActivity;
@@ -43,6 +44,7 @@ class MemoryBloc extends Bloc<MemoryEvent, MemoryState> {
   final GetMediaCollectionList getMediaCollectionList;
   final GetMemoryListByMedia getMemoryListByMedia;
   final GetSingleMemory getSingleMemory;
+  final SaveMemoryCollection saveMemoryCollection;
   MemoryBloc({
     this.getArchiveMemoryList,
     this.getMemoryListByDate,
@@ -56,6 +58,7 @@ class MemoryBloc extends Bloc<MemoryEvent, MemoryState> {
     this.getMediaCollectionList,
     this.getMemoryListByMedia,
     this.getSingleMemory,
+    this.saveMemoryCollection,
   }) : super(MemoryInitial());
 
   @override
@@ -70,7 +73,8 @@ class MemoryBloc extends Bloc<MemoryEvent, MemoryState> {
     } else if (event is GetMemoryListEvent) {
       yield MemoryListLoading();
       final mayBeMemoryList = await getMemoryList(NoParams());
-      yield* _eitherListLoadedOrErrorState(mayBeMemoryList, event);
+      yield* _eitherListLoadedOrErrorState(mayBeMemoryList, event,
+          scrollToItemId: event.scrollToItemId);
     } else if (event is GetMemoryListByDateEvent) {
       yield MemoryListLoading();
       final mayBeMemoryList = await getMemoryListByDate(Params(event.date));
@@ -83,10 +87,10 @@ class MemoryBloc extends Bloc<MemoryEvent, MemoryState> {
           mayBeMemoryListMapByArchiveCollection, event);
     } else if (event is ArchiveMemoryEvent) {
       yield MemorySaving(memory: event.memory);
-      final mayBeMemorySaved = await saveMemory(
-          MultiParams([event.memory, event.mediaCollectionMappingList, null]));
-      await archiveMemory(Params(event.memory));
-      yield* _eitherSavedOrErrorState(mayBeMemorySaved, event);
+      final mayBeMemoryCollectionMapping =
+          await archiveMemory(Params(event.memory));
+      yield* _eitherMemoryCollectionMappingSavedOrErrorState(
+          mayBeMemoryCollectionMapping);
     } else if (event is GetMemoryCollectionListEvent) {
       yield MemoryListLoading();
       final mayBeMemoryCollectionList =
@@ -106,7 +110,8 @@ class MemoryBloc extends Bloc<MemoryEvent, MemoryState> {
       yield* _eitherListLoadedOrErrorState(mayBeMemoryList, event);
     } else if (event is GetMediaCollectionListEvent) {
       yield MemoryListLoading();
-      final mayBeMediaCollectionList = await getMediaCollectionList(NoParams());
+      final mayBeMediaCollectionList = await getMediaCollectionList(
+          MultiParams([event.skipEmpty, event.mediaType]));
       yield* _eitherMediaCollectionListLoadedOrErrorState(
           mayBeMediaCollectionList, event);
     } else if (event is GetMemoryListByMediaEvent) {
@@ -117,6 +122,10 @@ class MemoryBloc extends Bloc<MemoryEvent, MemoryState> {
       yield MemoryListLoading();
       final mayBeMemoryList = await getSingleMemory(Params(event.memoryId));
       yield* _eitherListLoadedOrErrorState(mayBeMemoryList, event);
+    } else if (event is SaveMemoryCollectionEvent) {
+      final mayBeMemoryCollection =
+          await saveMemoryCollection(Params(event.memoryCollection));
+      yield* _eitherMemoryCollectionSavedOrErrorState(mayBeMemoryCollection);
     }
   }
 
@@ -137,10 +146,20 @@ class MemoryBloc extends Bloc<MemoryEvent, MemoryState> {
   }
 
   Stream<MemoryState> _eitherListLoadedOrErrorState(
-      Either<Failure, List<Memory>> failureOrMood, MemoryEvent event) async* {
+      Either<Failure, List<Memory>> failureOrMood, MemoryEvent event,
+      {String scrollToItemId}) async* {
     yield failureOrMood.fold(
       (failure) => MemoryListError(message: _mapFailureToMessage(failure)),
-      (memoryList) => MemoryListLoaded(memoryList: memoryList),
+      (memoryList) => MemoryListLoaded(
+          memoryList: memoryList, scrollToItemId: scrollToItemId),
+    );
+  }
+
+  Stream<MemoryState> _eitherMemoryCollectionSavedOrErrorState(
+      Either<Failure, MemoryCollection> failureOrMood) async* {
+    yield failureOrMood.fold(
+      (failure) => MemoryListError(message: _mapFailureToMessage(failure)),
+      (memoryCollection) => SavedMemoryCollection(memoryCollection),
     );
   }
 
@@ -181,7 +200,7 @@ class MemoryBloc extends Bloc<MemoryEvent, MemoryState> {
       case CacheFailure:
         return CACHE_FAILURE_MESSAGE;
       default:
-        return 'Unexpected error';
+        return failure.toString();
     }
   }
 }

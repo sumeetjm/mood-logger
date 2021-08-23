@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_signin_button/button_list.dart';
 import 'package:flutter_signin_button/button_view.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:mood_manager/features/auth/domain/entitles/user.dart';
 import 'package:mood_manager/features/auth/presentation/bloc/authentication_bloc.dart';
 import 'package:mood_manager/features/auth/presentation/bloc/login_bloc.dart';
@@ -21,6 +22,8 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   LoginBloc _loginBloc;
+  final FocusNode emailFocusNode = FocusNode();
+  final FocusNode passwordFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -37,6 +40,7 @@ class _LoginPageState extends State<LoginPage> {
     return BlocListener<LoginBloc, LoginState>(
       cubit: _loginBloc,
       listener: (BuildContext context, LoginState state) {
+        handleLoader(state, context);
         if (state is LoginSuccess) {
           BlocProvider.of<AuthenticationBloc>(context).add(LoggedIn());
         }
@@ -52,16 +56,17 @@ class _LoginPageState extends State<LoginPage> {
         child: BlocConsumer<LoginBloc, LoginState>(
           listener: (context, state) {
             if (state is LoginFailure) {
-              Scaffold.of(context).showSnackBar(SnackBar(
-                content: Text(state.message),
-                duration: Duration(seconds: 2),
-              ));
+              Fluttertoast.showToast(
+                  gravity: ToastGravity.TOP,
+                  msg: state.message,
+                  backgroundColor: Colors.red);
             }
             handleLoader(state, context);
           },
           cubit: _loginBloc,
           builder: (BuildContext context, LoginState state) {
             return ListView(
+              physics: BouncingScrollPhysics(),
               children: <Widget>[
                 Column(
                   children: <Widget>[
@@ -102,8 +107,14 @@ class _LoginPageState extends State<LoginPage> {
                             )),
                       ),
                     ]),
-                    EmailField(emailController: _emailController),
-                    PasswordField(passwordController: _passwordController),
+                    EmailField(
+                      emailController: _emailController,
+                      focusNode: emailFocusNode,
+                    ),
+                    PasswordField(
+                      passwordController: _passwordController,
+                      focusNode: passwordFocusNode,
+                    ),
                     AuthSubmitButton(
                       onPressed: () {
                         _onFormSubmitted(context);
@@ -134,6 +145,9 @@ class _LoginPageState extends State<LoginPage> {
                         Navigator.of(context).pushReplacementNamed('/signup');
                       },
                     ),
+                    SizedBox(
+                      height: 20,
+                    )
                   ],
                 ),
               ],
@@ -144,12 +158,23 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  hideKeyboard() {
+    emailFocusNode.unfocus();
+    passwordFocusNode.unfocus();
+  }
+
   void _onFormSubmitted(context) {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      Scaffold.of(context).showSnackBar(SnackBar(
-        content: Text('Email and password cannot be empty'),
-        duration: Duration(seconds: 2),
-      ));
+    hideKeyboard();
+    if (_emailController.text.isEmpty ||
+        _passwordController.text.isEmpty ||
+        (_emailController.text.isNotEmpty &&
+            _emailController.text.trim().isEmpty) ||
+        (_passwordController.text.isNotEmpty &&
+            _passwordController.text.trim().isEmpty)) {
+      Fluttertoast.showToast(
+          gravity: ToastGravity.TOP,
+          msg: 'Email and password cannot be empty',
+          backgroundColor: Colors.red);
       return;
     }
     _loginBloc.add(
@@ -163,10 +188,18 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _loginWithGoogle() {
+    hideKeyboard();
     _loginBloc.add(LoginWithGoogleRequest());
   }
 
   void _loginWithFacebook() {
+    hideKeyboard();
     _loginBloc.add(LoginWithFacebookRequest());
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _loginBloc.close();
   }
 }

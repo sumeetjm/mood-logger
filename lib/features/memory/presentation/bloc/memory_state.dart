@@ -53,11 +53,14 @@ class MemoryListLoading extends MemoryProcessing with Loading {}
 class MemoryListLoaded extends MemoryCompleted with Completed {
   final List<Memory> memoryList;
   MemoryCollection memoryCollection;
+  final String scrollToItemId;
 
-  MemoryListLoaded({this.memoryList, this.memoryCollection});
+  MemoryListLoaded(
+      {this.memoryList, this.memoryCollection, this.scrollToItemId});
 
   @override
-  List<Object> get props => [memoryList, ...super.props];
+  List<Object> get props =>
+      [memoryList, memoryCollection, scrollToItemId, ...super.props];
 }
 
 class MemoryCollectionListLoaded extends MemoryCompleted with Completed {
@@ -85,6 +88,13 @@ class MediaCollectionListLoaded extends MemoryCompleted with Completed {
 
   @override
   List<Object> get props => [mediaCollectionList, ...super.props];
+}
+
+class SavedMemoryCollection extends MemoryCompleted with Completed {
+  final MemoryCollection memoryCollection;
+  SavedMemoryCollection(this.memoryCollection);
+  @override
+  List<Object> get props => [this.memoryCollection, ...super.props];
 }
 
 // ignore: must_be_immutable

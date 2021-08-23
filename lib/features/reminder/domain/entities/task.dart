@@ -29,6 +29,8 @@ class Task extends Base {
   final TaskRepeat taskRepeat;
   @HiveField(10)
   final Map<DateTime, Memory> memoryMapByDate;
+  @HiveField(11)
+  final int colorPickerValue;
 
   Task({
     String id,
@@ -42,6 +44,7 @@ class Task extends Base {
     this.color,
     this.taskRepeat,
     this.memoryMapByDate,
+    this.colorPickerValue,
   }) : super(
           id: id,
           isActive: isActive,
@@ -59,6 +62,7 @@ class Task extends Base {
         user,
         taskRepeat,
         memoryMapByDate,
+        colorPickerValue,
         ...super.props,
       ];
 }

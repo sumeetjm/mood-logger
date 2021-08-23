@@ -13,7 +13,7 @@ class SaveTaskEvent extends TaskEvent {
   SaveTaskEvent({this.task, this.cancelNotificationId});
 
   @override
-  List<Object> get props => [task, ...super.props];
+  List<Object> get props => [task, cancelNotificationId, ...super.props];
 }
 
 class GetTaskListEvent extends TaskEvent {

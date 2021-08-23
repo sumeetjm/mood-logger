@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_page_transition/flutter_page_transition.dart';
 import 'package:mood_manager/features/memory/presentation/pages/memory_calendar_page.dart';
-import 'package:mood_manager/features/memory/presentation/pages/memory_form_page.dart';
 import 'package:mood_manager/features/memory/presentation/pages/memory_list_page.dart';
 import 'package:mood_manager/features/profile/presentation/pages/profile_page.dart';
 import 'package:mood_manager/features/reminder/presentation/pages/task_calendar_page.dart';
@@ -10,7 +9,7 @@ import 'package:swipedetector/swipedetector.dart';
 final tabRoutes = {
   '/profile': (context) => ProfilePage(),
   '/list': (context) => MemoryListPage(),
-//  '/form': (context) => MemoryFormPage(),
+  '/task': (context) => TaskCalendarPage(),
   '/calendar': (context) => MemoryCalendarPage(),
 };
 
@@ -19,6 +18,8 @@ class DestinationView extends StatefulWidget {
   final GlobalKey<NavigatorState> navigatorKey;
   final Function unhideBottomNavigation;
   final Function handleScrollNotification;
+  final Function swipeLeft;
+  final Function swipeRight;
   DestinationView({
     Key key,
     this.currentRoute,
@@ -26,6 +27,8 @@ class DestinationView extends StatefulWidget {
     this.navigatorKey,
     this.unhideBottomNavigation,
     this.handleScrollNotification,
+    this.swipeLeft,
+    this.swipeRight,
   }) : super(key: key);
 
   final String currentRoute;
@@ -54,44 +57,39 @@ class _DestinationViewState extends State<DestinationView> {
             settings: settings,
             pageBuilder: (BuildContext context, Animation<double> animation,
                 Animation<double> secondaryAnimation) {
-              switch (settings.name) {
-                case '/memory/add':
-                  return MemoryFormPage(
-                    arguments: settings.arguments,
+              switch (widget.currentRoute) {
+                case '/profile':
+                  return SwipeDetector(
+                    onSwipeUp: widget.unhideBottomNavigation,
+                    child: NotificationListener<ScrollNotification>(
+                      onNotification: widget.handleScrollNotification,
+                      child: ProfilePage(arguments: settings.arguments),
+                    ),
                   );
-                default:
-                  switch (widget.currentRoute) {
-                    case '/profile':
-                      return SwipeDetector(
-                        onSwipeUp: widget.unhideBottomNavigation,
-                        child: NotificationListener<ScrollNotification>(
+                case '/list':
+                  return SwipeDetector(
+                      onSwipeUp: widget.unhideBottomNavigation,
+                      child: NotificationListener<ScrollNotification>(
                           onNotification: widget.handleScrollNotification,
-                          child: ProfilePage(arguments: settings.arguments),
-                        ),
-                      );
-                    case '/list':
-                      return SwipeDetector(
-                          onSwipeUp: widget.unhideBottomNavigation,
-                          child: NotificationListener<ScrollNotification>(
-                              onNotification: widget.handleScrollNotification,
-                              child: MemoryListPage(
-                                arguments: settings.arguments,
-                              )));
-                    case '/calendar':
-                      return SwipeDetector(
-                          onSwipeUp: widget.unhideBottomNavigation,
-                          child: NotificationListener<ScrollNotification>(
-                              onNotification: widget.handleScrollNotification,
-                              child: MemoryCalendarPage(
-                                arguments: settings.arguments,
-                              )));
-                    default:
-                      return SwipeDetector(
-                          onSwipeUp: widget.unhideBottomNavigation,
-                          child: NotificationListener<ScrollNotification>(
-                              onNotification: widget.handleScrollNotification,
-                              child: TaskCalendarPage()));
-                  }
+                          child: MemoryListPage(
+                            arguments: settings.arguments,
+                          )));
+                case '/calendar':
+                  return SwipeDetector(
+                      onSwipeUp: widget.unhideBottomNavigation,
+                      child: NotificationListener<ScrollNotification>(
+                          onNotification: widget.handleScrollNotification,
+                          child: MemoryCalendarPage(
+                            arguments: settings.arguments,
+                          )));
+                case '/task':
+                  return SwipeDetector(
+                      onSwipeUp: widget.unhideBottomNavigation,
+                      child: NotificationListener<ScrollNotification>(
+                          onNotification: widget.handleScrollNotification,
+                          child: TaskCalendarPage()));
+                default:
+                  return null;
               }
             },
             transitionDuration: const Duration(milliseconds: 600),

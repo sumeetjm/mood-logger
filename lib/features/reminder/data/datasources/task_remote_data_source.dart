@@ -8,7 +8,6 @@ import 'package:mood_manager/features/reminder/data/datasources/task_notificatio
 import 'package:mood_manager/features/reminder/data/models/task_parse.dart';
 import 'package:mood_manager/features/reminder/domain/entities/task.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
-import 'package:hive/hive.dart';
 
 abstract class TaskRemoteDataSource {
   Future<Task> saveTask(Task task);
@@ -60,7 +59,6 @@ class TaskParseDataSource extends TaskRemoteDataSource {
 
   @override
   Future<Task> saveTask(Task task) async {
-    //final taskBox = await Hive.openBox<Task>('task');
     final taskParse = cast<TaskParse>(task).toParse(
         pointerKeys: ['mActivity', 'memory'],
         user: await ParseUser.currentUser());
@@ -78,15 +76,7 @@ class TaskParseDataSource extends TaskRemoteDataSource {
           },
         },
       );
-      /*if (!taskBox.values.any((element) => element.id == task.id)) {
-        taskBox.add(task);
-      } else {
-        taskBox.putAt(
-            taskBox.values
-                .toList()
-                .indexWhere((element) => element.id == task.id),
-            task);
-      }*/
+
       await taskNotificationSource.scheduleTaskNotification(savedTask);
       return savedTask;
     } else {

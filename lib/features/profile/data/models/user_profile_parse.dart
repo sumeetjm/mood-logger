@@ -1,10 +1,8 @@
-import 'package:dartz/dartz.dart';
 import 'package:mood_manager/core/constants/app_constants.dart';
 import 'package:mood_manager/features/common/data/models/media_collection_parse.dart';
 import 'package:mood_manager/features/memory/data/models/memory_collection_parse.dart';
 import 'package:mood_manager/features/memory/domain/entities/memory_collection.dart';
 import 'package:mood_manager/features/metadata/data/models/gender_parse.dart';
-import 'package:mood_manager/features/common/data/models/media_collection_mapping_parse.dart';
 import 'package:mood_manager/features/common/data/models/media_parse.dart';
 import 'package:mood_manager/features/common/domain/entities/base.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection.dart';
@@ -77,8 +75,7 @@ class UserProfileParse extends UserProfile with ParseMixin {
           transform: MediaCollectionParse.from),
       gender: ParseMixin.value('gender', parseOptions,
           transform: GenderParse.from,
-          defaultValue:
-              AppConstants.genderList.firstWhere((element) => element.isDummy)),
+          defaultValue: AppConstants.genderList.first),
       interestedIn: List<Gender>.from(ParseMixin.value(
               'interestedIn', parseOptions,
               transform: GenderParse.from) ??

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:mood_manager/core/constants/app_constants.dart';
 import 'package:mood_manager/features/metadata/domain/entities/m_mood.dart';
 import 'package:mood_manager/features/mood_manager/presentation/widgets/radio_selection.dart';
 import 'package:mood_manager/features/common/presentation/widgets/scroll_select.dart';
+import 'package:mood_manager/home.dart';
 
 // ignore: must_be_immutable
 class MoodSelectionPage extends StatefulWidget {
@@ -115,7 +117,7 @@ class _MoodSelectionPageState extends State<MoodSelectionPage> {
                           color: Colors.grey,
                         ),
                         onPressed: () {
-                          Navigator.of(context).pop();
+                          Navigator.of(appNavigatorContext(context)).pop();
                         }),
                     SizedBox(
                       width: 80,
@@ -126,7 +128,7 @@ class _MoodSelectionPageState extends State<MoodSelectionPage> {
                         ),
                         onPressed: () {
                           widget.saveCallback(widget.selectedSubMood);
-                          Navigator.of(context).pop();
+                          Navigator.of(appNavigatorContext(context)).pop();
                         })
                   ],
                 ),

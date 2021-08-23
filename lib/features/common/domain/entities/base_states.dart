@@ -1,7 +1,4 @@
-import 'dart:ui';
-
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:provider/provider.dart';
 
 class Started {}
 
@@ -16,4 +13,12 @@ void handleLoader(state, context) async {
   } else if (state is Completed) {
     await EasyLoading.dismiss();
   }
+}
+
+Future<T> handleFuture<T>(Function futureFn) async {
+  await EasyLoading.show(
+      status: "Loading...", maskType: EasyLoadingMaskType.black);
+  final result = await futureFn();
+  await EasyLoading.dismiss();
+  return result;
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mood_manager/core/util/hex_color.dart';
 import 'package:mood_manager/features/common/data/models/parse_mixin.dart';
 import 'package:mood_manager/features/common/domain/entities/base.dart';
 import 'package:mood_manager/features/common/domain/entities/media.dart';
@@ -8,15 +9,17 @@ class MediaParse extends Media with ParseMixin {
   MediaParse({
     String id,
     @required ParseFile file,
-    @required ParseFile thumbnail,
+    ParseFile thumbnail,
     @required String mediaType,
     bool isActive = true,
+    Color dominantColor,
   }) : super(
           id: id,
           file: file,
           thumbnail: thumbnail,
           mediaType: mediaType,
           isActive: isActive,
+          dominantColor: dominantColor,
         );
 
   static MediaParse from(ParseObject parseObject,
@@ -35,6 +38,8 @@ class MediaParse extends Media with ParseMixin {
       thumbnail: ParseMixin.value('thumbnail', parseOptions),
       mediaType: ParseMixin.value('mediaType', parseOptions),
       isActive: ParseMixin.value('isActive', parseOptions),
+      dominantColor: ParseMixin.value('dominantColor', parseOptions,
+          transform: HexColor.fromHex),
     );
   }
 
@@ -48,5 +53,6 @@ class MediaParse extends Media with ParseMixin {
         'thumbnail': thumbnail,
         'mediaType': mediaType,
         'isActive': isActive,
+        'dominantColor': dominantColor?.toHex(),
       };
 }

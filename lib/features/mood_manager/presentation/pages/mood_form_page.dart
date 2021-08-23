@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:mood_manager/core/util/resource_util.dart';
 import 'package:mood_manager/features/mood_manager/data/models/parse/t_mood_parse.dart';
 import 'package:mood_manager/features/metadata/domain/entities/m_mood.dart';
 import 'package:mood_manager/features/mood_manager/presentation/bloc/mood_circle_index.dart';
@@ -195,6 +194,5 @@ class _MoodFormPageState extends State<MoodFormPage> {
   @override
   void dispose() {
     super.dispose();
-    ResourceUtil.closeBloc(_moodCircleBloc);
   }
 }

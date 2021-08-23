@@ -50,7 +50,7 @@ class MemoryCollection extends Base {
   }
 
   MemoryCollection removeColor(Color color) {
-    averageMemoryMoodColor = ColorUtil.mix([averageMemoryMoodColor, color]);
+    averageMemoryMoodColor = ColorUtil.unmix([averageMemoryMoodColor, color]);
     return this;
   }
 

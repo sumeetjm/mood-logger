@@ -22,27 +22,45 @@ abstract class MActivityRemoteDataSource {
 class MActivityParseDataSource implements MActivityRemoteDataSource {
   @override
   Future<List<MActivity>> getMActivityList() async {
-    /*final mActivityBox = await Hive.openBox<MActivity>('mActivity');
-    if (mActivityBox.isEmpty) {*/
-    QueryBuilder<ParseObject> queryBuilder =
-        QueryBuilder<ParseObject>(ParseObject('mActivity'))
-          ..includeObject([
-            'mActivityType',
-          ])
-          ..whereEqualTo('isActive', true);
+    final mActivityBox = await Hive.openBox<MActivity>(
+        'getMActivityList${((await ParseUser.currentUser()) as ParseObject).objectId}');
+    if (mActivityBox.isEmpty) {
+      var queryBuilder = QueryBuilder<ParseObject>(ParseObject('mActivity'))
+        ..includeObject([
+          'mActivityType',
+          'mActivityType.user',
+          'user',
+        ])
+        ..whereEqualTo('user',
+            ((await ParseUser.currentUser()) as ParseObject).toPointer())
+        ..whereEqualTo('isActive', true);
 
-    final ParseResponse response = await queryBuilder.query();
-    if (response.success) {
+      ParseResponse response = await queryBuilder.query();
+      List results = response.results ?? [];
+      if (!response.success) {
+        throw ServerException();
+      }
+      queryBuilder = QueryBuilder<ParseObject>(ParseObject('mActivity'))
+        ..includeObject([
+          'mActivityType',
+          'mActivityType.user',
+          'user',
+        ])
+        ..whereEqualTo('user', null)
+        ..whereEqualTo('isActive', true);
+
+      response = await queryBuilder.query();
+      if (!response.success) {
+        throw ServerException();
+      }
+      results.addAll(response.results ?? []);
       List<MActivity> mActivityList =
-          ParseMixin.listFrom<MActivity>(response.results, MActivityParse.from);
-      //mActivityBox.addAll(mActivityList);
+          ParseMixin.listFrom<MActivity>(results, MActivityParse.from);
+      mActivityBox.addAll(mActivityList);
       return mActivityList;
     } else {
-      throw ServerException();
-    }
-    /*} else {
       return mActivityBox.values.toList();
-    }*/
+    }
   }
 
   @override
@@ -120,32 +138,44 @@ class MActivityParseDataSource implements MActivityRemoteDataSource {
 
   @override
   Future<List<MActivityType>> getMActivityTypeList() async {
-    /*final mActivityTypeListBox =
-        await Hive.openBox<MActivityType>('mActivityType');
-    if (mActivityTypeListBox.isEmpty) {*/
-    QueryBuilder<ParseObject> queryBuilder =
-        QueryBuilder<ParseObject>(ParseObject('mActivityType'))
-          ..whereEqualTo('isActive', true);
+    final mActivityTypeListBox = await Hive.openBox<MActivityType>(
+        'getMActivityTypeList${((await ParseUser.currentUser()) as ParseObject).objectId}');
+    if (mActivityTypeListBox.isEmpty) {
+      var queryBuilder = QueryBuilder<ParseObject>(ParseObject('mActivityType'))
+        ..includeObject(['user'])
+        ..whereEqualTo('isActive', true)
+        ..whereEqualTo('user',
+            ((await ParseUser.currentUser()) as ParseObject).toPointer());
 
-    final ParseResponse response = await queryBuilder.query();
-    if (response.success) {
+      ParseResponse response = await queryBuilder.query();
+      if (!response.success) {
+        throw ServerException();
+      }
+      List results = response.results ?? [];
+      queryBuilder = QueryBuilder<ParseObject>(ParseObject('mActivityType'))
+        ..includeObject(['user'])
+        ..whereEqualTo('isActive', true)
+        ..whereEqualTo('user', null);
+      response = await queryBuilder.query();
+      if (!response.success) {
+        throw ServerException();
+      }
+      results.addAll(response.results ?? []);
       List<MActivityType> mActivityTypeList =
-          ParseMixin.listFrom<MActivityType>(
-              response.results, MActivityTypeParse.from);
-      //mActivityTypeListBox.addAll(mActivityTypeList);
+          ParseMixin.listFrom<MActivityType>(results, MActivityTypeParse.from);
+      mActivityTypeListBox.addAll(mActivityTypeList);
       return mActivityTypeList;
     } else {
-      throw ServerException();
-    }
-    /*} else {
       return mActivityTypeListBox.values.toList();
-    }*/
+    }
   }
 
   @override
   Future<MActivity> addMActivity(MActivity activity) async {
-    /*final mActivityTypeBox = await Hive.openBox<MActivityType>('mActivityType');
-    final mActivityBox = await Hive.openBox<MActivity>('mActivity');*/
+    final mActivityBox = await Hive.openBox<MActivity>(
+        'getMActivityList${((await ParseUser.currentUser()) as ParseObject).objectId}');
+    final mActivityTypeBox = await Hive.openBox<MActivityType>(
+        'getMActivityTypeList${((await ParseUser.currentUser()) as ParseObject).objectId}');
     final ParseResponse response = await cast<MActivityParse>(activity).toParse(
         pointerKeys: [
           if (activity.mActivityType.id != null) 'mActivityType'
@@ -153,12 +183,12 @@ class MActivityParseDataSource implements MActivityRemoteDataSource {
     if (response.success) {
       activity = MActivityParse.from(response.results.first,
           cacheData: activity,
-          cacheKeys: [if (activity.mActivityType.id != null) 'mActivityType']);
-      /*if (!mActivityTypeBox.values
-          .any((element) => element.id == activity.id)) {
-        mActivityTypeBox.add(activity.mActivityType);
-      }
-      mActivityBox.add(activity);*/
+          cacheKeys: [
+            if (activity.mActivityType.id != null) 'mActivityType',
+            'user'
+          ]);
+      mActivityBox.clear();
+      mActivityTypeBox.clear();
       return activity;
     } else {
       throw ServerException();
@@ -168,28 +198,28 @@ class MActivityParseDataSource implements MActivityRemoteDataSource {
   @override
   Future<List<MActivity>> getMActivityListBySearchText(
       String searchText) async {
-    /*final mActivityBox = await Hive.openBox<MActivity>('mActivity');
-    if (mActivityBox.isEmpty) {*/
-    QueryBuilder<ParseObject> queryBuilder =
-        QueryBuilder<ParseObject>(ParseObject('mActivity'))
-          ..includeObject([
-            'mActivityType',
-          ])
-          ..whereContains('name', searchText)
-          ..whereEqualTo('isActive', true);
+    final mActivityBox = await Hive.openBox<MActivity>('getMActivityList');
+    if (mActivityBox.isEmpty) {
+      QueryBuilder<ParseObject> queryBuilder =
+          QueryBuilder<ParseObject>(ParseObject('mActivity'))
+            ..includeObject([
+              'mActivityType',
+            ])
+            ..whereContains('name', searchText)
+            ..whereEqualTo('isActive', true);
 
-    final ParseResponse response = await queryBuilder.query();
-    if (response.success) {
-      List<MActivity> mActivityList =
-          ParseMixin.listFrom<MActivity>(response.results, MActivityParse.from);
-      return mActivityList;
+      final ParseResponse response = await queryBuilder.query();
+      if (response.success) {
+        List<MActivity> mActivityList = ParseMixin.listFrom<MActivity>(
+            response.results, MActivityParse.from);
+        return mActivityList;
+      } else {
+        throw ServerException();
+      }
     } else {
-      throw ServerException();
-    }
-    /*} else {
       return mActivityBox.values
           .where((element) => element.activityName.contains(searchText))
           .toList();
-    }*/
+    }
   }
 }

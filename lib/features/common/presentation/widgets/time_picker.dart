@@ -2,15 +2,35 @@ import 'package:flutter/material.dart';
 
 class TimePicker extends StatelessWidget {
   const TimePicker(
-      {Key key, this.selectedTime, this.selectTime, this.textStyle})
+      {Key key,
+      this.selectedTime,
+      this.selectTime,
+      this.textStyle,
+      this.enabled = true})
       : super(key: key);
   final TimeOfDay selectedTime;
   final ValueChanged<TimeOfDay> selectTime;
   final TextStyle textStyle;
+  final bool enabled;
 
   Future<void> _selectTime(BuildContext context) async {
-    final TimeOfDay picked =
-        await showTimePicker(context: context, initialTime: selectedTime);
+    final TimeOfDay picked = await showTimePicker(
+      context: context,
+      initialTime: selectedTime,
+      builder: (BuildContext context, Widget child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            colorScheme: ColorScheme.light().copyWith(
+              primary: Theme.of(context).accentColor,
+            ),
+            primaryColor: Colors.red, //Head background
+            accentColor: Colors.red, //selection color
+            dialogBackgroundColor: Colors.white, //Background color
+          ),
+          child: child,
+        );
+      },
+    );
     if (picked != null && picked != selectedTime) selectTime(picked);
   }
 
@@ -24,7 +44,9 @@ class TimePicker extends StatelessWidget {
         ),
       ),
       onTap: () {
-        _selectTime(context);
+        if (enabled) {
+          _selectTime(context);
+        }
       },
     );
   }

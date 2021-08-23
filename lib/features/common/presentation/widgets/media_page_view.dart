@@ -2,21 +2,32 @@ import 'dart:io';
 
 import 'package:cached_video_player/cached_video_player.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_cropper/image_cropper.dart';
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:mood_manager/core/constants/app_constants.dart';
+import 'package:mood_manager/features/common/data/datasources/common_remote_data_source.dart';
+import 'package:mood_manager/features/common/data/models/media_collection_mapping_parse.dart';
+import 'package:mood_manager/features/common/data/models/media_collection_parse.dart';
+import 'package:mood_manager/features/common/data/models/media_parse.dart';
+import 'package:mood_manager/features/common/domain/entities/base.dart';
+import 'package:mood_manager/features/common/domain/entities/base_states.dart';
 import 'package:mood_manager/features/common/domain/entities/media.dart';
+import 'package:mood_manager/features/common/domain/entities/media_collection.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection_mapping.dart';
 import 'package:mood_manager/features/common/presentation/widgets/empty_widget.dart';
 import 'package:mood_manager/features/common/presentation/widgets/loading_widget.dart';
 import 'package:mood_manager/features/common/presentation/widgets/video_trim_view.dart';
-import 'package:mood_manager/features/memory/presentation/pages/memory_list_page.dart';
+import 'package:mood_manager/features/memory/data/datasources/memory_remote_data_source.dart';
 import 'package:mood_manager/injection_container.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:photo_view/photo_view.dart';
+import 'package:photo_view/photo_view_gallery.dart';
+import 'package:sliding_panel/sliding_panel.dart';
 import 'package:uuid/uuid.dart';
-import 'package:video_thumbnail/video_thumbnail.dart';
-import 'package:video_trimmer/video_trimmer.dart';
 import 'package:visibility_detector/visibility_detector.dart';
-import 'package:image/image.dart' as img;
+import 'package:mood_manager/home.dart';
 
 class MediaPageView extends StatefulWidget {
   final List<MediaCollectionMapping> mediaCollectionList;
@@ -28,6 +39,10 @@ class MediaPageView extends StatefulWidget {
   final ValueChanged<List<MediaCollectionMapping>>
       saveMediaCollectionMappingList;
   final ValueChanged<Media> goToMemoryCallback;
+  final bool showAddToCollection;
+  final ValueChanged<Media> setAsProfilePicCallback;
+  final String tagSuffix;
+  final ValueChanged<MediaCollectionMapping> addToCollectionCallback;
   MediaPageView({
     Key key,
     this.mediaCollectionList,
@@ -37,7 +52,11 @@ class MediaPageView extends StatefulWidget {
     this.initialIndex,
     this.initialItem,
     this.saveMediaCollectionMappingList,
+    this.addToCollectionCallback,
     this.goToMemoryCallback,
+    this.setAsProfilePicCallback,
+    this.tagSuffix = "",
+    this.showAddToCollection = true,
   }) : super(key: key);
 
   @override
@@ -49,15 +68,31 @@ class _MediaPageViewState extends State<MediaPageView> {
   Map<String, MapEntry<Future, CachedVideoPlayerController>>
       videoPlayerControllerMap = {};
   bool slideShow = false;
-  Future<Directory> tempDirectoryFuture;
-  final Uuid uuid = sl<Uuid>();
-  Trimmer _trimmer = sl<Trimmer>();
+  // ignore: non_constant_identifier_names
+  Future<Directory> TEMP_DIR;
+  Uuid uuid;
+  MemoryRemoteDataSource memoryRemoteDataSource = sl<MemoryRemoteDataSource>();
+  CommonRemoteDataSource commonRemoteDataSource = sl<CommonRemoteDataSource>();
+  TransformationController transformationController =
+      TransformationController();
+  ScrollPhysics scrollPhysics = AlwaysScrollableScrollPhysics();
+  var photoViewController = PhotoViewController();
 
   @override
   void initState() {
     super.initState();
     _controller = PageController(initialPage: widget.initialIndex ?? 0);
-    tempDirectoryFuture = getTemporaryDirectory();
+    TEMP_DIR = getTemporaryDirectory();
+    uuid = sl<Uuid>();
+    photoViewController.addIgnorableListener(() {
+      setState(() {
+        if (photoViewController.value.scale <= 1) {
+          scrollPhysics = AlwaysScrollableScrollPhysics();
+        } else {
+          scrollPhysics = NeverScrollableScrollPhysics();
+        }
+      });
+    });
   }
 
   @override
@@ -82,30 +117,29 @@ class _MediaPageViewState extends State<MediaPageView> {
                 Positioned(
                   bottom: 0,
                   left: 0,
-                  child: Container(
-                      color: Colors.transparent,
-                      child: CircleAvatar(
-                        backgroundColor:
-                            slideShow ? Colors.white : Colors.transparent,
-                        child: IconButton(
-                          color: slideShow ? Colors.black : Colors.white,
-                          icon: Icon(Icons.slideshow),
-                          onPressed: () {
-                            setState(() {
-                              slideShow = !slideShow;
-                            });
-                            if (slideShow) {
-                              Future.delayed(Duration(seconds: 2), animatePage);
-                            }
-                          },
-                        ),
-                      )),
+                  child: CircleAvatar(
+                    backgroundColor: Colors.black.withOpacity(0.3),
+                    child: IconButton(
+                      color: slideShow
+                          ? Theme.of(context).accentColor
+                          : Colors.white,
+                      icon: Icon(Icons.slideshow),
+                      onPressed: () {
+                        setState(() {
+                          slideShow = !slideShow;
+                        });
+                        if (slideShow) {
+                          Future.delayed(Duration(seconds: 2), animatePage);
+                        }
+                      },
+                    ),
+                  ),
                 ),
                 Positioned(
                     bottom: 0,
                     right: MediaQuery.of(context).size.width * 0.55,
-                    child: Container(
-                        color: Colors.transparent,
+                    child: CircleAvatar(
+                        backgroundColor: Colors.black.withOpacity(0.3),
                         child: IconButton(
                           color: Colors.white,
                           icon: Icon(Icons.arrow_left),
@@ -118,8 +152,8 @@ class _MediaPageViewState extends State<MediaPageView> {
                 Positioned(
                     bottom: 0,
                     left: MediaQuery.of(context).size.width * 0.55,
-                    child: Container(
-                        color: Colors.transparent,
+                    child: CircleAvatar(
+                        backgroundColor: Colors.black.withOpacity(0.3),
                         child: IconButton(
                           color: Colors.white,
                           icon: Icon(Icons.arrow_right),
@@ -133,8 +167,8 @@ class _MediaPageViewState extends State<MediaPageView> {
                 Positioned(
                   bottom: 0,
                   right: 0,
-                  child: Container(
-                    color: Colors.transparent,
+                  child: CircleAvatar(
+                    backgroundColor: Colors.black.withOpacity(0.3),
                     child: PopupMenuButton(
                       child: IconButton(
                         color: Colors.white,
@@ -150,21 +184,49 @@ class _MediaPageViewState extends State<MediaPageView> {
                       onSelected: (fn) => fn(),
                       itemBuilder: (BuildContext context) {
                         final popupMap = {
-                          'Edit': () {
-                            if (widget
-                                    .mediaCollectionList[
-                                        _controller.page.round()]
-                                    .media
-                                    .mediaType ==
-                                'VIDEO') {
-                              editVideo();
-                            } else {
-                              editPhoto();
-                            }
-                          },
+                          if ((widget
+                                          .mediaCollectionList[
+                                              _controller.page.round()]
+                                          .media
+                                          .mediaType ==
+                                      'PHOTO' &&
+                                  AppConstants.allowImageCropping) ||
+                              (widget
+                                          .mediaCollectionList[
+                                              _controller.page.round()]
+                                          .media
+                                          .mediaType ==
+                                      'VIDEO' &&
+                                  AppConstants.allowVideoTrimming))
+                            'Edit': () {
+                              if (widget
+                                      .mediaCollectionList[
+                                          _controller.page.round()]
+                                      .media
+                                      .mediaType ==
+                                  'VIDEO') {
+                                editVideo();
+                              } else {
+                                editPhoto();
+                              }
+                            },
                           'Delete': delete,
+                          if (widget.setAsProfilePicCallback != null &&
+                              widget
+                                      .mediaCollectionList[
+                                          _controller.page.round()]
+                                      .media
+                                      .mediaType ==
+                                  'PHOTO')
+                            'Set as profile picture': setAsProfilePicCallback,
                           if (widget.goToMemoryCallback != null)
                             'Go to Memory': goToMemory,
+                          if (widget.showAddToCollection)
+                            'Add to collection': () {
+                              addToCollection(widget
+                                  .mediaCollectionList[_controller.page.round()]
+                                  .media);
+                            },
                         };
                         return popupMap.keys.map((key) {
                           return PopupMenuItem(
@@ -207,8 +269,34 @@ class _MediaPageViewState extends State<MediaPageView> {
         .where((e) => e.media.mediaType == "VIDEO")
         .toList();
     videoPlayerControllerMap = getVideoControllerMapByMedia(videoList);
+    //PhotoView.customChild(child: child);
+    /*PhotoViewGallery.builder(
+      itemCount: mediaCollectionMappingList.length,
+      builder: (context, index) {
+        final mediaCollectionMapping = mediaCollectionMappingList[index];
+
+        return PhotoViewGalleryPageOptions(
+            imageProvider: mediaCollectionMapping.media.imageProvider);
+      },
+    );*/
+    /* return Center(
+      child: AspectRatio(
+        aspectRatio: videoPlayerControllerMap[mediaCollectionMappingList[0]
+                .media
+                .tag(suffix: widget.tagSuffix)]
+            .value
+            .value
+            .aspectRatio,
+        child: CachedVideoPlayer(videoPlayerControllerMap[
+                mediaCollectionMappingList[0]
+                    .media
+                    .tag(suffix: widget.tagSuffix)]
+            .value),
+      ),
+    );*/
+
     return PageView.builder(
-        physics: AlwaysScrollableScrollPhysics(),
+        physics: scrollPhysics,
         controller: _controller,
         itemCount: mediaCollectionMappingList.length,
         itemBuilder: (BuildContext context, int index) {
@@ -217,23 +305,23 @@ class _MediaPageViewState extends State<MediaPageView> {
             return videoFromMedia(mediaCollectionMapping, index);
           }
 
-          return InteractiveViewer(
-            //  transformationController: TransformationController(),
-            child: imageFromMedia(mediaCollectionMapping, index),
-            maxScale: 5.0,
-            onInteractionStart: (details) {
-              setState(() {
-                slideShow = false;
-              });
-            },
-          );
+          return PhotoView.customChild(
+              controller: photoViewController,
+              /* scaleStateChangedCallback: (value) {
+                if (value == PhotoViewScaleState.zoomedOut) {
+                  setState(() {
+                    photoViewController.scale = 0.0;
+                  });
+                }
+              },*/
+              minScale: 1.0,
+              child: imageFromMedia(mediaCollectionMapping, index));
         });
-    ;
   }
 
   Widget imageFromMedia(MediaCollectionMapping photo, int index) {
     return Hero(
-      tag: photo.media.tag,
+      tag: photo.media.tag(suffix: widget.tagSuffix),
       child: ClipRRect(
         child: photo.media.image,
       ),
@@ -242,40 +330,77 @@ class _MediaPageViewState extends State<MediaPageView> {
 
   Widget videoFromMedia(MediaCollectionMapping video, int index) {
     return FutureBuilder(
-      future: videoPlayerControllerMap[video.media.tag].key,
+      future:
+          videoPlayerControllerMap[video.media.tag(suffix: widget.tagSuffix)]
+              .key,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
           return Hero(
-              tag: video.media.tag,
+              tag: video.media.tag(suffix: widget.tagSuffix),
               child: VisibilityDetector(
-                key: ValueKey(video.media.id),
-                onVisibilityChanged: (info) {
-                  if (info.visibleFraction == 0.0) {
-                    if (videoPlayerControllerMap[video.media.tag]
-                            ?.value
-                            ?.value
-                            ?.isPlaying ??
-                        false) {
-                      videoPlayerControllerMap[video.media.tag].value.pause();
-                    }
-                  }
-                },
-                child: GestureDetector(
-                  onTap: () {
-                    if (videoPlayerControllerMap[video.media.tag]
-                            ?.value
-                            ?.value
-                            ?.isPlaying ??
-                        false) {
-                      videoPlayerControllerMap[video.media.tag].value.pause();
+                  key: ValueKey(video.media.id),
+                  onVisibilityChanged: (info) {
+                    if (info.visibleFraction == 0.0) {
+                      if (videoPlayerControllerMap[
+                                  video.media.tag(suffix: widget.tagSuffix)]
+                              ?.value
+                              ?.value
+                              ?.isPlaying ??
+                          false) {
+                        videoPlayerControllerMap[
+                                video.media.tag(suffix: widget.tagSuffix)]
+                            .value
+                            .pause();
+                      }
                     } else {
-                      videoPlayerControllerMap[video.media.tag].value.play();
+                      if (!(videoPlayerControllerMap[
+                                  video.media.tag(suffix: widget.tagSuffix)]
+                              ?.value
+                              ?.value
+                              ?.isPlaying ??
+                          false)) {
+                        videoPlayerControllerMap[
+                                video.media.tag(suffix: widget.tagSuffix)]
+                            .value
+                            .play();
+                        videoPlayerControllerMap[
+                                video.media.tag(suffix: widget.tagSuffix)]
+                            .value
+                            .setLooping(true);
+                      }
                     }
                   },
-                  child: CachedVideoPlayer(
-                      videoPlayerControllerMap[video.media.tag].value),
-                ),
-              ));
+                  child: GestureDetector(
+                      onTap: () {
+                        if (videoPlayerControllerMap[
+                                    video.media.tag(suffix: widget.tagSuffix)]
+                                ?.value
+                                ?.value
+                                ?.isPlaying ??
+                            false) {
+                          videoPlayerControllerMap[
+                                  video.media.tag(suffix: widget.tagSuffix)]
+                              .value
+                              .pause();
+                        } else {
+                          videoPlayerControllerMap[
+                                  video.media.tag(suffix: widget.tagSuffix)]
+                              .value
+                              .play();
+                        }
+                      },
+                      child: Center(
+                        child: AspectRatio(
+                          aspectRatio: videoPlayerControllerMap[
+                                  video.media.tag(suffix: widget.tagSuffix)]
+                              .value
+                              .value
+                              .aspectRatio,
+                          child: CachedVideoPlayer(videoPlayerControllerMap[
+                                  video.media.tag(suffix: widget.tagSuffix)]
+                              .value),
+                        ),
+                      ))));
         }
         return LoadingWidget();
       },
@@ -287,9 +412,9 @@ class _MediaPageViewState extends State<MediaPageView> {
           final List<MediaCollectionMapping> mediaCollectionMappingList) {
     return Map.fromEntries(mediaCollectionMappingList.map((e) {
       final cachedVideoPlayerController = e.media.videoController;
-      final initializeFuture = cachedVideoPlayerController.initialize();
-      return MapEntry(
-          e.media.tag, MapEntry(initializeFuture, cachedVideoPlayerController));
+      final playerInitFuture = cachedVideoPlayerController.initialize();
+      return MapEntry(e.media.tag(suffix: widget.tagSuffix),
+          MapEntry(playerInitFuture, cachedVideoPlayerController));
     }));
   }
 
@@ -309,105 +434,288 @@ class _MediaPageViewState extends State<MediaPageView> {
   }
 
   void editPhoto() async {
-    final selectedMediaCollection =
-        widget.mediaCollectionList[_controller.page.round()];
-    var parseFile = await selectedMediaCollection.media.file.download();
-    final newFile = await cropImage((parseFile).file);
-    if (newFile != null) {
-      final newThumbnailFile =
-          File((await tempDirectoryFuture).path + "/" + uuid.v1() + ".jpg");
-      newThumbnailFile.writeAsBytesSync(img.encodeJpg(img
-          .copyResize(img.decodeImage(newFile.readAsBytesSync()), width: 200)));
-      //selectedMediaCollection.media.file.delete();
-      selectedMediaCollection.media.file?.file?.delete();
-      selectedMediaCollection.media.file = ParseFile(newFile);
-      //selectedMediaCollection.media.thumbnail.delete();
-      selectedMediaCollection.media.thumbnail?.file?.delete();
-      selectedMediaCollection.media.thumbnail = ParseFile(newThumbnailFile);
+    final index = _controller.page.round();
+    final selectedMediaCollection = widget.mediaCollectionList[index];
+    var toEditFile = await selectedMediaCollection.media.mediaFile();
+    final editedFile =
+        await cropImage(toEditFile, selectedMediaCollection.collection.module);
+    if (editedFile != null) {
+      await selectedMediaCollection.media.delete();
+      selectedMediaCollection.media.file = ParseFile(editedFile);
+      await selectedMediaCollection.media
+          .setThumbnail((await TEMP_DIR).path, uuid.v1());
+      await selectedMediaCollection.media.setDominantColor();
       setState(() {});
       widget.saveMediaCollectionMappingList?.call(widget.mediaCollectionList);
+      if (widget.mediaCollectionList
+          .where((element) => element.isActive)
+          .isEmpty) {
+        Navigator.of(context).pop();
+      }
     }
   }
 
-  Future<File> cropImage(File image) async {
+  void editVideo() async {
+    final index = _controller.page.round();
+    final toEditFile =
+        (await widget.mediaCollectionList[index].media.file.download()).file;
+    File editedFile = await Navigator.of(appNavigatorContext(context))
+        .push(MaterialPageRoute(builder: (context) {
+      return VideoTrimView(
+        file: toEditFile,
+      );
+    }));
+    if (editedFile != null) {
+      var selectedMediaCollection =
+          widget.mediaCollectionList[_controller.page.round()];
+      editedFile = BaseUtil.renameFileSync(editedFile, uuid.v1());
+      await selectedMediaCollection.media.delete();
+      selectedMediaCollection.media.file = ParseFile(editedFile);
+      await selectedMediaCollection.media
+          .setThumbnail((await TEMP_DIR).path, uuid.v1());
+      await selectedMediaCollection.media.setDominantColor();
+      setState(() {
+        final List<MediaCollectionMapping> videoList = widget
+            .mediaCollectionList
+            .where((e) => e.media.mediaType == "VIDEO" && e.isActive)
+            .toList();
+        videoPlayerControllerMap = getVideoControllerMapByMedia(videoList);
+        widget.saveMediaCollectionMappingList?.call(widget.mediaCollectionList);
+        if (BaseUtil.isEmpty(widget.mediaCollectionList)) {
+          Navigator.of(context).pop();
+        }
+      });
+    }
+  }
+
+  Future<File> cropImage(File image, String module) async {
     File croppedImage = await ImageCropper.cropImage(
       sourcePath: image.path,
       maxWidth: 1080,
       maxHeight: 1080,
+      aspectRatio: module == 'PROFILE_PICTURE'
+          ? CropAspectRatio(ratioX: 1.0, ratioY: 1.0)
+          : null,
       androidUiSettings: AndroidUiSettings(
-          toolbarTitle: 'Preview',
-          toolbarColor: Colors.blue,
-          toolbarWidgetColor: Colors.white),
+        toolbarTitle: 'Preview',
+        toolbarColor: Colors.blue,
+        toolbarWidgetColor: Colors.white,
+      ),
     );
     return croppedImage;
   }
 
   void delete() {
-    widget.mediaCollectionList[_controller.page.round()].isActive = false;
-    videoPlayerControllerMap
-        .remove(widget.mediaCollectionList[_controller.page.round()].media.tag);
+    final index = _controller.page.round();
+    widget.mediaCollectionList[index].isActive = false;
+    if (widget.mediaCollectionList[index].id == null) {
+      widget.mediaCollectionList.removeAt(index);
+    }
+    videoPlayerControllerMap.remove(widget
+        .mediaCollectionList[_controller.page.round()].media
+        .tag(suffix: widget.tagSuffix));
     setState(() {});
     widget.saveMediaCollectionMappingList?.call(widget.mediaCollectionList);
-    if (widget.mediaCollectionList.isEmpty) {
+    if (BaseUtil.isEmpty(widget.mediaCollectionList)) {
       Navigator.of(context).pop();
     }
-  }
-
-  void editVideo() async {
-    await _trimmer.loadVideo(
-      videoFile: (await widget
-              .mediaCollectionList[_controller.page.round()].media.file
-              .download())
-          .file,
-    );
-    Navigator.of(context).push(MaterialPageRoute(builder: (context) {
-      return VideoTrimView(
-          trimmer: _trimmer,
-          saveCallback: (value) async {
-            var selectedMediaCollection =
-                widget.mediaCollectionList[_controller.page.round()];
-            final newThumbnailFile = File(
-                (await tempDirectoryFuture).path + "/" + uuid.v1() + ".jpg");
-            value = value.renameSync(value.parent.path +
-                "/" +
-                uuid.v1() +
-                value.path.substring(value.path.lastIndexOf(".")));
-            await VideoThumbnail.thumbnailFile(
-              video: value.path,
-              thumbnailPath: newThumbnailFile.path,
-              imageFormat: ImageFormat.JPEG,
-              maxHeight:
-                  200, // specify the height of the thumbnail, let the width auto-scaled to keep the source aspect ratio
-              quality: 50,
-            );
-            //selectedMediaCollection.media.file.delete();
-            selectedMediaCollection.media.file?.file?.delete();
-            selectedMediaCollection.media.file = ParseFile(value);
-            //selectedMediaCollection.media.thumbnail.delete();
-            selectedMediaCollection.media.thumbnail?.file?.delete();
-            selectedMediaCollection.media.thumbnail =
-                ParseFile(newThumbnailFile);
-            setState(() {
-              widget.saveMediaCollectionMappingList
-                  ?.call(widget.mediaCollectionList);
-              final List<MediaCollectionMapping> videoList = widget
-                  .mediaCollectionList
-                  .where((e) => e.media.mediaType == "VIDEO" && e.isActive)
-                  .toList();
-              videoPlayerControllerMap =
-                  getVideoControllerMapByMedia(videoList);
-            });
-          });
-    }));
   }
 
   goToMemory() {
+    final index = _controller.page.round();
+    final selectedMediaCollection = widget.mediaCollectionList[index];
+    widget.goToMemoryCallback?.call(selectedMediaCollection.media);
+  }
+
+  setAsProfilePicCallback() async {
     final selectedMediaCollection =
         widget.mediaCollectionList[_controller.page.round()];
-    if (widget.goToMemoryCallback == null) {
-      Navigator.of(context).pop();
+    if (selectedMediaCollection.collection.module == 'PROFILE_PICTURE') {
+      widget.setAsProfilePicCallback?.call(selectedMediaCollection.media);
     } else {
-      widget.goToMemoryCallback?.call(selectedMediaCollection.media);
+      final File toBeProfilePictureFile = await cropImage(
+          await selectedMediaCollection.media.mediaFile(), "PROFILE_PICTURE");
+      if (toBeProfilePictureFile != null) {
+        final profilePicture = MediaParse(
+          mediaType: "PHOTO",
+          file: ParseFile(toBeProfilePictureFile),
+        );
+        profilePicture.setThumbnail((await TEMP_DIR).path, uuid.v1());
+        profilePicture.setDominantColor();
+        widget.setAsProfilePicCallback?.call(profilePicture);
+      }
     }
+  }
+
+  Future<void> addToCollection(Media media) async {
+    MediaCollection collectionInWhichAdded;
+    memoryRemoteDataSource
+        .getMediaCollectionListByModuleList(['CUSTOM']).then((value) async {
+      collectionInWhichAdded = await showModalSlidingPanel(
+        context: context,
+        panel: (context) {
+          final pc = PanelController();
+          return SlidingPanel(
+            panelController: pc,
+            safeAreaConfig: SafeAreaConfig.all(removePaddingFromContent: true),
+            backdropConfig: BackdropConfig(enabled: true),
+            isTwoStatePanel: true,
+            snapping: PanelSnapping.forced,
+            size: PanelSize(closedHeight: 0.00, expandedHeight: 0.8),
+            autoSizing: PanelAutoSizing(
+                autoSizeExpanded: true, headerSizeIsClosed: true),
+            duration: Duration(milliseconds: 500),
+            initialState: InitialPanelState.expanded,
+            content: PanelContent(
+              panelContent: panelContentCollectionOptions(context, value),
+              headerWidget: PanelHeaderWidget(
+                headerContent: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Add to collection',
+                        style: Theme.of(context).textTheme.headline6,
+                      ),
+                      CloseButton(),
+                    ]),
+                options: PanelHeaderOptions(
+                  centerTitle: true,
+                  elevation: 4,
+                  forceElevated: true,
+                  primary: false,
+                ),
+                decoration: PanelDecoration(padding: EdgeInsets.all(16)),
+              ),
+            ),
+          );
+        },
+      );
+      if (collectionInWhichAdded != null) {
+        var collectionInWhichAddedAndSaved;
+        if (collectionInWhichAdded.id == null) {
+          collectionInWhichAddedAndSaved = await commonRemoteDataSource
+              .saveMediaCollection(collectionInWhichAdded);
+        } else {
+          collectionInWhichAddedAndSaved = await commonRemoteDataSource
+              .saveMediaCollection(collectionInWhichAdded);
+        }
+        final MediaCollectionMapping saved =
+            await handleFuture<MediaCollectionMapping>(
+                () => commonRemoteDataSource.saveMediaCollectionMapping(
+                    MediaCollectionMappingParse(
+                      collection: collectionInWhichAddedAndSaved,
+                      media: media,
+                    ),
+                    skipIfAlreadyPresent: true));
+        if (collectionInWhichAdded.id == null) {
+          Fluttertoast.showToast(
+              gravity: ToastGravity.TOP,
+              msg: 'Already added to ${collectionInWhichAdded.name}',
+              backgroundColor: Colors.green);
+        } else {
+          Fluttertoast.showToast(
+              gravity: ToastGravity.TOP,
+              msg: 'Added to ${collectionInWhichAdded.name}',
+              backgroundColor: Colors.green);
+        }
+        setState(() {
+          widget.addToCollectionCallback?.call(saved);
+        });
+      }
+    });
+  }
+
+  List<Widget> panelContentCollectionOptions(
+      BuildContext context, List<MediaCollection> value) {
+    return [
+      ListTile(
+        leading: CircleAvatar(
+          backgroundColor: Theme.of(context).primaryColor,
+          child: Icon(
+            MdiIcons.imageAlbum,
+            color: Colors.white,
+          ),
+        ),
+        title: Text('Create new collection'),
+        onTap: () async {
+          final collectionName = await showNewMediaCollectionDialog(context);
+          final newMediaCollection = MediaCollectionParse(
+              module: 'CUSTOM',
+              code: uuid.v1(),
+              name: collectionName,
+              mediaType: 'PHOTO',
+              user: await ParseUser.currentUser());
+          Navigator.of(context).pop(newMediaCollection);
+        },
+      ),
+      Divider(
+        thickness: 1,
+        height: 1,
+      ),
+      ...value
+          .where((element) =>
+              widget.mediaCollectionList[_controller.page.round()].collection !=
+              element)
+          .map((e) => [
+                ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: e.averageMediaColor ?? Colors.grey,
+                    child: Icon(
+                      MdiIcons.imageAlbum,
+                      color: Colors.white,
+                    ),
+                  ),
+                  title: Text(e.name),
+                  onTap: () {
+                    Navigator.of(context).pop(e);
+                  },
+                ),
+                Divider(
+                  thickness: 1,
+                  height: 3,
+                ),
+              ])
+          .expand((element) => element)
+          .toList()
+    ];
+  }
+
+  Future showNewMediaCollectionDialog(BuildContext context) async {
+    final TextEditingController _textFieldController = TextEditingController();
+    return showDialog(
+        context: context,
+        builder: (context) {
+          return StatefulBuilder(
+            builder: (context, setState) {
+              return AlertDialog(
+                title: Text('Create new collection'),
+                content: Container(
+                  height: 60,
+                  child: Column(
+                    children: [
+                      TextField(
+                        controller: _textFieldController,
+                        decoration: InputDecoration(
+                          hintText: "eg.family",
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                actions: <Widget>[
+                  new TextButton(
+                    child: new Text('Submit'),
+                    onPressed: () {
+                      if (_textFieldController.text.isNotEmpty) {
+                        Navigator.of(appNavigatorContext(context))
+                            .pop(_textFieldController.text);
+                      }
+                    },
+                  )
+                ],
+              );
+            },
+          );
+        });
   }
 }

@@ -36,19 +36,22 @@ class MediaAdapter extends TypeAdapter<Media> {
               : ParseFile(File((fields[4] as String)))),
       mediaType: fields[5] as String,
       isActive: fields[1] as bool,
+      dominantColor: HexColor.fromHex(fields[6] as String),
     );
   }
 
   @override
   void write(BinaryWriter writer, Media obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(7)
       ..writeByte(3)
       ..write(obj.file?.url ?? obj.file?.file?.path)
       ..writeByte(4)
       ..write(obj.thumbnail?.url ?? obj.thumbnail?.file?.path)
       ..writeByte(5)
       ..write(obj.mediaType)
+      ..writeByte(6)
+      ..write(obj.dominantColor?.toHex())
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)

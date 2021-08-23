@@ -29,4 +29,6 @@ class MMood extends Base {
           isActive: isActive,
           className: 'mMood',
         );
+
+  bool get isDummy => moodName == 'dummy';
 }

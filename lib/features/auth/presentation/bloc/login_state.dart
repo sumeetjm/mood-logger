@@ -12,18 +12,18 @@ class LoginInitial extends LoginState {
   List<Object> get props => [];
 }
 
-class LoginSuccess extends LoginState {
+class LoginSuccess extends LoginState with Completed {
   final User user;
   LoginSuccess({this.user}) : super();
   @override
   List<Object> get props => [user];
 }
 
-class LoginFailure extends LoginState {
+class LoginFailure extends LoginState with Completed {
   final String message;
   LoginFailure({this.message}) : super();
   @override
   List<Object> get props => [message];
 }
 
-class LoginLoading extends LoginState {}
+class LoginLoading extends LoginState with Loading {}

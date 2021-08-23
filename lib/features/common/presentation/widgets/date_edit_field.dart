@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mood_manager/core/constants/app_constants.dart';
 import 'package:intl/intl.dart';
 
+// ignore: must_be_immutable
 class DateEditField extends StatefulWidget {
   DateEditField({
     Key key,

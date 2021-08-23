@@ -1,6 +1,4 @@
-import 'package:calendar_strip/date-utils.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:mood_manager/core/constants/app_constants.dart';
 import 'package:mood_manager/core/util/date_util.dart';
 import 'package:mood_manager/core/util/hex_color.dart';
 import 'package:mood_manager/features/common/data/models/parse_mixin.dart';
@@ -25,6 +23,7 @@ class TaskParse extends Task with ParseMixin {
     DateTime notificationDateTime,
     ParseUser user,
     Color color,
+    int colorPickerValue,
     TaskRepeat taskRepeat,
     Map<DateTime, Memory> memoryMapByDate = const {},
   }) : super(
@@ -38,6 +37,7 @@ class TaskParse extends Task with ParseMixin {
           taskDateTime: taskDateTime,
           notificationDateTime: notificationDateTime,
           taskRepeat: taskRepeat,
+          colorPickerValue: colorPickerValue,
           memoryMapByDate: memoryMapByDate,
         );
 
@@ -57,6 +57,7 @@ class TaskParse extends Task with ParseMixin {
         'hexColor': color?.toHex(),
         'taskRepeat': taskRepeat,
         'memory': memoryMapByDate.values.toList(),
+        'colorPickerValue': colorPickerValue,
       };
 
   static TaskParse from(ParseObject parseObject,
@@ -86,6 +87,7 @@ class TaskParse extends Task with ParseMixin {
       user: ParseMixin.value('user', parseOptions),
       color: ParseMixin.value('hexColor', parseOptions,
           transform: HexColor.fromHex),
+      colorPickerValue: ParseMixin.value('colorPickerValue', parseOptions),
       taskRepeat: ParseMixin.value('taskRepeat', parseOptions,
           transform: TaskRepeatParse.from),
       memoryMapByDate: Map<DateTime, Memory>.fromEntries(
@@ -128,5 +130,26 @@ class TaskParse extends Task with ParseMixin {
     });
 
     return newMap;
+  }
+
+  static Task copy(Task task) {
+    DateTime taskDateTime = DateTime.now();
+    DateTime notificationDateTime = taskDateTime.add(Duration());
+    return TaskParse(
+      color: task.color,
+      colorPickerValue: task.colorPickerValue,
+      mActivityList: task.mActivityList,
+      memoryMapByDate: {},
+      note: task.note,
+      taskDateTime: taskDateTime,
+      notificationDateTime: notificationDateTime,
+      taskRepeat: TaskRepeatParse(
+        repeatType: 'Once',
+        selectedDateList: [DateUtil.getDateOnly(taskDateTime)],
+        validUpto: taskDateTime.add(Duration(days: 30)),
+      ),
+      title: task.title,
+      user: task.user,
+    );
   }
 }

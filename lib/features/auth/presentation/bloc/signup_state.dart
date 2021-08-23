@@ -12,18 +12,18 @@ class SignupInitial extends SignupState {
   List<Object> get props => [];
 }
 
-class SignupSuccess extends SignupState {
+class SignupSuccess extends SignupState with Completed {
   final FirebaseUser user;
   SignupSuccess({this.user}) : super();
   @override
   List<Object> get props => [user];
 }
 
-class SignupFailure extends SignupState {
+class SignupFailure extends SignupState with Completed {
   final String message;
   SignupFailure({this.message}) : super();
   @override
   List<Object> get props => [message];
 }
 
-class SignupLoading extends SignupState {}
+class SignupLoading extends SignupState with Loading {}

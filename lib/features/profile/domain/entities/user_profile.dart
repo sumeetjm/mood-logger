@@ -13,9 +13,9 @@ part 'user_profile.g.dart';
 @HiveType(typeId: 3)
 class UserProfile extends Base {
   @HiveField(3)
-  final String firstName;
+  String firstName;
   @HiveField(4)
-  final String lastName;
+  String lastName;
   @HiveField(5)
   String about;
   @HiveField(6)
@@ -55,5 +55,10 @@ class UserProfile extends Base {
 
   String get name => ((firstName ?? '') + ' ' + (lastName ?? '')).trim();
 
-  void set name(value) => value;
+  set name(String value) {
+    final names =
+        value.split(' ').where((element) => element.trim().isNotEmpty).toList();
+    firstName = names.removeAt(0);
+    lastName = names.join(' ');
+  }
 }

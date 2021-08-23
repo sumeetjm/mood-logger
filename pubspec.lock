@@ -141,6 +141,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.0.7"
+  camera:
+    dependency: "direct main"
+    description:
+      name: camera
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.5.8+17"
   carousel_select_widget:
     dependency: "direct main"
     description:
@@ -295,6 +302,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.2.6"
+  fab_circular_menu:
+    dependency: "direct main"
+    description:
+      name: fab_circular_menu
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.0.2"
   fake_async:
     dependency: transitive
     description:
@@ -317,7 +331,7 @@ packages:
     source: hosted
     version: "5.2.1"
   file_picker:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: file_picker
       url: "https://pub.dartlang.org"
@@ -454,6 +468,20 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "0.2.10"
+  flutter_image_compress:
+    dependency: "direct main"
+    description:
+      name: flutter_image_compress
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.0.0"
+  flutter_launcher_icons:
+    dependency: "direct dev"
+    description:
+      name: flutter_launcher_icons
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.8.1"
   flutter_local_notifications:
     dependency: "direct main"
     description:
@@ -517,11 +545,25 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "5.0.0"
+  flutter_staggered_animations:
+    dependency: "direct main"
+    description:
+      name: flutter_staggered_animations
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.1.3"
   flutter_test:
     dependency: "direct main"
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_video_info:
+    dependency: "direct main"
+    description:
+      name: flutter_video_info
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.2.0"
   flutter_wall_layout:
     dependency: "direct main"
     description:
@@ -534,6 +576,13 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  fluttertoast:
+    dependency: "direct main"
+    description:
+      name: fluttertoast
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "8.0.7"
   font_awesome_flutter:
     dependency: "direct main"
     description:
@@ -751,20 +800,6 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "0.3.2"
-  multi_image_picker:
-    dependency: "direct main"
-    description:
-      name: multi_image_picker
-      url: "https://pub.dartlang.org"
-    source: hosted
-    version: "4.7.14"
-  multi_media_picker:
-    dependency: "direct main"
-    description:
-      name: multi_media_picker
-      url: "https://pub.dartlang.org"
-    source: hosted
-    version: "0.2.3"
   nested:
     dependency: transitive
     description:
@@ -822,7 +857,7 @@ packages:
     source: hosted
     version: "1.0.28"
   path:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: path
       url: "https://pub.dartlang.org"
@@ -877,6 +912,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "3.1.0"
+  photo_view:
+    dependency: "direct main"
+    description:
+      name: photo_view
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.12.0"
   pigment:
     dependency: transitive
     description:
@@ -940,13 +982,34 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "2.1.3"
+  radial_button:
+    dependency: "direct main"
+    description:
+      name: radial_button
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.1.6"
   rxdart:
     dependency: transitive
     description:
       name: rxdart
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "0.24.1"
+    version: "0.23.1"
+  scroll_app_bar:
+    dependency: "direct main"
+    description:
+      name: scroll_app_bar
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "2.0.0"
+  scroll_bars_common:
+    dependency: transitive
+    description:
+      name: scroll_bars_common
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "3.0.0"
   scroll_to_index:
     dependency: "direct main"
     description:
@@ -1169,6 +1232,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.3.0"
+  unicorndial:
+    dependency: "direct main"
+    description:
+      name: unicorndial
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.1.5"
   url_launcher:
     dependency: "direct main"
     description:
@@ -1315,7 +1385,7 @@ packages:
       name: yaml
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "3.1.0"
+    version: "2.2.1"
 sdks:
   dart: ">=2.12.0 <3.0.0"
   flutter: ">=2.0.0"

@@ -8,9 +8,21 @@ abstract class Failure extends Equatable {
 // General failures
 class ServerFailure extends Failure {}
 
+class NoInternetFailure extends Failure {
+  @override
+  String toString() {
+    return "Unable to connect";
+  }
+}
+
 class CacheFailure extends Failure {}
 
 class ValidationFailure extends Failure {
-  String message;
+  final String message;
   ValidationFailure(this.message);
+
+  @override
+  String toString() {
+    return message;
+  }
 }

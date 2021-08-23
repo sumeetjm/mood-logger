@@ -4,11 +4,13 @@ import 'package:bloc/bloc.dart';
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:mood_manager/core/error/failures.dart';
 import 'package:mood_manager/core/usecases/usecase.dart';
 import 'package:mood_manager/features/auth/domain/entitles/user.dart';
 import 'package:mood_manager/features/auth/domain/usecases/is_username_exist.dart';
 import 'package:mood_manager/features/auth/domain/usecases/is_user_exist.dart';
 import 'package:mood_manager/features/auth/domain/usecases/sign_up.dart';
+import 'package:mood_manager/features/common/domain/entities/base_states.dart';
 
 part 'signup_event.dart';
 part 'signup_state.dart';
@@ -35,6 +37,7 @@ class SignupBloc extends Bloc<SignupEvent, SignupState> {
     SignupEvent event,
   ) async* {
     if (event is SignupRequest) {
+      yield SignupLoading();
       yield* _validateAndMapSignupRequestToState(event.user);
     }
   }
@@ -42,7 +45,7 @@ class SignupBloc extends Bloc<SignupEvent, SignupState> {
   Stream<SignupState> _mapSignupRequestToState(User user) async* {
     final either = await signUp(Params(user));
     yield either.fold(
-        (dynamic failure) => SignupFailure(message: failure.message),
+        (Failure failure) => SignupFailure(message: failure.toString()),
         (_) => SignupSuccess());
   }
 

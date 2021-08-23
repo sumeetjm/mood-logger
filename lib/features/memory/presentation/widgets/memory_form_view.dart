@@ -1,19 +1,23 @@
 import 'dart:io';
 import 'dart:ui';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:image/image.dart' as img;
-import 'package:image_cropper/image_cropper.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:mood_manager/core/constants/app_constants.dart';
 import 'package:mood_manager/core/util/color_util.dart';
 import 'package:mood_manager/core/util/date_util.dart';
 import 'package:mood_manager/features/common/data/datasources/common_remote_data_source.dart';
+import 'package:mood_manager/features/common/data/datasources/media_file_service.dart';
 import 'package:mood_manager/features/common/data/models/media_collection_mapping_parse.dart';
 import 'package:mood_manager/features/common/data/models/media_parse.dart';
+import 'package:mood_manager/features/common/domain/entities/base_states.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection_mapping.dart';
 import 'package:mood_manager/features/common/presentation/pages/activity_selection_page.dart';
 import 'package:mood_manager/features/memory/domain/entities/memory.dart';
-import 'package:mood_manager/features/memory/presentation/pages/image_grid_view.dart';
-import 'package:mood_manager/features/memory/presentation/pages/video_grid_view.dart';
+import 'package:mood_manager/features/memory/presentation/pages/media_grid_view.dart';
 import 'package:mood_manager/features/memory/presentation/widgets/transparent_page_route.dart';
 import 'package:mood_manager/features/metadata/data/datasources/m_mood_remote_data_source.dart';
 import 'package:mood_manager/features/common/data/models/media_collection_parse.dart';
@@ -27,21 +31,25 @@ import 'package:mood_manager/features/mood_manager/presentation/widgets/radio_se
 import 'package:mood_manager/features/mood_manager/presentation/widgets/widgets.dart';
 import 'package:mood_manager/features/reminder/domain/entities/task.dart';
 import 'package:mood_manager/injection_container.dart';
-import 'package:multi_media_picker/multi_media_picker.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
-import 'package:video_thumbnail/video_thumbnail.dart';
-import 'package:palette_generator/palette_generator.dart';
+import 'package:mood_manager/home.dart';
+import 'package:intl/intl.dart';
 
 // ignore: must_be_immutable
 class MemoryFormView extends StatefulWidget {
   final Function saveCallback;
   final Memory memory;
+  Task task;
   DateTime date;
 
-  MemoryFormView({Key key, this.saveCallback, this.date, this.memory})
-      : super(key: key);
+  MemoryFormView({
+    Key key,
+    this.saveCallback,
+    this.date,
+    this.memory,
+    this.task,
+  }) : super(key: key);
 
   @override
   State<StatefulWidget> createState() => _MemoryFormViewState(memory: memory);
@@ -51,12 +59,17 @@ class _MemoryFormViewState extends State<MemoryFormView> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   TimeOfDay time = TimeOfDay.now();
   List<MActivity> activityList = [];
+  final FocusNode titleFocusNode = FocusNode();
+  final FocusNode noteFocusNode = FocusNode();
   final TextEditingController noteTitleController = TextEditingController();
   final TextEditingController noteTextController = TextEditingController();
   MMood mMood;
   Uuid uuid;
   List<MediaCollectionMapping> imageMediaCollectionList = [];
   List<MediaCollectionMapping> videoMediaCollectionList = [];
+  final commonRemoteDataSource = sl<CommonRemoteDataSource>();
+  final MediaFileService mediaFileService = sl<MediaFileService>();
+  final Directory tempDirectory = sl<Directory>('tempDirectory');
 
   _MemoryFormViewState({Memory memory}) {
     if (memory != null) {
@@ -65,19 +78,29 @@ class _MemoryFormViewState extends State<MemoryFormView> {
       noteTitleController.text = memory.title;
       noteTextController.text = memory.note;
       mMood = memory.mMood;
-      final mediaCollectionFutureList = sl<CommonRemoteDataSource>()
-          .getMediaCollectionMappingByCollectionList(
-              memory.mediaCollectionList ?? []);
-      mediaCollectionFutureList.then((mediaCollectionList) {
-        imageMediaCollectionList = mediaCollectionList
-            .where((element) => element.media.mediaType == "PHOTO")
-            .toList();
-        videoMediaCollectionList = mediaCollectionList
-            .where((element) => element.media.mediaType == "VIDEO")
-            .toList();
-        setState(() {});
+      commonRemoteDataSource.isConnected().then((value) {
+        if (value) {
+          final mediaCollectionFutureList =
+              commonRemoteDataSource.getMediaCollectionMappingByCollectionList(
+                  memory.mediaCollectionList ?? []);
+          mediaCollectionFutureList.then((mediaCollectionList) {
+            imageMediaCollectionList = mediaCollectionList
+                .where((element) => element.media.mediaType == "PHOTO")
+                .toList();
+            videoMediaCollectionList = mediaCollectionList
+                .where((element) => element.media.mediaType == "VIDEO")
+                .toList();
+            setState(() {});
+          });
+        }
       });
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    uuid = sl<Uuid>();
   }
 
   @override
@@ -86,160 +109,204 @@ class _MemoryFormViewState extends State<MemoryFormView> {
       label: 'FormView',
       child: Scaffold(
         key: _scaffoldKey,
-        body: ListView(
-          physics: BouncingScrollPhysics(),
-          children: [
-            DateSelector(
-              initialDate: widget.date,
-              selectDate: (DateTime date) {
-                setState(() {
-                  widget.date = date;
-                });
-              },
-              endDate: DateTime.now(),
-            ),
-            TimePickerButton(
-              selectedTime: time,
-              selectTime: (time) {
-                setState(() {
-                  this.time = time;
-                });
-              },
-            ),
-            Container(
-              child: Padding(
-                padding: const EdgeInsets.all(15.0),
-                child: Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(),
-                    borderRadius: BorderRadius.all(Radius.circular(10.0)),
-                  ),
-                  child: Column(
-                    children: [
-                      TextField(
-                        style: TextStyle(fontSize: 20),
-                        controller: noteTitleController,
-                        minLines: 1,
-                        maxLines: 1,
-                        autocorrect: false,
-                        decoration: InputDecoration(
-                          border: InputBorder.none,
-                          hintText: 'Title',
-                          filled: true,
-                          fillColor:
-                              Theme.of(context).primaryColor.withOpacity(0.1),
-                          /*enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(10.0)),
-                            borderSide: BorderSide(color: Colors.grey),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(10.0)),
-                            borderSide: BorderSide(color: Colors.grey),
-                          ),*/
-                        ),
-                      ),
-                      TextField(
-                        controller: noteTextController,
-                        minLines: 6,
-                        maxLines: 15,
-                        autocorrect: false,
-                        decoration: InputDecoration(
-                          border: InputBorder.none,
-                          hintText: 'Write your story here',
-                          filled: true,
-                          fillColor:
-                              Theme.of(context).primaryColor.withOpacity(0.1),
-                          /*enabledBorder: OutlineInputBorder(
-                            borderRadius:
-                                BorderRadius.all(Radius.circular(10.0)),
-                            borderSide: BorderSide(color: Colors.grey),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius:
-                                BorderRadius.all(Radius.circular(10.0)),
-                            borderSide: BorderSide(color: Colors.grey),
-                          ),*/
-                        ),
-                      ),
-                    ],
+        body: AnimationLimiter(
+          child: ListView(
+              physics: BouncingScrollPhysics(),
+              children: AnimationConfiguration.toStaggeredList(
+                duration: const Duration(milliseconds: 375),
+                childAnimationBuilder: (widget) => SlideAnimation(
+                  horizontalOffset: 50.0,
+                  child: FadeInAnimation(
+                    child: widget,
                   ),
                 ),
-              ),
-            ),
-            OrientationBuilder(builder: (context, orientation) {
-              return Padding(
-                padding: const EdgeInsets.fromLTRB(15.0, 0, 15.0, 0),
-                child: GridView.count(
-                  childAspectRatio: 1.25,
-                  physics: NeverScrollableScrollPhysics(),
-                  shrinkWrap: true,
-                  crossAxisCount: orientation == Orientation.portrait ? 2 : 4,
-                  mainAxisSpacing: 15,
-                  crossAxisSpacing: 15,
-                  children: [
-                    activity,
-                    mood,
-                    image,
-                    video,
-                  ],
-                ),
-              );
-            }),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(15, 8, 15, 0),
-              child: RaisedButton(
-                onPressed: save,
-                child: Text(
-                  '${(widget.memory?.id ?? '').isNotEmpty ? 'Save' : 'Add'} to Memories',
-                  style: TextStyle(color: Colors.white),
-                ),
-                color: Theme.of(context).primaryColor,
-              ),
-            ),
-          ],
+                children: [
+                  if (widget.task != null)
+                    Container(
+                      height: 40,
+                      child: Center(
+                        child: Text(
+                          DateFormat(AppConstants.HEADER_DATE_FORMAT)
+                              .format(widget.date),
+                          style: TextStyle(
+                            color: Colors.grey[800],
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (widget.task == null)
+                    DateSelector(
+                      enabled: widget.task == null,
+                      initialDate: widget.date,
+                      selectDate: (DateTime date) {
+                        setState(() {
+                          widget.date = date;
+                        });
+                      },
+                      endDate: DateTime.now(),
+                    ),
+                  TimePickerButton(
+                    enabled: widget.task == null,
+                    selectedTime: time,
+                    selectTime: (time) {
+                      setState(() {
+                        if (DateUtil.combine(widget.date, time)
+                            .isAfter(DateTime.now())) {
+                          this.time = TimeOfDay.fromDateTime(DateTime.now());
+                        } else {
+                          this.time = time;
+                        }
+                      });
+                    },
+                  ),
+                  Container(
+                    child: Padding(
+                      padding: const EdgeInsets.all(15.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(),
+                          borderRadius: BorderRadius.all(Radius.circular(10.0)),
+                          color:
+                              Theme.of(context).primaryColor.withOpacity(0.1),
+                        ),
+                        child: Column(
+                          children: [
+                            TextField(
+                              maxLength: 100,
+                              maxLengthEnforcement:
+                                  MaxLengthEnforcement.enforced,
+                              style: TextStyle(fontSize: 20),
+                              controller: noteTitleController,
+                              minLines: 1,
+                              maxLines: 1,
+                              autocorrect: false,
+                              decoration: InputDecoration(
+                                border: InputBorder.none,
+                                hintText: 'Title',
+                                filled: true,
+                                fillColor: Theme.of(context)
+                                    .primaryColor
+                                    .withOpacity(0.0),
+                              ),
+                              focusNode: titleFocusNode,
+                            ),
+                            TextField(
+                              controller: noteTextController,
+                              minLines: 6,
+                              maxLines: 15,
+                              autocorrect: false,
+                              decoration: InputDecoration(
+                                border: InputBorder.none,
+                                hintText: 'Write your story here',
+                                filled: true,
+                                fillColor: Theme.of(context)
+                                    .primaryColor
+                                    .withOpacity(0.0),
+                              ),
+                              focusNode: noteFocusNode,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  OrientationBuilder(builder: (context, orientation) {
+                    return Padding(
+                      padding: const EdgeInsets.fromLTRB(15.0, 0, 15.0, 0),
+                      child: GridView.count(
+                        childAspectRatio: 1.25,
+                        physics: NeverScrollableScrollPhysics(),
+                        shrinkWrap: true,
+                        crossAxisCount:
+                            orientation == Orientation.portrait ? 2 : 4,
+                        mainAxisSpacing: 15,
+                        crossAxisSpacing: 15,
+                        children: [
+                          activity,
+                          mood,
+                          image,
+                          video,
+                        ],
+                      ),
+                    );
+                  }),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(15, 8, 15, 0),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                          primary: Theme.of(context).primaryColor,
+                          onPrimary: Colors.white),
+                      onPressed: save,
+                      child: Text(
+                        '${(widget.memory?.id ?? '').isNotEmpty ? 'Save' : 'Add'} to Memories',
+                        //style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              )),
         ),
       ),
     );
   }
 
-  IconButtonItem buildAddMoodIconButtonItem(
-      AsyncSnapshot<List<MMood>> snapshot) {
-    return IconButtonItem(
-        icon: Column(
-          children: [
-            Container(
-              width: 25,
-              height: 50,
-              child: Image.asset(
-                'assets/smiley_face.png',
-                height: 25,
-              ),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  mMood != null ? Icons.edit : Icons.add,
-                  size: 18,
-                ),
-                SizedBox(
-                  width: 8,
-                ),
-                Text('Mood'),
-              ],
-            )
-          ],
-        ),
-        onPressed: () {
-          Navigator.of(_scaffoldKey.currentContext)
-              .push(TransparentRoute(builder: (context) {
-            return MoodSelectionPage(
-              moodList: snapshot.data,
-              saveCallback: saveMood,
-              selectedMood: mMood,
-            );
-          }));
+  Widget get activity {
+    if (activityList.isNotEmpty)
+      return BlurActivityGridItem(
+        context: context,
+        child: buildAddActivityIconButtonItem(),
+        activityList: activityList,
+      );
+    return buildAddActivityIconButtonItem();
+  }
+
+  Widget get mood {
+    return FutureBuilder<List<MMood>>(
+        initialData: [],
+        future: sl<MMoodRemoteDataSource>().getMMoodList(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData || snapshot.data.isEmpty) {
+            return iconButton(
+                icon: Container(width: 20, height: 20, child: LoadingWidget()),
+                onPressed: () {});
+          }
+          return BlurMoodGridItem(
+            context: context,
+            child: buildAddMoodIconButtonItem(snapshot),
+            moodList: snapshot.data,
+            mood: mMood,
+          );
         });
+  }
+
+  Widget get image {
+    if (imageMediaCollectionList.where((e) => e.isActive).isNotEmpty)
+      return BlurImageGridItem(
+          context: context,
+          child: buildAddImageIconButtonItem(context),
+          imageList: imageMediaCollectionList
+              .where((e) => e.isActive)
+              .map((e) => e.media.thumbnail)
+              .toList(),
+          viewCallback: navigateToImageGrid);
+    return buildAddImageIconButtonItem(context);
+  }
+
+  Widget get video {
+    if (videoMediaCollectionList.isNotEmpty)
+      return BlurImageGridItem(
+          context: context,
+          child: buildAddVideoIconButtonItem(context),
+          imageList: videoMediaCollectionList
+              .where((element) => element.isActive)
+              .map((e) => e.media.thumbnail)
+              .toList(),
+          viewCallback: () {
+            navigateToVideoGrid(null);
+          });
+    return buildAddVideoIconButtonItem(context);
   }
 
   IconButtonItem buildAddActivityIconButtonItem() {
@@ -270,7 +337,8 @@ class _MemoryFormViewState extends State<MemoryFormView> {
           ],
         ),
         onPressed: () {
-          Navigator.of(_scaffoldKey.currentContext)
+          hideKeyboard();
+          Navigator.of(appNavigatorContext(context))
               .push(MaterialPageRoute(builder: (context) {
             return ActivitySelectionPage(
               selectedActivityList: activityList,
@@ -284,55 +352,44 @@ class _MemoryFormViewState extends State<MemoryFormView> {
         });
   }
 
-  IconButtonItem buildAddVideoIconButtonItem(BuildContext context) {
+  IconButtonItem buildAddMoodIconButtonItem(
+      AsyncSnapshot<List<MMood>> snapshot) {
     return IconButtonItem(
         icon: Column(
           children: [
-            Container(width: 25, height: 50, child: Icon(Icons.videocam)),
+            Container(
+              width: 25,
+              height: 50,
+              child: Image.asset(
+                'assets/smiley_face.png',
+                height: 25,
+              ),
+            ),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
-                  Icons.add,
+                  mMood == null ? Icons.add : Icons.edit,
                   size: 18,
                 ),
                 SizedBox(
                   width: 8,
                 ),
-                Text('Video'),
+                Text('Mood'),
               ],
             )
           ],
         ),
         onPressed: () {
-          showModalBottomSheet(
-              context: context,
-              builder: (context) {
-                return Container(
-                  child: Wrap(
-                    children: <Widget>[
-                      ListTile(
-                          leading: Icon(Icons.videocam),
-                          title: Text('Video Camera'),
-                          onTap: () => {
-                                Navigator.of(context).pop(),
-                                _onVideoButtonPressedMultiple(
-                                    ImageSource.camera,
-                                    context: context)
-                              }),
-                      ListTile(
-                        leading: Icon(Icons.video_library),
-                        title: Text('Gallery'),
-                        onTap: () => {
-                          Navigator.of(context).pop(),
-                          _onVideoButtonPressedMultiple(ImageSource.gallery,
-                              context: context)
-                        },
-                      ),
-                    ],
-                  ),
-                );
-              });
+          hideKeyboard();
+          Navigator.of(appNavigatorContext(context))
+              .push(TransparentRoute(builder: (context) {
+            return MoodSelectionPage(
+              moodList: snapshot.data,
+              saveCallback: setMood,
+              selectedMood: mMood,
+            );
+          }));
         });
   }
 
@@ -357,7 +414,7 @@ class _MemoryFormViewState extends State<MemoryFormView> {
           ],
         ),
         onPressed: () {
-          // loadAssets();
+          hideKeyboard();
           showModalBottomSheet(
               context: context,
               builder: (context) {
@@ -365,23 +422,44 @@ class _MemoryFormViewState extends State<MemoryFormView> {
                   child: Wrap(
                     children: <Widget>[
                       ListTile(
-                          leading: Icon(Icons.camera),
-                          title: Text('Camera'),
-                          onTap: () => {
-                                Navigator.of(context).pop(),
-                                _onImageButtonPressedMultiple(
-                                    ImageSource.camera,
-                                    context: context)
-                              }),
-                      ListTile(
                         leading: Icon(Icons.photo_library),
-                        title: Text('Gallery'),
-                        onTap: () => {
-                          Navigator.of(context).pop(),
-                          _onImageButtonPressedMultiple(ImageSource.gallery,
-                              context: context)
+                        title: Text('Album'),
+                        onTap: () async {
+                          Navigator.of(appNavigatorContext(context)).pop();
+                          final pickedFileList =
+                              await mediaFileService.pickFilesFromAlbum(
+                                  context: context, mediaType: 'PHOTO');
+                          if ((pickedFileList ?? []).isNotEmpty) {
+                            handleFuture<void>(
+                                () => selectImages(pickedFileList));
+                          }
                         },
                       ),
+                      ListTile(
+                        leading: Icon(Icons.photo_library_outlined),
+                        title: Text('Gallery'),
+                        onTap: () async {
+                          Navigator.of(appNavigatorContext(context)).pop();
+                          List<File> pickedFileList = await mediaFileService
+                              .pickFiles(type: FileType.image);
+                          if ((pickedFileList ?? []).isNotEmpty) {
+                            handleFuture<void>(
+                                () => selectImages(pickedFileList));
+                          }
+                        },
+                      ),
+                      ListTile(
+                          leading: Icon(Icons.camera),
+                          title: Text('Camera'),
+                          onTap: () async {
+                            final pickedFile =
+                                await mediaFileService.pickFileFromCamera(
+                                    context: context, mediaType: 'PHOTO');
+                            if (pickedFile != null) {
+                              handleFuture<void>(
+                                  () => selectImages([pickedFile]));
+                            }
+                          }),
                     ],
                   ),
                 );
@@ -389,63 +467,82 @@ class _MemoryFormViewState extends State<MemoryFormView> {
         });
   }
 
-  /*void _onVideoButtonPressed(ip.ImageSource source,
-      {BuildContext context}) async {
-    final ip.PickedFile file = await _picker.getVideo(
-        source: source, maxDuration: const Duration(seconds: 100));
-    if (file != null) {
-      await _trimmer.loadVideo(videoFile: File(file.path));
-      Navigator.of(_scaffoldKey.currentContext)
-          .push(MaterialPageRoute(builder: (context) {
-        return VideoTrimView(trimmer: _trimmer, saveCallback: saveVideo);
-      }));
-    }
-  }*/
+  IconButtonItem buildAddVideoIconButtonItem(BuildContext context) {
+    return IconButtonItem(
+        icon: Column(
+          children: [
+            Container(width: 25, height: 50, child: Icon(Icons.videocam)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.add,
+                  size: 18,
+                ),
+                SizedBox(
+                  width: 8,
+                ),
+                Text('Video'),
+              ],
+            )
+          ],
+        ),
+        onPressed: () {
+          hideKeyboard();
+          showModalBottomSheet(
+              context: context,
+              builder: (context) {
+                return Container(
+                  child: Wrap(
+                    children: <Widget>[
+                      ListTile(
+                        leading: Icon(Icons.video_collection),
+                        title: Text('Album'),
+                        onTap: () async {
+                          Navigator.of(appNavigatorContext(context)).pop();
+                          final pickedFileList =
+                              await mediaFileService.pickFilesFromAlbum(
+                                  context: context, mediaType: 'VIDEO');
+                          if ((pickedFileList ?? []).isNotEmpty) {
+                            selectVideos(pickedFileList);
+                          }
+                        },
+                      ),
+                      ListTile(
+                        leading: Icon(Icons.video_collection_outlined),
+                        title: Text('Gallery'),
+                        onTap: () async {
+                          Navigator.of(appNavigatorContext(context)).pop();
+                          final pickedFileList = await mediaFileService
+                              .pickFiles(type: FileType.video);
+                          if ((pickedFileList ?? []).isNotEmpty) {
+                            selectVideos(pickedFileList);
+                          }
+                        },
+                      ),
+                      ListTile(
+                          leading: Icon(Icons.videocam),
+                          title: Text('Video Camera'),
+                          onTap: () async {
+                            final pickedFile =
+                                await mediaFileService.pickFileFromCamera(
+                                    mediaType: 'VIDEO', context: context);
+                            if (pickedFile != null) {
+                              selectVideos([pickedFile]);
+                            }
+                          }),
+                    ],
+                  ),
+                );
+              });
+        });
+  }
 
-  void saveMood(MMood mood) {
+  void setMood(MMood mood) {
     setState(() {
       mMood = mood;
     });
   }
-
-  Future<Color> getImagePalette(ImageProvider imageProvider) async {
-    final PaletteGenerator paletteGenerator =
-        await PaletteGenerator.fromImageProvider(imageProvider);
-    return paletteGenerator.dominantColor.color;
-  }
-
-  /*void _onImageButtonPressed(ip.ImageSource source,
-      {BuildContext context}) async {
-    Color themeColor = Theme.of(context).primaryColor;
-    try {
-      final pickedFile = await _picker.getImage(
-        source: source,
-      );
-      File croppedImage = await ImageCropper.cropImage(
-        sourcePath: pickedFile.path,
-        maxWidth: 1080,
-        maxHeight: 1080,
-        //aspectRatio: CropAspectRatio(ratioX: 1.0, ratioY: 1.0),
-        androidUiSettings: AndroidUiSettings(
-            toolbarTitle: 'Preview',
-            toolbarColor: themeColor,
-            toolbarWidgetColor: Colors.white),
-      );
-
-      croppedImage = croppedImage.renameSync(
-          '/data/user/0/com.mindframe.mood_manager/cache/' +
-              uuid.v1() +
-              '.jpg');
-      if (croppedImage != null) {
-        setState(() {
-          imageFile = ParseFile(croppedImage);
-        });
-        print(imageFile);
-      }
-    } catch (e) {
-      print(e);
-    }
-  }*/
 
   Widget iconButton({Widget icon, Function onPressed}) {
     return IconButtonItem(
@@ -454,14 +551,8 @@ class _MemoryFormViewState extends State<MemoryFormView> {
     );
   }
 
-  @override
-  void initState() {
-    super.initState();
-    // _picker = sl<ImagePicker>();
-    uuid = sl<Uuid>();
-  }
-
-  void save() async {
+  Future<void> save() async {
+    hideKeyboard();
     var logDateTime = DateUtil.combine(widget.date, time);
     final memory = MemoryParse(
       id: widget.memory?.id,
@@ -476,333 +567,154 @@ class _MemoryFormViewState extends State<MemoryFormView> {
           .toList(),
       user: await ParseUser.currentUser() as ParseUser,
     );
-    // return;
-    widget.saveCallback(
-        memory, [...imageMediaCollectionList, ...videoMediaCollectionList]);
-  }
-
-  /*Future<void> loadAssets() async {
-    List<Asset> resultList = List<Asset>();
-    List<ParseFile> selectedImageList = [];
-    try {
-      resultList = await MultiImagePicker.pickImages(
-        maxImages: 300,
-        enableCamera: true,
-        selectedAssets: images,
-        cupertinoOptions: CupertinoOptions(takePhotoIcon: "chat"),
-        materialOptions: MaterialOptions(
-          actionBarColor: "#abcdef",
-          actionBarTitle: "Example App",
-          allViewTitle: "All Photos",
-          useDetailsView: false,
-          selectCircleStrokeColor: "#000000",
-        ),
-      );
-    } on Exception catch (e) {
-      print(e.toString());
+    if (memory.title == null || memory.title.trim().isEmpty) {
+      Fluttertoast.showToast(
+          gravity: ToastGravity.TOP,
+          msg: 'Title is mandatory',
+          backgroundColor: Colors.red);
+    } else {
+      widget.saveCallback(
+          memory, [...imageMediaCollectionList, ...videoMediaCollectionList]);
     }
-
-    // If the widget was removed from the tree while the asynchronous platform
-    // message was in flight, we want to discard the reply rather than calling
-    // setState to update our non-existent appearance.
-    if (!mounted) return;
-
-    resultList.forEach((element) async {
-      var absolutePath =
-          await FlutterAbsolutePath.getAbsolutePath(element.identifier);
-      selectedImageList.add(ParseFile(
-        File(absolutePath),
-      ));
-    });
-    setState(() {
-      images = resultList;
-      imageFileList = selectedImageList;
-    });
-  }*/
-
-  Future<File> cropImage(File image) async {
-    File croppedImage = await ImageCropper.cropImage(
-      sourcePath: image.path,
-      maxWidth: 1080,
-      maxHeight: 1080,
-      //aspectRatio: CropAspectRatio(ratioX: 1.0, ratioY: 1.0),
-      androidUiSettings: AndroidUiSettings(
-          toolbarTitle: 'Preview',
-          toolbarColor: Colors.blue,
-          toolbarWidgetColor: Colors.white),
-    );
-    return croppedImage;
   }
 
-  void _onImageButtonPressedMultiple(ImageSource source,
-      {BuildContext context}) async {
-    final cacheDir = await getTemporaryDirectory();
-    try {
-      final pickedFileList = await MultiMediaPicker.pickImages(
-        source: source,
-      );
-      if (pickedFileList != null && pickedFileList.isNotEmpty) {
-        for (final pickedFile in pickedFileList) {
-          final thumbnailImage = img.copyResize(
-              img.decodeImage(pickedFile.readAsBytesSync()),
-              width: 200);
-          final thumbnailFile = File(cacheDir.path + "/" + uuid.v1() + ".jpg");
-          thumbnailFile.writeAsBytesSync(img.encodeJpg(thumbnailImage));
-          var photoCollection;
-          if (widget.memory?.mediaCollectionList != null &&
-              (widget.memory?.mediaCollectionList ?? [])
-                  .any((element) => element.mediaType == 'PHOTO')) {
-            photoCollection = widget.memory.mediaCollectionList
-                .firstWhere((element) => element.mediaType == 'PHOTO')
-                .incrementMediaCount();
-          } else {
-            photoCollection = MediaCollectionParse(
-              code: uuid.v1(),
-              mediaCount: 1,
-              mediaType: 'PHOTO',
-              module: 'MEMORY',
-              name: uuid.v1(),
-              user: (await ParseUser.currentUser()) as ParseUser,
-            );
-          }
-          imageMediaCollectionList.add(
-            MediaCollectionMappingParse(
-              collection: photoCollection,
-              media: MediaParse(
-                file: ParseFile(pickedFile),
-                thumbnail: ParseFile(thumbnailFile),
-                mediaType: 'PHOTO',
-              ),
-            ),
+  Future<void> selectImages(List<File> fileList) async {
+    var photoCollection;
+    if (fileList != null && fileList.isNotEmpty) {
+      for (final pickedFile in fileList) {
+        var mediaParse = MediaParse(
+          file: ParseFile(pickedFile),
+          mediaType: 'PHOTO',
+        );
+        await mediaParse.setThumbnail(tempDirectory.path, uuid.v1());
+        await mediaParse.setDominantColor();
+        if ((widget.memory?.mediaCollectionList ?? [])
+            .any((element) => element.mediaType == 'PHOTO')) {
+          photoCollection = widget.memory.mediaCollectionList
+              .firstWhere((element) => element.mediaType == 'PHOTO');
+        } else if (imageMediaCollectionList.isNotEmpty) {
+          photoCollection = imageMediaCollectionList.first.collection;
+        } else {
+          photoCollection = MediaCollectionParse(
+            code: uuid.v1(),
+            mediaType: 'PHOTO',
+            module: 'MEMORY',
+            name: uuid.v1(),
+            user: (await ParseUser.currentUser()) as ParseUser,
           );
-          /*imageFileMapByThumbnail[ParseFile(thumbnailFile)] =
-                ParseFile(pickedFile);*/
         }
-        setState(() {});
-        navigateToImageGrid();
-      }
-    } catch (e) {
-      print(e);
-    }
-  }
-
-  void _onVideoButtonPressedMultiple(ImageSource source,
-      {BuildContext context}) async {
-    final cacheDir = await getTemporaryDirectory();
-    final pickedFile = await MultiMediaPicker.pickVideo(source: source);
-    if (pickedFile != null) {
-      final thumbnailFile = File(cacheDir.path + "/" + uuid.v1() + ".jpg");
-      await VideoThumbnail.thumbnailFile(
-        video: pickedFile.path,
-        thumbnailPath: thumbnailFile.path,
-        imageFormat: ImageFormat.JPEG,
-        maxHeight:
-            200, // specify the height of the thumbnail, let the width auto-scaled to keep the source aspect ratio
-        quality: 50,
-      );
-      var videoCollection;
-
-      if (widget.memory?.mediaCollectionList != null &&
-          (widget.memory?.mediaCollectionList ?? [])
-              .any((element) => element.mediaType == 'VIDEO')) {
-        videoCollection = widget.memory.mediaCollectionList
-            .firstWhere((element) => element.mediaType == 'VIDEO')
-            .incrementMediaCount();
-      } else {
-        videoCollection = MediaCollectionParse(
-          code: uuid.v1(),
-          mediaCount: 1,
-          mediaType: 'VIDEO',
-          module: 'MEMORY',
-          name: uuid.v1(),
-          user: (await ParseUser.currentUser()) as ParseUser,
+        imageMediaCollectionList.add(
+          MediaCollectionMappingParse(
+            collection: photoCollection,
+            media: mediaParse,
+          ),
         );
       }
-
-      videoMediaCollectionList.add(
-        MediaCollectionMappingParse(
-          collection: videoCollection,
-          media: MediaParse(
-            file: ParseFile(pickedFile),
-            thumbnail: ParseFile(thumbnailFile),
-            mediaType: 'VIDEO',
-          ),
-        ),
-      );
       setState(() {});
-      navigateToVideoGrid();
+      navigateToImageGrid();
     }
   }
 
-  get image {
-    if (imageMediaCollectionList.where((e) => e.isActive).isNotEmpty)
-      return BlurImageGridItem(
-          context: context,
-          child: buildAddImageIconButtonItem(context),
-          imageList: imageMediaCollectionList
-              .where((e) => e.isActive)
-              .map((e) => e.media.thumbnail)
-              .toList(),
-          viewCallback: navigateToImageGrid);
-    return buildAddImageIconButtonItem(context);
+  Future<void> selectVideos(List<File> fileList) async {
+    var videoCollection;
+    if (fileList != null && fileList.isNotEmpty) {
+      for (final pickedFile in fileList) {
+        var mediaParse = MediaParse(
+          file: ParseFile(pickedFile),
+          mediaType: 'VIDEO',
+        );
+        await mediaParse.setThumbnail(tempDirectory.path, uuid.v1());
+        await mediaParse.setDominantColor();
+        if ((widget.memory?.mediaCollectionList ?? [])
+            .any((element) => element.mediaType == 'PHOTO')) {
+          videoCollection = widget.memory.mediaCollectionList
+              .firstWhere((element) => element.mediaType == 'PHOTO');
+        } else if (videoMediaCollectionList.isNotEmpty) {
+          videoCollection = videoMediaCollectionList.first.collection;
+        } else {
+          videoCollection = MediaCollectionParse(
+            code: uuid.v1(),
+            mediaType: 'VIDEO',
+            module: 'MEMORY',
+            name: uuid.v1(),
+            user: (await ParseUser.currentUser()) as ParseUser,
+          );
+        }
+        videoMediaCollectionList.add(
+          MediaCollectionMappingParse(
+            collection: videoCollection,
+            media: mediaParse,
+          ),
+        );
+      }
+      setState(() {});
+      navigateToVideoGrid(null);
+    }
   }
 
-  navigateToImageGrid() async {
-    final mediaCollectionList = (await Navigator.of(_scaffoldKey.currentContext)
+  navigateToImageGrid() {
+    Navigator.of(appNavigatorContext(context))
         .push(TransparentRoute(builder: (context) {
-      return ImageGridView(
-          imageMediaCollectionList: imageMediaCollectionList
-              .where((element) => element.isActive)
-              .toList());
-    })) as List<MediaCollectionMapping>);
-    if (mediaCollectionList != null) {
-      setState(() {
-        final removedImageMediaCollectionList = imageMediaCollectionList
-            .where((element) => !mediaCollectionList.contains(element))
-            .toList();
-        removedImageMediaCollectionList.forEach((element) {
-          element.isActive = false;
-        });
-        imageMediaCollectionList = [
-          ...mediaCollectionList,
-          ...removedImageMediaCollectionList
-        ];
-      });
-    }
+      return MediaGridView(
+          onChanged: (mediaCollectionList) {
+            if (mediaCollectionList != null) {
+              var list = List<MediaCollectionMapping>.from(mediaCollectionList);
+              setState(() {
+                final removedImageMediaCollectionList =
+                    imageMediaCollectionList.where((element) {
+                  return !list.contains(element);
+                }).toList();
+                removedImageMediaCollectionList.forEach((element) {
+                  element.isActive = false;
+                });
+                imageMediaCollectionList = [
+                  ...list,
+                  ...removedImageMediaCollectionList
+                ];
+              });
+            }
+          },
+          mediaType: 'PHOTO',
+          mediaCollectionList: List<MediaCollectionMapping>.from(
+              imageMediaCollectionList.where((element) => element.isActive)));
+    }));
   }
 
-  get video {
-    if (videoMediaCollectionList.isNotEmpty)
-      return BlurImageGridItem(
-          context: context,
-          child: buildAddVideoIconButtonItem(context),
-          imageList:
-              videoMediaCollectionList.map((e) => e.media.thumbnail).toList(),
-          viewCallback: navigateToVideoGrid);
-    return buildAddVideoIconButtonItem(context);
-  }
-
-  navigateToVideoGrid() async {
-    var mediaCollectionList = (await Navigator.of(_scaffoldKey.currentContext)
-            .push(TransparentRoute(builder: (context) {
-          return VideoGridView(
-              videoMediaCollectionList: videoMediaCollectionList
-                  .where((element) => element.isActive)
-                  .toList());
-        })) as List<MediaCollectionMapping>) ??
-        [];
-    setState(() {
-      final removedVideoMediaCollectionList = videoMediaCollectionList
-          .where((element) => !mediaCollectionList.contains(element))
-          .toList();
-      removedVideoMediaCollectionList.forEach((element) {
-        element.isActive = false;
-      });
-      videoMediaCollectionList = [
-        ...mediaCollectionList,
-        ...removedVideoMediaCollectionList
-      ];
-    });
-  }
-
-  get activity {
-    if (activityList.isNotEmpty)
-      return BlurActivityGridItem(
-        context: context,
-        child: buildAddActivityIconButtonItem(),
-        activityList: activityList,
+  navigateToVideoGrid(MediaCollectionMapping mediaCollectionMapping) {
+    Navigator.of(appNavigatorContext(context))
+        .push(TransparentRoute(builder: (context) {
+      return MediaGridView(
+        toBeAddedMediaCollectionMapping: mediaCollectionMapping,
+        mediaType: 'VIDEO',
+        mediaCollectionList: videoMediaCollectionList
+            .where((element) => element.isActive)
+            .toList(),
+        onChanged: (mediaCollectionList) {
+          if (mediaCollectionList != null) {
+            var list = List<MediaCollectionMapping>.from(mediaCollectionList);
+            setState(() {
+              final removedVideoMediaCollectionList = videoMediaCollectionList
+                  .where((element) => !list.contains(element))
+                  .toList();
+              removedVideoMediaCollectionList.forEach((element) {
+                element.isActive = false;
+              });
+              videoMediaCollectionList = [
+                ...list,
+                ...(removedVideoMediaCollectionList
+                    .where((element) => element.id != null)
+                    .toList())
+              ];
+            });
+          }
+        },
       );
-    return buildAddActivityIconButtonItem();
+    }));
   }
 
-  get mood {
-    return FutureBuilder<List<MMood>>(
-        initialData: [],
-        future: sl<MMoodRemoteDataSource>().getMMoodList(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData || snapshot.data.isEmpty) {
-            return iconButton(
-                icon: Container(width: 20, height: 20, child: LoadingWidget()),
-                onPressed: () {});
-          }
-          if (mMood != null) {
-            return BlurMoodGridItem(
-              context: context,
-              child: buildAddMoodIconButtonItem(snapshot),
-              moodList: snapshot.data,
-              mood: mMood,
-            );
-          }
-          return buildAddMoodIconButtonItem(snapshot);
-        });
-  }
-}
-
-class BlurImageGridItem extends StatelessWidget {
-  const BlurImageGridItem({
-    Key key,
-    @required this.context,
-    @required this.child,
-    @required this.imageList,
-    @required this.viewCallback,
-  }) : super(key: key);
-
-  final BuildContext context;
-  final Widget child;
-  final List<ParseFile> imageList;
-  final Function viewCallback;
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        ImageFiltered(
-          imageFilter: ImageFilter.blur(
-            sigmaX: 0,
-            sigmaY: 0,
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: GridView.count(
-              childAspectRatio:
-                  imageList.length >= 1 && imageList.length < 4 ? 5 / 8 : 5 / 4,
-              crossAxisCount: imageList.length >= 2 ? 2 : 1,
-              children: imageList
-                  .take(4)
-                  .map((e) => Container(
-                      decoration: BoxDecoration(
-                          image: DecorationImage(
-                              fit: BoxFit.cover,
-                              image: e.file != null
-                                  ? FileImage(e.file)
-                                  : NetworkImage(e.url)))))
-                  .toList(),
-            ),
-          ),
-        ),
-        Positioned.fill(
-          child: ColorFiltered(
-            colorFilter: ColorFilter.mode(
-              Colors.white.withOpacity(0.5),
-              BlendMode.darken,
-            ),
-            child: child,
-          ),
-        ),
-        Positioned(
-          child: GestureDetector(
-            child: Icon(
-              MdiIcons.viewGridPlusOutline,
-              size: 20,
-              color: Colors.black.withOpacity(0.5),
-            ),
-            onTap: viewCallback,
-          ),
-          right: 1,
-          top: 1,
-        ),
-      ],
-    );
+  hideKeyboard() {
+    titleFocusNode.unfocus();
+    noteFocusNode.unfocus();
   }
 }
 
@@ -891,7 +803,10 @@ class BlurMoodGridItem extends StatelessWidget {
             child: Center(
               child: RadioSelection(
                 moodList: moodList,
-                initialValue: mood,
+                initialValue: mood == null
+                    ? null
+                    : moodList.firstWhere((element) =>
+                        [element, ...element.mMoodList].contains(mood)),
                 initialSubValue: mood,
                 onChange: null,
                 parentCircleColor: Colors.blueGrey[50],
@@ -911,6 +826,74 @@ class BlurMoodGridItem extends StatelessWidget {
             child: child,
           ),
         )
+      ],
+    );
+  }
+}
+
+class BlurImageGridItem extends StatelessWidget {
+  const BlurImageGridItem({
+    Key key,
+    @required this.context,
+    @required this.child,
+    @required this.imageList,
+    @required this.viewCallback,
+  }) : super(key: key);
+
+  final BuildContext context;
+  final Widget child;
+  final List<ParseFile> imageList;
+  final Function viewCallback;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        ImageFiltered(
+          imageFilter: ImageFilter.blur(
+            sigmaX: 0,
+            sigmaY: 0,
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: GridView.count(
+              childAspectRatio:
+                  imageList.length >= 1 && imageList.length < 4 ? 5 / 8 : 5 / 4,
+              crossAxisCount: imageList.length >= 2 ? 2 : 1,
+              children: imageList
+                  .take(4)
+                  .map((e) => Container(
+                      decoration: BoxDecoration(
+                          image: DecorationImage(
+                              fit: BoxFit.cover,
+                              image: e.file != null
+                                  ? FileImage(e.file)
+                                  : NetworkImage(e.url)))))
+                  .toList(),
+            ),
+          ),
+        ),
+        Positioned.fill(
+          child: ColorFiltered(
+            colorFilter: ColorFilter.mode(
+              Colors.white.withOpacity(0.5),
+              BlendMode.darken,
+            ),
+            child: child,
+          ),
+        ),
+        Positioned(
+          child: GestureDetector(
+            child: Icon(
+              MdiIcons.viewGridPlusOutline,
+              size: 20,
+              color: Colors.black.withOpacity(0.5),
+            ),
+            onTap: viewCallback,
+          ),
+          right: 1,
+          top: 1,
+        ),
       ],
     );
   }

@@ -14,10 +14,9 @@ class AuthPageLinkButton extends StatelessWidget {
       child: Container(
         alignment: Alignment.topRight,
         //color: Colors.red,
-        height: 30,
+        height: 50,
         child: Center(
-          child: FlatButton(
-            padding: EdgeInsets.all(0),
+          child: TextButton(
             onPressed: onPressed,
             child: Text(
               text,

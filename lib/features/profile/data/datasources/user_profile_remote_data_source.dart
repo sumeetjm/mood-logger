@@ -1,12 +1,14 @@
 import 'package:dartz/dartz.dart' show cast;
+import 'package:mood_manager/core/constants/app_constants.dart';
 import 'package:mood_manager/features/common/data/datasources/common_remote_data_source.dart';
+import 'package:mood_manager/features/common/data/models/media_collection_mapping_parse.dart';
 import 'package:mood_manager/features/common/data/models/media_collection_parse.dart';
 import 'package:mood_manager/features/common/data/models/media_parse.dart';
+import 'package:mood_manager/features/common/domain/entities/media.dart';
 import 'package:mood_manager/features/profile/data/models/user_profile_parse.dart';
 import 'package:mood_manager/features/common/domain/entities/media_collection_mapping.dart';
 import 'package:mood_manager/features/profile/domain/entities/user_profile.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
-import 'package:hive/hive.dart';
 
 import '../../../../core/error/exceptions.dart';
 
@@ -17,6 +19,8 @@ abstract class UserProfileRemoteDataSource {
   Future<MediaCollectionMapping> saveProfilePicture(
       final MediaCollectionMapping mediaCollectionMapping,
       final UserProfile userProfile);
+  Future<MediaCollectionMapping>
+      saveProfilePictureAndAddToProfilePictureCollection(final Media media);
   Future<void> setUser(ParseObject parseObject) async {
     if (parseObject != null) {
       parseObject.set('user', await ParseUser.currentUser());
@@ -109,32 +113,68 @@ class UserProfileParseDataSource extends UserProfileRemoteDataSource {
 
   Future<MediaCollectionMapping> saveProfilePicture(
       final MediaCollectionMapping mediaCollectionMapping,
-      final UserProfile userProfile) async {
+      final UserProfile userProfile,
+      {bool skipAddToCollection = false}) async {
     //final userProfileBox = await Hive.openBox<UserProfile>('userProfile');
-    final List<MediaCollectionMapping> mediaCollectionMappingList =
-        await commonRemoteDataSource
-            .saveMediaCollectionMappingList([mediaCollectionMapping]);
-    ParseObject userProfileParse = ParseObject('userDtl');
-    userProfileParse.set('objectId', userProfile.id);
-    userProfileParse.set('profilePicture',
-        cast<MediaParse>(mediaCollectionMappingList[0].media).pointer);
-    userProfileParse.set(
-        'profilePictureCollection',
-        cast<MediaCollectionParse>(mediaCollectionMappingList[0].collection)
-            .pointer);
-    //var userProfileFromBox = userProfileBox.get(userProfile.user.objectId);
-    /*userProfileBox.put(
+    if (mediaCollectionMapping == null) {
+      ParseObject userProfileParse = ParseObject('userDtl');
+      userProfileParse.set('objectId', userProfile.id);
+      userProfileParse.set('profilePicture',
+          cast<MediaParse>(AppConstants.DEFAULT_PROFILE_MEDIA).pointer);
+      ParseResponse response = await userProfileParse.save();
+      if (response.success) {
+        return mediaCollectionMapping;
+      } else {
+        throw ServerException();
+      }
+    } else {
+      var profilePistureMapping;
+      if (skipAddToCollection) {
+        profilePistureMapping = mediaCollectionMapping;
+      } else {
+        final List<MediaCollectionMapping> mediaCollectionMappingList =
+            await commonRemoteDataSource
+                .saveMediaCollectionMappingList([mediaCollectionMapping]);
+        profilePistureMapping = mediaCollectionMappingList[0];
+      }
+      ParseObject userProfileParse = ParseObject('userDtl');
+      userProfileParse.set('objectId', userProfile.id);
+      userProfileParse.set('profilePicture',
+          cast<MediaParse>(profilePistureMapping.media).pointer);
+      userProfileParse.set('profilePictureCollection',
+          cast<MediaCollectionParse>(profilePistureMapping.collection).pointer);
+      //var userProfileFromBox = userProfileBox.get(userProfile.user.objectId);
+      /*userProfileBox.put(
         userProfile.user.objectId,
         UserProfileParse.fromProfilePic(
             userProfileFromBox,
             cast<MediaParse>(mediaCollectionMappingList[0].media),
             cast<MediaCollectionParse>(
                 mediaCollectionMappingList[0].collection)));*/
-    ParseResponse response = await userProfileParse.save();
-    if (response.success) {
-      return mediaCollectionMappingList[0];
-    } else {
-      throw ServerException();
+      ParseResponse response = await userProfileParse.save();
+      if (response.success) {
+        return profilePistureMapping;
+      } else {
+        throw ServerException();
+      }
     }
+  }
+
+  Future<MediaCollectionMapping>
+      saveProfilePictureAndAddToProfilePictureCollection(
+          final Media media) async {
+    final userProfile = await getCurrentUserProfile();
+    final mediaCollectionMappingList =
+        await commonRemoteDataSource.getMediaCollectionMappingByCollection(
+            userProfile.profilePictureCollection);
+    final mediaCollectionMapping = await saveProfilePicture(
+        MediaCollectionMappingParse(
+          collection: userProfile.profilePictureCollection,
+          media: media,
+        ),
+        userProfile,
+        skipAddToCollection: mediaCollectionMappingList
+            .any((element) => element.media == media));
+    return mediaCollectionMapping;
   }
 }

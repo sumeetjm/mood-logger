@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:mood_manager/core/util/common_util.dart';
 import 'package:mood_manager/features/common/data/models/parse_mixin.dart';
 import 'package:mood_manager/features/common/domain/entities/base.dart';
 import 'package:mood_manager/features/metadata/domain/entities/gender.dart';
@@ -11,17 +10,15 @@ class GenderParse extends Gender with ParseMixin {
     @required String name,
     String code,
     String altName,
-    IconData iconData,
+    String iconKey,
     bool isActive = true,
-    bool isDummy = false,
   }) : super(
           id: id,
           name: name,
           code: code,
           isActive: isActive,
           altName: altName,
-          iconData: iconData,
-          isDummy: isDummy,
+          iconKey: iconKey,
         );
 
   static GenderParse from(ParseObject parseObject,
@@ -39,8 +36,7 @@ class GenderParse extends Gender with ParseMixin {
       name: ParseMixin.value('name', parseOptions),
       code: ParseMixin.value('code', parseOptions),
       altName: ParseMixin.value('altName', parseOptions),
-      iconData: ParseMixin.value('iconCodePoint', parseOptions,
-          transform: CommonUtil.icon),
+      iconKey: ParseMixin.value('iconKey', parseOptions),
       isActive: ParseMixin.value('isActive', parseOptions),
     );
   }
@@ -54,7 +50,7 @@ class GenderParse extends Gender with ParseMixin {
         'name': name,
         'code': code,
         'altName': altName,
-        'iconCodePoint': iconData?.codePoint,
+        'iconKey': iconKey,
         'isActive': isActive
       };
 }

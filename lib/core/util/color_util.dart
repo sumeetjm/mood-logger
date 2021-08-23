@@ -3,25 +3,29 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 class ColorUtil {
-  static Color mix(List<Color> colors) {
+  static Color mix(List<Color> colors, {Color defaultColor = Colors.white}) {
     if (colors.isEmpty) {
-      return Colors.white;
+      return defaultColor;
     }
     final colorList = colors.where((element) => element != null).toList();
     return Color.fromRGBO(
-        colorList
-                .map((color) => color.red)
-                .reduce((value, element) => value + element) ~/
-            colorList.length,
-        colorList
-                .map((color) => color.green)
-                .reduce((value, element) => value + element) ~/
-            colorList.length,
-        colorList
-                .map((color) => color.blue)
-                .reduce((value, element) => value + element) ~/
-            colorList.length,
-        1);
+      colorList
+              .map((color) => color.red)
+              .reduce((value, element) => value + element) ~/
+          colorList.length,
+      colorList
+              .map((color) => color.green)
+              .reduce((value, element) => value + element) ~/
+          colorList.length,
+      colorList
+              .map((color) => color.blue)
+              .reduce((value, element) => value + element) ~/
+          colorList.length,
+      colorList
+              .map((color) => color.opacity)
+              .reduce((value, element) => value + element) /
+          colorList.length,
+    );
   }
 
   static Color unmix(List<Color> colors) {
@@ -30,19 +34,27 @@ class ColorUtil {
     }
     final colorList = colors.where((element) => element != null).toList();
     return Color.fromRGBO(
-        colorList
-                .map((color) => color.red)
-                .reduce((value, element) => value - element) ~/
-            colorList.length,
-        colorList
-                .map((color) => color.green)
-                .reduce((value, element) => value - element) ~/
-            colorList.length,
-        colorList
-                .map((color) => color.blue)
-                .reduce((value, element) => value - element) ~/
-            colorList.length,
-        1);
+      colorList
+                  .map((color) => color.red)
+                  .reduce((value, element) => value - element) ~/
+              colorList.length -
+          1,
+      colorList
+                  .map((color) => color.green)
+                  .reduce((value, element) => value - element) ~/
+              colorList.length -
+          1,
+      colorList
+                  .map((color) => color.blue)
+                  .reduce((value, element) => value - element) ~/
+              colorList.length -
+          1,
+      colorList
+                  .map((color) => color.opacity)
+                  .reduce((value, element) => value + element) /
+              colorList.length -
+          1,
+    );
   }
 
   static Color get random =>

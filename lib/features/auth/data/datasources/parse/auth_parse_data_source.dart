@@ -1,11 +1,14 @@
 import 'dart:convert';
 
+import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_facebook_login/flutter_facebook_login.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 import 'package:mood_manager/core/error/exceptions.dart';
 import 'package:mood_manager/features/auth/data/datasources/auth_data_source.dart';
+import 'package:mood_manager/features/common/data/datasources/common_remote_data_source.dart';
 import 'package:mood_manager/features/common/data/models/media_collection_parse.dart';
 import 'package:mood_manager/features/memory/data/models/memory_collection_parse.dart';
 import 'package:mood_manager/features/profile/data/datasources/user_profile_remote_data_source.dart';
@@ -29,6 +32,7 @@ class AuthParseDataSource extends AuthDataSource {
       FacebookLogin facebookLogin,
       http.Client httpClient,
       UserProfileRemoteDataSource userProfileRemoteDataSource,
+      CommonRemoteDataSource commonRemoteDataSource,
       Uuid uuid})
       : assert(firebaseAuth != null),
         assert(googleSignin != null),
@@ -57,8 +61,20 @@ class AuthParseDataSource extends AuthDataSource {
   @override
   Future<bool> isSignedIn() async {
     try {
-      final ParseUser parseUser = await ParseUser.currentUser();
-      return parseUser != null;
+      ParseUser parseUser = await ParseUser.currentUser();
+      if (parseUser != null) {
+        return true;
+      }
+      final Box<String> token = await Hive.openBox('token');
+      if (token.isEmpty && token.get('token') == null) {
+        return false;
+      }
+      final userResponse =
+          await ParseUser.getCurrentUserFromServer(token.get('token'));
+      if (userResponse.success) {
+        return userResponse.results?.first != null;
+      }
+      return false;
     } catch (_) {
       throw ServerException();
     }
@@ -71,10 +87,15 @@ class AuthParseDataSource extends AuthDataSource {
       final user = ParseUser(username, password, email);
       final response = await user.login();
       if (response.success) {
+        final Box<String> token = await Hive.openBox('token');
+        token.put('token', (response.results.first as ParseUser).sessionToken);
         return UserParse.fromParseUser(response.result);
       }
-      throw ValidationException(response.error.message);
+      throw ValidationException(jsonDecode(
+          (response?.error?.exception as dynamic)?.response?.data)['error']);
     } on ValidationException catch (e) {
+      throw e;
+    } on DioError catch (e) {
       throw e;
     } catch (_) {
       throw ServerException();
@@ -117,6 +138,8 @@ class AuthParseDataSource extends AuthDataSource {
       ParseUser user = await ParseUser.currentUser();
       final result = await user.logout();
       if (result.success) {
+        final Box<String> token = await Hive.openBox('token');
+        token.clear();
         return;
       }
       throw ServerException();
@@ -132,6 +155,8 @@ class AuthParseDataSource extends AuthDataSource {
       user.set("token", base64.encode(utf8.encode(password)));
       final response = await user.signUp();
       if (response.success) {
+        final Box<String> token = await Hive.openBox('token');
+        token.put('token', (response.results.first as ParseUser).sessionToken);
         await userProfileRemoteDataSource.saveUserProfile(UserProfileParse(
           user: response.result,
           archiveMemoryCollection: MemoryCollectionParse(
@@ -145,7 +170,6 @@ class AuthParseDataSource extends AuthDataSource {
             name: 'Profile Pictures',
             mediaType: 'PHOTO',
             module: 'PROFILE_PICTURE',
-            mediaCount: 1,
             user: response.result as ParseUser,
           ),
         ));
@@ -207,6 +231,7 @@ class AuthParseDataSource extends AuthDataSource {
       String lastName,
       String email,
       String photoUrl}) async {
+    final Box<String> token = await Hive.openBox('token');
     ParseObject existingUser = await getUserFromEmail(
       email: email,
     );
@@ -241,12 +266,12 @@ class AuthParseDataSource extends AuthDataSource {
             name: 'Profile Pictures',
             mediaType: 'PHOTO',
             module: 'PROFILE_PICTURE',
-            mediaCount: 0,
             user: await ParseUser.currentUser(),
           ),
         ));
       }
       final userParse = UserParse.fromParseUser(response.result);
+      token.put('token', (response.results.first as ParseUser).sessionToken);
       return userParse;
     }
     throw ServerException();
@@ -256,7 +281,7 @@ class AuthParseDataSource extends AuthDataSource {
       FacebookLoginResult result) async {
     final token = result.accessToken.token;
     final graphResponse = await httpClient.get(
-        'https://graph.facebook.com/v2.12/me?fields=name,first_name,last_name,email&access_token=${token}');
+        'https://graph.facebook.com/v2.12/me?fields=name,first_name,last_name,email&access_token=$token');
     final profile = json.decode(graphResponse.body);
     return profile;
   }

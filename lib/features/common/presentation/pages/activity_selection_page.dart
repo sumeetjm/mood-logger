@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:mood_manager/features/common/domain/entities/base_states.dart';
 import 'package:mood_manager/features/common/presentation/widgets/choice_chip_group_selection.dart';
 import 'package:mood_manager/features/common/presentation/widgets/empty_widget.dart';
@@ -9,14 +10,19 @@ import 'package:mood_manager/features/metadata/domain/entities/m_activity.dart';
 import 'package:mood_manager/features/metadata/domain/entities/m_activity_type.dart';
 import 'package:mood_manager/features/metadata/presentation/bloc/activity_bloc.dart';
 import 'package:mood_manager/injection_container.dart';
+import 'package:parse_server_sdk/parse_server_sdk.dart';
+import '../../../../home.dart';
 
 // ignore: must_be_immutable
 class ActivitySelectionPage extends StatefulWidget {
   List<MActivity> selectedActivityList;
   ValueChanged<List<MActivity>> onChange;
 
-  ActivitySelectionPage({Key key, this.selectedActivityList, this.onChange})
-      : super(key: key);
+  ActivitySelectionPage({
+    Key key,
+    this.selectedActivityList,
+    this.onChange,
+  }) : super(key: key);
   @override
   State<StatefulWidget> createState() => _ActivitySelectionPageState();
 }
@@ -82,7 +88,7 @@ class _ActivitySelectionPageState extends State<ActivitySelectionPage> {
           IconButton(
               icon: Icon(Icons.done_rounded),
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.of(appNavigatorContext(context)).pop();
                 widget.onChange(widget.selectedActivityList);
               }),
           IconButton(
@@ -98,14 +104,19 @@ class _ActivitySelectionPageState extends State<ActivitySelectionPage> {
           if (state is ActivityListLoaded) {
             activityList = state.activityList;
           } else if (state is ActivityAdded) {
-            lastActivityAdded = state.activity;
-            activityList.add(lastActivityAdded);
-            if (!activityTypeList
-                .any((element) => element == lastActivityAdded.mActivityType)) {
-              activityTypeList.add(lastActivityAdded.mActivityType);
-            }
+            Fluttertoast.showToast(
+                gravity: ToastGravity.TOP,
+                msg: 'Added activity',
+                backgroundColor: Colors.green);
+            _activityListBloc.add(GetActivityListEvent());
+            _activityListBloc.add(GetActivityTypeListEvent());
           } else if (state is ActivityTypeListLoaded) {
             activityTypeList = state.activityTypeList;
+          } else if (state is ActivityError) {
+            Fluttertoast.showToast(
+                gravity: ToastGravity.TOP,
+                msg: state.message,
+                backgroundColor: Colors.red);
           }
           handleLoader(state, context);
         },
@@ -135,7 +146,10 @@ class _ActivitySelectionPageState extends State<ActivitySelectionPage> {
               label: (index, item) => item.activityName,
               group: (index, item) => item.mActivityType),
       groupLabel: (group) => group.activityTypeName,
-      initialValue: widget.selectedActivityList,
+      initialValue: widget.selectedActivityList ??
+          activityList
+              .where((element) => widget.selectedActivityList.contains(element))
+              .toList(),
       onChange: (activityList) {
         setState(() {
           widget.selectedActivityList = List.from(activityList);
@@ -223,14 +237,14 @@ class _ActivitySelectionPageState extends State<ActivitySelectionPage> {
                   ),
                 ),
                 actions: <Widget>[
-                  new FlatButton(
+                  new TextButton(
                     child: new Text('SUBMIT'),
                     onPressed: () {
                       if (_textFieldController.text.isNotEmpty &&
                           newActivityGroupType != null &&
                           newActivityGroupType.activityTypeName.isNotEmpty) {
                         addActivity();
-                        Navigator.pop(context);
+                        Navigator.pop(appNavigatorContext(context));
                       }
                     },
                   )
@@ -247,14 +261,17 @@ class _ActivitySelectionPageState extends State<ActivitySelectionPage> {
     super.dispose();
   }
 
-  addActivity() {
+  addActivity() async {
     final String newActivityName = _textFieldController.text;
+    newActivityGroupType.userPtr =
+        ((await ParseUser.currentUser()) as ParseObject).toPointer();
     _activityListBloc.add(AddActivityEvent(
         activity: MActivityParse(
-      activityName: newActivityName,
-      activityCode: newActivityName.replaceAll(" ", ""),
-      mActivityType: newActivityGroupType,
-    )));
+            activityName: newActivityName,
+            activityCode: newActivityName.replaceAll(" ", ""),
+            mActivityType: newActivityGroupType,
+            userPtr:
+                ((await ParseUser.currentUser()) as ParseObject).toPointer())));
     resetAddActivity();
   }
 

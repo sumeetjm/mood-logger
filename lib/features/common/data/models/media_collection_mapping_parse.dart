@@ -39,7 +39,7 @@ class MediaCollectionMappingParse extends MediaCollectionMapping
         id: ParseMixin.value('objectId', parseOptions),
         media:
             ParseMixin.value('media', parseOptions, transform: MediaParse.from),
-        collection: ParseMixin.value('collection', parseOptions,
+        collection: ParseMixin.value('mediaCollection', parseOptions,
             transform: MediaCollectionParse.from),
         isActive: ParseMixin.value('isActive', parseOptions));
   }
@@ -48,7 +48,7 @@ class MediaCollectionMappingParse extends MediaCollectionMapping
   Map<String, dynamic> get map => {
         'objectId': id,
         'media': media,
-        'collection': collection,
+        'mediaCollection': collection,
         'isActive': isActive,
       };
 }

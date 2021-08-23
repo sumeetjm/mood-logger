@@ -6,13 +6,17 @@ import '../../../../core/error/failures.dart';
 import '../../../../core/usecases/usecase.dart';
 
 class GetMediaCollectionList
-    implements UseCase<List<MediaCollection>, NoParams> {
+    implements UseCase<List<MediaCollection>, MultiParams> {
   final MemoryRepository repository;
 
   GetMediaCollectionList(this.repository);
 
   @override
-  Future<Either<Failure, List<MediaCollection>>> call(NoParams params) async {
-    return await repository.getMediaCollectionList(includeAll: true);
+  Future<Either<Failure, List<MediaCollection>>> call(
+      MultiParams params) async {
+    return await repository.getMediaCollectionList(
+        includeAll: true,
+        skipEmpty: params.param[0],
+        mediaType: params.param[1]);
   }
 }

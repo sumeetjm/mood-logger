@@ -11,10 +11,13 @@ class MActivityType extends Base {
   String activityTypeName;
   @HiveField(4)
   String activityTypeCode;
+  @HiveField(5)
+  Map userPtr;
   MActivityType({
     String activityTypeId,
     @required this.activityTypeName,
     @required this.activityTypeCode,
+    @required this.userPtr,
     bool isActive = true,
   }) : super(
           id: activityTypeId,
@@ -24,5 +27,5 @@ class MActivityType extends Base {
 
   @override
   List<Object> get props =>
-      [...super.props, activityTypeName, activityTypeCode];
+      [...super.props, activityTypeName, activityTypeCode, userPtr];
 }

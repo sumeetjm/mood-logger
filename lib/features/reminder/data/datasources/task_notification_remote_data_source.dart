@@ -14,6 +14,13 @@ import 'package:timezone/timezone.dart' as tz;
 abstract class TaskNotificationRemoteDataSource {
   Future<void> scheduleTaskNotification(Task task);
   Future<void> cancelTaskNotification(int notificationId);
+  Future<TaskNotificationMapping>
+      getTaskNotificationMappingByNotificationmappingId(
+          String notificationMappingId);
+  Future<List<TaskNotificationMapping>>
+      getTaskNotificationMappingByNotifyDateTime(DateTime notifyDateTime);
+  Future<void> scheduleTimedTaskNotification(
+      TaskNotificationMapping taskNotificationMapping);
 }
 
 class TaskNotificationRemoteDataSourceImpl
@@ -27,20 +34,16 @@ class TaskNotificationRemoteDataSourceImpl
     this.locationFuture,
   });
 
-  Future<void> scheduleTimedNotification(
-      DateTime notifyTime, int notificationId, Task task) async {
+  Future<void> scheduleTimedNotification(DateTime notifyTime,
+      int notificationId, Task task, String notificationMappingId) async {
     final scheduledDate = tz.TZDateTime.from(notifyTime, await locationFuture);
     if (DateTime.now().isBefore(notifyTime)) {
-      return await flutterLocalNotificationsPlugin.zonedSchedule(
-        notificationId,
-        task.title,
-        task.note,
-        scheduledDate,
-        notificationDetails,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
-        androidAllowWhileIdle: true,
-      );
+      return await flutterLocalNotificationsPlugin.zonedSchedule(notificationId,
+          task.title, task.note, scheduledDate, notificationDetails,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+          androidAllowWhileIdle: true,
+          payload: notificationMappingId);
     }
   }
 
@@ -83,14 +86,32 @@ class TaskNotificationRemoteDataSourceImpl
           final notificationId = response.count + 1;
           response = await cast<TaskNotificationMappingParse>(
                   TaskNotificationMappingParse(
-                      localNotificationId: notificationId,
+                      localNotificationId:
+                          notifyDateTime.millisecondsSinceEpoch ~/ 1000,
                       notifyDateTime: notifyDateTime,
                       task: task))
               .toParse(pointerKeys: ['task']).save();
-          await scheduleTimedNotification(notifyDateTime, notificationId, task);
+          await scheduleTimedNotification(notifyDateTime, notificationId, task,
+              response.results.first.get('objectId'));
         }
       }
     }
+  }
+
+  @override
+  Future<void> scheduleTimedTaskNotification(
+      TaskNotificationMapping taskNotificationMapping) async {
+    final queryBuilder = QueryBuilder.name('taskNotificationMapping')..count();
+    ParseResponse response = await queryBuilder.query();
+    final notificationId = response.count + 1;
+    response = await cast<TaskNotificationMappingParse>(taskNotificationMapping)
+        .toParse(pointerKeys: ['task']).save();
+
+    await scheduleTimedNotification(
+        taskNotificationMapping.notifyDateTime,
+        notificationId,
+        taskNotificationMapping.task,
+        response.results.first.get('objectId'));
   }
 
   @override
@@ -131,6 +152,43 @@ class TaskNotificationRemoteDataSourceImpl
       return TaskNotificationMappingParse.from(response.results?.first,
           cacheData: TaskNotificationMappingParse(task: task),
           cacheKeys: ['task']);
+    } else {
+      throw ServerException();
+    }
+  }
+
+  @override
+  Future<List<TaskNotificationMapping>>
+      getTaskNotificationMappingByNotifyDateTime(
+          DateTime notifyDateTime) async {
+    QueryBuilder<ParseObject> queryBuilder =
+        QueryBuilder<ParseObject>(ParseObject('taskNotificationMapping'))
+          ..whereEqualTo('isActive', true)
+          ..whereLessThanOrEqualTo('notifyDateTime', notifyDateTime.toUtc())
+          ..whereGreaterThan('notifyDateTime',
+              notifyDateTime.subtract(Duration(minutes: 1)).toUtc())
+          ..includeObject(['task', 'task.mActivity', 'task.taskRepeat']);
+    final ParseResponse response = await queryBuilder.query();
+    if (response.success) {
+      return ParseMixin.listFrom(
+          response.results ?? [], TaskNotificationMappingParse.from);
+    } else {
+      throw ServerException();
+    }
+  }
+
+  @override
+  Future<TaskNotificationMapping>
+      getTaskNotificationMappingByNotificationmappingId(
+          String notificationMappingId) async {
+    QueryBuilder<ParseObject> queryBuilder =
+        QueryBuilder<ParseObject>(ParseObject('taskNotificationMapping'))
+          ..whereEqualTo('isActive', true)
+          ..whereEqualTo('objectId', notificationMappingId)
+          ..includeObject(['task', 'task.mActivity', 'task.taskRepeat']);
+    final ParseResponse response = await queryBuilder.query();
+    if (response.success) {
+      return TaskNotificationMappingParse.from(response.results?.first);
     } else {
       throw ServerException();
     }

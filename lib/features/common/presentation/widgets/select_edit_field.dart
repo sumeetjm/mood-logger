@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:searchable_dropdown/searchable_dropdown.dart';
 
+// ignore: must_be_immutable
 class SelectEditField<T> extends StatefulWidget {
   SelectEditField({
     Key key,

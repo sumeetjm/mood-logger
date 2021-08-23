@@ -3,10 +3,12 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 class ShadowText extends StatelessWidget {
-  ShadowText(this.data, {this.style}) : assert(data != null);
+  ShadowText(this.data, {this.style, this.shadowColor = Colors.black})
+      : assert(data != null);
 
   final String data;
   final TextStyle style;
+  final Color shadowColor;
 
   Widget build(BuildContext context) {
     return new ClipRect(
@@ -17,7 +19,7 @@ class ShadowText extends StatelessWidget {
             left: 2.0,
             child: new Text(
               data,
-              style: style.copyWith(color: Colors.black.withOpacity(0.5)),
+              style: style.copyWith(color: shadowColor.withOpacity(0.5)),
             ),
           ),
           new Text(data, style: style),

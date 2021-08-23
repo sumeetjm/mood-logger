@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class AboutPage extends StatefulWidget {
@@ -14,6 +15,14 @@ class _AboutPageState extends State<AboutPage> {
         title: Text('About'),
       ),
       body: ListView(
+          children: AnimationConfiguration.toStaggeredList(
+        duration: const Duration(milliseconds: 375),
+        childAnimationBuilder: (widget) => SlideAnimation(
+          horizontalOffset: 50.0,
+          child: FadeInAnimation(
+            child: widget,
+          ),
+        ),
         children: [
           ListTile(
             title: Text('Help'),
@@ -72,7 +81,7 @@ class _AboutPageState extends State<AboutPage> {
             height: 3,
           ),
         ],
-      ),
+      )),
     );
   }
 
@@ -82,7 +91,7 @@ class _AboutPageState extends State<AboutPage> {
         url,
         forceSafariVC: false,
         forceWebView: false,
-        headers: <String, String>{'my_header_key': 'my_header_value'},
+        headers: <String, String>{},
       );
     } else {
       throw 'Could not launch $url';

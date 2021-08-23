@@ -22,7 +22,9 @@ class MediaCollectionAdapter extends TypeAdapter<MediaCollection> {
       code: fields[5] as String,
       module: fields[6] as String,
       mediaType: fields[3] as String,
-      mediaCount: fields[7] as int,
+      imageCount: fields[7] as int,
+      videoCount: fields[8] as int,
+      mediaCount: fields[9] as int,
       isActive: fields[1] as bool,
     );
   }
@@ -40,6 +42,10 @@ class MediaCollectionAdapter extends TypeAdapter<MediaCollection> {
       ..writeByte(6)
       ..write(obj.module)
       ..writeByte(7)
+      ..write(obj.imageCount)
+      ..writeByte(8)
+      ..write(obj.videoCount)
+      ..writeByte(9)
       ..write(obj.mediaCount)
       ..writeByte(0)
       ..write(obj.id)

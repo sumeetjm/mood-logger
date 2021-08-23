@@ -1,6 +1,5 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mood_manager/auth.dart';
 import 'package:mood_manager/features/auth/presentation/bloc/authentication_bloc.dart';
@@ -23,6 +22,7 @@ import 'package:mood_manager/features/reminder/domain/entities/task_repeat.dart'
 import 'package:mood_manager/home.dart';
 import 'package:parse_server_sdk/parse_server_sdk.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
 import 'injection_container.dart' as di;
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:hive/hive.dart';
@@ -36,6 +36,9 @@ const String LIVE_QUERY_URL = 'https://moodmanager.back4app.io';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setPreferredOrientations(
+      [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
+
   await di.init();
 
   await Parse().initialize(
@@ -72,8 +75,8 @@ void main() async {
 
   EasyLoading.instance
     ..displayDuration = const Duration(milliseconds: 2000)
-    ..indicatorType = EasyLoadingIndicatorType.fadingCircle
-    ..loadingStyle = EasyLoadingStyle.dark
+    ..indicatorType = EasyLoadingIndicatorType.dualRing
+    ..loadingStyle = EasyLoadingStyle.light
     ..indicatorSize = 45.0
     ..radius = 10.0
     ..progressColor = Colors.yellow
@@ -82,8 +85,8 @@ void main() async {
     ..textColor = Colors.yellow
     ..maskColor = Colors.blue.withOpacity(0.5)
     ..userInteractions = false
-    ..dismissOnTap = false
-    ..customAnimation = CustomAnimation();
+    ..dismissOnTap = false;
+  //..customAnimation = CustomAnimation();
 
   initializeDateFormatting().then((_) => runApp(MyApp()));
 }
@@ -94,6 +97,7 @@ class MyApp extends StatefulWidget {
 }
 
 class MyAppState extends State<MyApp> {
+  GlobalKey<HomeState> homeKey = GlobalKey();
   AuthenticationBloc _authenticationBloc;
   @override
   void initState() {
@@ -112,7 +116,11 @@ class MyAppState extends State<MyApp> {
           if (state is Unauthenticated) {
             return AuthApp();
           } else if (state is Authenticated) {
-            return Home();
+            return MultiProvider(
+                providers: [Provider.value(value: homeKey)],
+                child: Home(
+                  key: homeKey,
+                ));
           } else {
             return MaterialApp(
               home: SplashPage(),
@@ -125,7 +133,6 @@ class MyAppState extends State<MyApp> {
 
   @override
   void dispose() {
-    _authenticationBloc.close();
     super.dispose();
   }
 }

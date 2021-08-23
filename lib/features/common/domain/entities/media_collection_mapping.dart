@@ -21,10 +21,9 @@ class MediaCollectionMapping extends Base {
   }) : super(
           id: id,
           isActive: isActive,
-          className: 'mediaCollection',
+          className: 'mediaCollectionMapping',
         );
 
   @override
-  // TODO: implement props
   List<Object> get props => [...super.props, media, collection];
 }
