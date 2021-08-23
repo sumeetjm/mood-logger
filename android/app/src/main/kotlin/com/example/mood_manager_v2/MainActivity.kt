@@ -1,4 +1,4 @@
-package com.mindframe.mood_manager
+package com.mindfusion.moodlogger
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -1,4 +1,4 @@
-# mood_manager
+# moodlogger
 
 A new Flutter project.
 
